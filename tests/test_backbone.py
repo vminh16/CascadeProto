@@ -1,0 +1,70 @@
+"""
+Unit test for VIP-Seg Backbone and Point Prototype Extraction.
+Verifies:
+1. Feature extraction shape [B, N, 128] from input points [B, N, 3].
+2. Point prototype extraction [B, N_way + 1, 128].
+3. Gating network softmax simplex sum(w_gate) == 1.0.
+4. Zero NaNs and device agnosticism (CPU & CUDA).
+"""
+
+import pytest
+import torch
+from models.vipseg_backbone import VIPSegBackbone, extract_point_prototypes, GatingNetwork
+
+
+def test_vipseg_backbone_forward_cpu():
+    backbone = VIPSegBackbone(input_points=2048, out_dim=128)
+    backbone.eval()
+    
+    # Input synthetic point cloud coordinates [B, N, 3]
+    x = torch.randn(2, 2048, 3)
+    with torch.no_grad():
+        feat = backbone(x)
+        
+    assert feat.shape == (2, 2048, 128), f"Expected (2, 2048, 128), got {feat.shape}"
+    assert not torch.isnan(feat).any(), "Found NaNs in backbone features!"
+    assert not torch.isinf(feat).any(), "Found Infs in backbone features!"
+
+
+def test_point_prototype_extraction():
+    B = 2
+    n_way = 2
+    total_pts = 2048
+    D = 128
+    
+    features = torch.randn(B, total_pts, D)
+    # Mask with background (0), class 1, class 2
+    masks = torch.zeros(B, total_pts, dtype=torch.long)
+    masks[:, :500] = 1
+    masks[:, 500:1000] = 2
+    
+    p_point = extract_point_prototypes(features, masks, n_way=n_way)
+    assert p_point.shape == (B, n_way + 1, D), f"Expected ({B}, {n_way + 1}, {D}), got {p_point.shape}"
+    assert not torch.isnan(p_point).any(), "Found NaNs in extracted prototypes!"
+
+
+def test_gating_network_simplex():
+    B = 2
+    num_stages = 4
+    D = 128
+    
+    gating = GatingNetwork(input_dim=D, num_stages=num_stages)
+    query_feat = torch.randn(B, 2048, D)
+    
+    w_gate = gating(query_feat)
+    assert w_gate.shape == (B, num_stages), f"Expected ({B}, {num_stages}), got {w_gate.shape}"
+    assert torch.all(w_gate >= 0.0), "Gating weights must be non-negative"
+    assert torch.allclose(w_gate.sum(dim=-1), torch.ones(B, dtype=w_gate.dtype), atol=1e-6), "Gating weights must sum to 1.0"
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
+def test_vipseg_backbone_cuda():
+    backbone = VIPSegBackbone(input_points=2048, out_dim=128).cuda()
+    backbone.eval()
+    
+    x = torch.randn(2, 2048, 3, device="cuda")
+    with torch.no_grad():
+        feat = backbone(x)
+        
+    assert feat.shape == (2, 2048, 128)
+    assert not torch.isnan(feat).any()
