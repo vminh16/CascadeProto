@@ -1,1 +1,37 @@
-.venv
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest / testing cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# PyTorch / checkpoints / weights
+*.pt
+*.pth
+*.tar
+*.ckpt
+checkpoints/
+logs/
+log_*/
+runs/
+
+# Datasets and preprocessing artifacts
+data/
+datasets/
+*.npy
+*.pkl
+*.sens
+
+# OS / Editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
