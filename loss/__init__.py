@@ -1,3 +1,20 @@
-from loss.gmmn_loss import DecoupledGMMNLoss, multi_scale_rbf_kernel, pairwise_sq_distance, compute_mmd
+"""CascadeProto loss package."""
 
-__all__ = ['DecoupledGMMNLoss', 'multi_scale_rbf_kernel', 'pairwise_sq_distance', 'compute_mmd']
+from loss.gmmn_loss import (
+    pairwise_sq_distance,
+    multi_scale_rbf_kernel,
+    compute_mmd_squared,
+    compute_mmd,
+    DecoupledGMMNLoss,
+)
+from loss.segmentation_loss import SegmentationLoss, CascadeProtoLoss
+
+__all__ = [
+    "pairwise_sq_distance",
+    "multi_scale_rbf_kernel",
+    "compute_mmd_squared",
+    "compute_mmd",
+    "DecoupledGMMNLoss",
+    "SegmentationLoss",
+    "CascadeProtoLoss",
+]

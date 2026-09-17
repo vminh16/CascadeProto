@@ -18,6 +18,8 @@ from models.eppm import (
     EPPMStage,
     EPPMCascade
 )
+from models.adrm import AttentionDynamicRouting
+from models.cascadeproto import CascadeProto, CascadeProtoForwardOutput
 
 __all__ = [
     "VIPSegBackbone",
@@ -36,4 +38,7 @@ __all__ = [
     "AdaptiveFusionRecalibration",
     "EPPMStage",
     "EPPMCascade",
+    "AttentionDynamicRouting",
+    "CascadeProto",
+    "CascadeProtoForwardOutput",
 ]
