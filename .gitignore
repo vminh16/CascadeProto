@@ -21,7 +21,6 @@ htmlcov/
 checkpoints/
 logs/
 log_*/
-runs/
 
 # Datasets and preprocessing artifacts
 data/
