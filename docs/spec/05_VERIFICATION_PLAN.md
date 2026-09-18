@@ -40,7 +40,7 @@ Markers `cuda`, `clip`, `data` are registered in `pytest.ini`. ENV-3 and ENV-4 c
 | ID | Check | Source |
 | :--- | :--- | :--- |
 | ENV-1 | `import mamba_ssm`, `import pointnet2_ops`, `import clip`, `import h5py`, `import transforms3d`, `import timm` succeed (marker `cuda`) | 01 §2.1, 04 §4 |
-| ENV-2 | `torch.cuda.is_available()`; the GPU's `sm_XY` is in `torch.cuda.get_arch_list()`; `furthest_point_sample` and a `Mamba` forward run on it (marker `cuda`) | [PAPER §4.1 "single NVIDIA RTX 5090"] |
+| ENV-2 | `torch.cuda.is_available()`; `torch.cuda.get_arch_list()` holds a kernel that runs on the GPU (same-major `sm_` with lower or equal minor, or older `compute_` PTX); `furthest_point_sample` and a `Mamba` forward run on it (marker `cuda`) | [PAPER §4.1 "single NVIDIA RTX 5090"] |
 | ENV-3 | Inherited files are byte-identical to the pinned VIP-Seg commit: `dataloaders/{loader,s3dis,scannet}.py`, `preprocess/{collect_s3dis_data,collect_scannet_data,room2blocks}.py`, `utils/{checkpoint_util,cuda_util,logger}.py`, `models/{encoder,mamba_block,model_utils,vipseg,vipseg_learner}.py`, `runs/{training_free,training,evaluate}.py`, `main.py` (git blob SHA-1 of the CRLF-normalised file, compared with the pinned tree) | 04 header, [00 §5.2](00_SOURCES_AND_DECISIONS.md) |
 | ENV-4 | `models/encoder.py` contains no fallback block and imports `mamba_ssm` unconditionally | 01 §2.1 |
 

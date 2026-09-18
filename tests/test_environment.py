@@ -72,10 +72,16 @@ def test_env1_required_packages_import(module):
 def test_env2_cuda_runs_extensions_on_this_gpu():
     assert torch.cuda.is_available(), "CUDA is not available"
     major, minor = torch.cuda.get_device_capability(0)
-    arch = f"sm_{major}{minor}"
-    assert arch in torch.cuda.get_arch_list(), (
-        f"torch {torch.__version__} has no kernels for {torch.cuda.get_device_name(0)} ({arch}); "
-        f"built for {torch.cuda.get_arch_list()}"
+    # A cubin built for sm_XY runs on any GPU of the same major version with minor >= Y
+    # (e.g. sm_86 kernels on an L4, sm_89); PTX (compute_XY) is JIT-compiled for any newer GPU.
+    runnable = [
+        a for a in torch.cuda.get_arch_list()
+        if (a.startswith("sm_") and int(a[3:-1]) == major and int(a[-1]) <= minor)
+        or (a.startswith("compute_") and (int(a[8:-1]), int(a[-1])) <= (major, minor))
+    ]
+    assert runnable, (
+        f"torch {torch.__version__} has no kernels for {torch.cuda.get_device_name(0)} "
+        f"(sm_{major}{minor}); built for {torch.cuda.get_arch_list()}"
     )
 
     from mamba_ssm.modules.mamba_simple import Mamba

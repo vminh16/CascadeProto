@@ -23,7 +23,7 @@
 # triton, mamba-ssm, causal-conv1d and pointnet2_ops are deliberately not listed
 # here: they must match the local CUDA toolkit and are installed by the steps above.
 
-# Pinned so that CLIP (which requires torch and torchvision) cannot upgrade the CUDA build of step 1.
+# Pinned so that CLIP and mamba-ssm (which require torch) cannot replace the CUDA build of step 1.
 torch==2.7.1
 torchvision==0.22.1
 numpy==1.24.4            # [VIPSEG requirements.txt] numpy==1.24
@@ -31,6 +31,8 @@ h5py                     # dataloaders (ScanNet/S3DIS blocks)
 transforms3d             # dataloaders/loader.py augmentation
 timm                     # models/mamba_block.py DropPath
 einops                   # mamba_ssm
+transformers==4.57.1     # mamba_ssm/__init__ imports GreedySearchDecoderOnlyOutput, removed in 5.0;
+                         # VIP-Seg pins 4.31 [VIPSEG requirements.txt]
 tensorboard              # runs/training.py
 plyfile                  # preprocess/collect_scannet_data.py
 requests                 # preprocess/download_and_prepare_s3dis.py
