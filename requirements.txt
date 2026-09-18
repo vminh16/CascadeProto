@@ -5,7 +5,9 @@
 #      Python 3.9):
 #        pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
 #   2. pip install -r requirements.txt
-#   3. CUDA extensions, built against the installed torch (no fallback exists):
+#   3. CUDA extensions, built against the installed torch (no fallback exists). With
+#      --no-build-isolation their setup.py imports wheel, packaging and ninja from this env:
+#        pip install -U pip setuptools wheel packaging ninja
 #        pip install --no-build-isolation causal-conv1d==1.5.3.post1 mamba-ssm==2.2.6.post3
 #        pip install --no-build-isolation ./pointnet2_ops_lib
 #      VIP-Seg vendors mamba_ssm 2.0.4 [VIPSEG mamba/mamba_ssm/__init__.py:1]; 2.0.4 predates

@@ -59,6 +59,7 @@ Exact formulas, shapes and the interpretation of ambiguous equations are in the 
   ```bash
   pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
   pip install -r requirements.txt
+  pip install -U pip setuptools wheel packaging ninja   # build tools for --no-build-isolation
   pip install --no-build-isolation causal-conv1d==1.5.3.post1 mamba-ssm==2.2.6.post3
   pip install --no-build-isolation ./pointnet2_ops_lib
   pytest tests/test_environment.py -v   # gate G0
