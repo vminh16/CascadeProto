@@ -179,6 +179,8 @@ Before DATA-0…4, `python preprocess/verify_s3dis.py` compares the prepared blo
 
 Evaluate VIP-Seg's released checkpoint `log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/checkpoint.pt` with this repository's data and evaluation code: `python eval.py --model vipseg --checkpoint <file> ...` (README §5). Reference: mean IoU 0.722026 on 1,500 test episodes [VIPSEG log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/log_vipseg_eval.txt:1-9]. The test episodes are sampled when the `.h5` cache is first built, so a local run uses different episodes and will not match exactly; no tolerance has been measured yet. Record the value; a gap of several points indicates that the data layout, loader arguments or metric differ from VIP-Seg, in which case CascadeProto numbers would not be comparable either.
 
+**Result (2026-09-18, GCP L4):** 0.719687 on this repository's 1,500 S0 2-way 1-shot test episodes, against 0.722026 in VIP-Seg's log and 72.20 in [PAPER Tab.6] (−0.23 points, with independently sampled episodes).
+
 ---
 
 ## 5. Reproduction targets (G5)
