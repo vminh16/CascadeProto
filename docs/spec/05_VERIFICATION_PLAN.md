@@ -63,6 +63,23 @@ Fixture: `F^s ∈ [N=3, K=2, 2048, 128]` random, binary masks with different for
 
 All PROTO checks run in float64 with tolerance 1e-12. Mutation check (2026-09-18): six wrong variants (per-shot means, per-way background means, L2 normalisation, background from one way, audit C2's flattened ways, zero empty background) each fail at least one test.
 
+### 3.2b `tests/test_feature_extractor.py` (G1)
+
+The VIP-Seg encoder is replaced by per-point stand-ins with its contract (`[B, 2048, 9] → [B, 900, 2048]`); float64, tolerance 1e-12.
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| FEAT-1 | Head = `BN(900), ReLU, Conv(900→196), BN, ReLU, Conv(196→128), BN, ReLU`, no in-place ReLU, 204,260 parameters | [VIPSEG models/vipseg.py:45-53] |
+| FEAT-2 | Output equals the formula written out with `F.batch_norm`/`F.conv1d` in eval mode; all entries ≥ 0 | 02 §2 |
+| FEAT-3 | Invariant to any positive per-point scale of the encoder output (channel L2 norm per point) | [VIPSEG models/vipseg.py:86] |
+| FEAT-4 | `encode_episode` keeps way and shot order: `F^s[n,k]` equals encoding block `(n,k)` alone | 02 §2 |
+| FEAT-5 | In training mode the support blocks and the queries are separate BatchNorm batches | [VIPSEG models/vipseg.py:79-89] |
+| FEAT-6 | Wrong layouts (3 channels, 4096 points, channels-first, 2-D, 4-D) and a wrong encoder output raise | 01 §2.1 |
+| FEAT-7 | Gradients reach every encoder and head parameter | 02 §2 |
+| FEAT-8 | Fixed projections are saved and restored by `state_dict`; `load_vipseg_weights` copies them from plain attributes and refuses a different encoder | [VIPSEG models/encoder.py:619-620] |
+
+Mutation check (2026-09-18): twelve wrong variants (no or wrong-axis L2 norm, in-place ReLU, missing final ReLU, head order, hidden width, swapped way/shot order, joint support–query batch, no input check, no projection buffers, projections not copied, non-strict loading) each fail at least one test.
+
 ### 3.3 `tests/test_lma_gmmn.py` (G1)
 
 | ID | Check | Source |
@@ -143,6 +160,11 @@ The metric is VIP-Seg's `evaluate_metric`, called unchanged; its module imports 
 | ENC-3 | **Block independence:** in `eval()` mode, features of support block 0 do not change when other blocks in the batch change | 02 §2 |
 | ENC-4 | **Query independence:** same property across queries | 02 §2 |
 | ENC-5 | Input uses 9 channels; passing 3 channels raises | 01 §2.1 |
+| ENC-6 | With VIP-Seg's released weights (`load_vipseg_weights`), features equal VIP-Seg's own encoder → L2 norm → `bn` → `fc` path to 1e-6 | [VIPSEG models/vipseg.py:85-97] |
+| ENC-7 | `encode_episode` equals per-block calls (support to 1e-5, queries exactly) | 02 §2 |
+| ENC-8 | A `state_dict` holds the 6 fixed projections; a fresh model differs until it loads them, then matches exactly | 01 §2.1 |
+
+ENC-1 and ENC-6 need VIP-Seg's checkpoint at `$CASCADEPROTO_VIPSEG_CKPT` (default `<repo>/vipseg_S0_N2_K1.pt`); a missing file fails the test.
 
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 

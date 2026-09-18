@@ -70,6 +70,8 @@ Sources for the diagram: [PAPER Fig.1] [PAPER Eq.2–9] [PAPER Eq.22–27] [DECI
 | Initialisation | From scratch; no pre-trained point-cloud weights | [PAPER Tab.1] [PAPER §1 "requires no pre-training"] [VIPSEG README.md] |
 | Mamba | `mamba_ssm` is **required**. Import failure must stop the program; no fallback block | [VIPSEG models/encoder.py:22-23] [PAPER §4.1] |
 | FPS | `pointnet2_ops` CUDA furthest-point sampling | [VIPSEG models/encoder.py:81] |
+| Fixed projections | `vv`, `ww` = `torch.randn(1, 5000)`, drawn once at construction and shared by every low-/high-order convolution; they are plain attributes, not in a `state_dict`. VIP-Seg keeps them by pickling the whole model. `PointFeatureExtractor` registers them as buffers so saved checkpoints carry them; a VIP-Seg checkpoint is loaded with `load_vipseg_weights`, which copies them | [VIPSEG models/encoder.py:619-620,226,311] [VIPSEG runs/training.py:93-96] |
+| Implementation | `models/vipseg_backbone.py::PointFeatureExtractor`; `encode_episode` encodes the N·K support blocks as one batch and the queries as another | [VIPSEG models/vipseg.py:79-97] |
 | Output | `F^s [N,K,2048,128]`, `F^q [B_q,2048,128]`, all entries ≥ 0 | 02 §2 |
 
 ### 2.2 Point prototype extraction

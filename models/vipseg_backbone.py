@@ -1,148 +1,98 @@
-"""
-VIP-Seg Backbone and Point Prototype Extraction for CascadeProto.
-Implements:
-1. Shared VIP-Seg Encoder mapping point clouds to dense geometric features D = 128.
-2. Point-based Prototype Extraction (Module B from 01_ARCHITECTURE_SPEC.md).
+"""Shared point feature extractor: VIP-Seg encoder + feature head (Eq.2, spec 01 §2.1, 02 §2).
 
-Reference:
-- 01_ARCHITECTURE_SPEC.md (Sections 2 & 4)
-- 02_TENSOR_MATH_SPEC.md (Sections 1 & 2)
+Layers, names and order follow VIP-Seg exactly [VIPSEG models/vipseg.py:34-53,79-97], so the
+`encoder.*`, `bn.*` and `fc.*` weights of a VIP-Seg checkpoint load with strict=True (test ENC-6).
 """
+
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from models.encoder import Encoder
+
+NUM_POINT = 2048
+IN_CHANNELS = 9  # xyz, rgb, XYZ; the encoder reads rgb (3-5) and XYZ (6-8) [VIPSEG models/encoder.py:645]
+ENCODER_DIM = 900
+FEATURE_DIM = 128  # D [PAPER §4.1]
+
+# [VIPSEG models/vipseg.py:34-43]
+ENCODER_CONFIG = dict(input_points=NUM_POINT, num_stages=3, embed_dim=60, k_neighbors=16, de_neighbors=10,
+                      alpha=1000, beta=30, num_experts=3)
+
+# Fixed random projections of the encoder's positional encodings: `vv = torch.randn(1, 5000)` and
+# `ww = torch.randn(1, 5000)`, drawn once and shared by every low-/high-order convolution
+# [VIPSEG models/encoder.py:619-620,226,311]. They are plain attributes, so a state_dict would not
+# store them and a reloaded model would draw new ones. VIP-Seg avoids this by pickling the whole
+# model [VIPSEG runs/training.py:93-96]; here they become buffers instead.
+FIXED_PROJECTIONS = ("vv", "ww")
 
 
-class VIPSegBackbone(nn.Module):
+def persist_fixed_projections(encoder: nn.Module) -> None:
+    """Turn the plain-tensor attributes vv / ww of every submodule into buffers (same values)."""
+    for module in encoder.modules():
+        for name in FIXED_PROJECTIONS:
+            value = module.__dict__.get(name)
+            if isinstance(value, torch.Tensor):
+                del module.__dict__[name]
+                module.register_buffer(name, value)
+
+
+def fixed_projections_of(model: nn.Module, prefix: str) -> dict:
+    """{state_dict key: tensor} for vv / ww stored as plain attributes (e.g. a pickled VIP-Seg model)."""
+    found = {}
+    for path, module in model.named_modules():
+        for name in FIXED_PROJECTIONS:
+            value = module.__dict__.get(name)
+            if isinstance(value, torch.Tensor):
+                found[".".join(p for p in (prefix, path, name) if p)] = value
+    return found
+
+
+class PointFeatureExtractor(nn.Module):
+    """f_enc: [B, 2048, 9] -> [B, 2048, 128], every block encoded as its own sample.
+
+    `encoder` defaults to the VIP-Seg encoder (needs mamba_ssm and pointnet2_ops, raises if they are
+    missing). Tests on CPU pass a stand-in with the same contract: [B, 2048, 9] -> [B, 900, 2048].
     """
-    Shared VIP-Seg Point Cloud Backbone Encoder.
-    Produces feature representations of dimension D = 128 from raw 3D coordinates.
-    """
-    def __init__(self, input_points: int = 2048, out_dim: int = 128):
+
+    def __init__(self, encoder: Optional[nn.Module] = None):
         super().__init__()
-        self.input_points = input_points
-        self.out_dim = out_dim
-        
-        # Encoder consists of 3 stages of DyPowerConv + Mamba/Transformer blocks
-        self.encoder = Encoder(
-            input_points=input_points,
-            num_stages=3,
-            embed_dim=60,
-            k_neighbors=16,
-            de_neighbors=10,
-            alpha=1000,
-            beta=30,
-            num_experts=3,
-        )
-        
-        # Projection head to D = 128
-        self.Dim = 900
-        self.bn = nn.Sequential(
-            nn.BatchNorm1d(self.Dim),
-            nn.ReLU(inplace=True),
-        )
-        self.fc = nn.Sequential(
-            nn.Conv1d(self.Dim, 196, 1),
-            nn.BatchNorm1d(196),
-            nn.ReLU(inplace=True),
-            nn.Conv1d(196, out_dim, 1),
-            nn.BatchNorm1d(out_dim),
-            nn.ReLU(inplace=True),
-        )
+        if encoder is None:
+            from models.encoder import Encoder
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+            encoder = Encoder(**ENCODER_CONFIG)
+        persist_fixed_projections(encoder)
+        self.encoder = encoder
+        # [VIPSEG models/vipseg.py:45-53]
+        self.bn = nn.Sequential(nn.BatchNorm1d(ENCODER_DIM), nn.ReLU())
+        self.fc = nn.Sequential(nn.Conv1d(ENCODER_DIM, 196, 1), nn.BatchNorm1d(196), nn.ReLU(),
+                                nn.Conv1d(196, FEATURE_DIM, 1), nn.BatchNorm1d(FEATURE_DIM), nn.ReLU())
+
+    def forward(self, points: torch.Tensor) -> torch.Tensor:
+        if points.dim() != 3 or points.shape[1:] != (NUM_POINT, IN_CHANNELS):
+            raise ValueError(f"points must be [B, {NUM_POINT}, {IN_CHANNELS}], got {tuple(points.shape)}")
+        feat = self.encoder(points)  # [B, 900, 2048]
+        if feat.shape != (points.shape[0], ENCODER_DIM, NUM_POINT):
+            raise ValueError(f"encoder output {tuple(feat.shape)} != {(points.shape[0], ENCODER_DIM, NUM_POINT)}")
+        feat = feat / feat.norm(dim=1, keepdim=True)  # [B, 900, 2048], unit norm per point [VIPSEG models/vipseg.py:86]
+        feat = self.fc(self.bn(feat))  # [B, 128, 2048] [VIPSEG models/vipseg.py:91-97]
+        return feat.transpose(1, 2)  # [B, 2048, 128]
+
+    def load_vipseg_weights(self, vipseg_model: nn.Module) -> None:
+        """Copy encoder, feature head and fixed projections from a pickled VIP-Seg model (strict)."""
+        state = {k: v for k, v in vipseg_model.state_dict().items() if k.split(".")[0] in ("encoder", "bn", "fc")}
+        state.update(fixed_projections_of(vipseg_model.encoder, "encoder"))
+        self.load_state_dict(state, strict=True)
+
+    def encode_episode(self, support_x: torch.Tensor, query_x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """F^s [N, K, 2048, 128] and F^q [B_q, 2048, 128] (02 §2).
+
+        The N·K support blocks form one batch and the queries another, as in VIP-Seg
+        [VIPSEG models/vipseg.py:79-89]; flatten/unflatten only merge the independent way and shot
+        axes into the batch axis and restore them in the same order.
         """
-        Extract dense geometric features from point cloud.
-        Args:
-            x: Input point cloud tensor of shape [B, N, C] or [B, C, N].
-               If C == 3 (xyz), it is padded to 9 channels (xyz + rgb + normalized XYZ).
-        Returns:
-            features: [B, N, D] where D = 128.
-        """
-        # Ensure x is [B, N, C]
-        if x.dim() == 3 and x.shape[1] < x.shape[2] and x.shape[1] in (3, 6, 9):
-            x = x.permute(0, 2, 1)
-
-        B, N, C = x.shape
-        if C < 9:
-            # Pad with normalized coordinates and neutral colors if only xyz given
-            xyz = x[:, :, :3]
-            # Neutral RGB (zeros)
-            rgb = torch.zeros_like(xyz)
-            # Normalized coordinates [-1, 1]
-            xyz_min = xyz.min(dim=1, keepdim=True)[0]
-            xyz_max = xyz.max(dim=1, keepdim=True)[0]
-            xyz_norm = 2.0 * (xyz - xyz_min) / torch.clamp(xyz_max - xyz_min, min=1e-6) - 1.0
-            x = torch.cat([xyz, rgb, xyz_norm], dim=-1)
-
-        # Encoder forward: expects [B, N, 9] -> returns [B, Dim, N]
-        features = self.encoder(x)  # [B, 900, N]
-        features = features / torch.clamp(features.norm(dim=1, keepdim=True), min=1e-8)
-        
-        # BN + FC projection: [B, 900, N] -> [B, 128, N]
-        features = self.bn(features)
-        features = self.fc(features)  # [B, 128, N]
-        
-        # Permute to [B, N, D]
-        features = features.permute(0, 2, 1)  # [B, N, 128]
-        return features
-
-
-def extract_point_prototypes(
-    support_features: torch.Tensor,
-    support_masks: torch.Tensor,
-    n_way: int,
-) -> torch.Tensor:
-    """
-    Extract foreground and background point prototypes via Masked Average Pooling.
-    Args:
-        support_features: [B, N_s, D] or [N_way, K_shot, N_s, D] or [B, N_way * K_shot, N_s, D]
-        support_masks: [B, N_s] or [N_way, K_shot, N_s] binary masks (1 for target class, 0 for bg)
-        n_way: Number of foreground classes N
-    Returns:
-        P_point: [B, N + 1, D] where index 0 is background, indices 1..N are foreground classes.
-    """
-    # Normalize input shape to [B, num_support_points, D]
-    if support_features.dim() == 4:
-        # [N_way, K_shot, N_s, D]
-        nway, kshot, ns, D = support_features.shape
-        support_features = support_features.view(1, nway * kshot * ns, D)
-        support_masks = support_masks.view(1, nway * kshot * ns)
-    elif support_features.dim() == 3 and support_masks.dim() == 2:
-        pass
-    else:
-        raise ValueError(f"Unexpected shape for support_features: {support_features.shape}")
-
-    B, total_pts, D = support_features.shape
-    prototypes_batch = []
-
-    for b in range(B):
-        feat = support_features[b]  # [total_pts, D]
-        mask = support_masks[b]     # [total_pts]
-
-        proto_list = []
-        
-        # 1. Background Prototype (class 0: mask == 0)
-        bg_mask = (mask == 0)
-        if bg_mask.sum() > 0:
-            p_bg = feat[bg_mask].mean(dim=0, keepdim=True)  # [1, D]
-        else:
-            p_bg = torch.zeros(1, D, device=feat.device)
-        proto_list.append(p_bg)
-
-        # 2. Foreground Prototypes (classes 1..N)
-        for k in range(1, n_way + 1):
-            fg_mask = (mask == k)
-            if fg_mask.sum() > 0:
-                p_fg = feat[fg_mask].mean(dim=0, keepdim=True)  # [1, D]
-            else:
-                p_fg = torch.zeros(1, D, device=feat.device)
-            proto_list.append(p_fg)
-
-        p_point = torch.cat(proto_list, dim=0)  # [N+1, D]
-        prototypes_batch.append(p_point)
-
-    P_point = torch.stack(prototypes_batch, dim=0)  # [B, N+1, D]
-    return P_point
+        if support_x.dim() != 4:
+            raise ValueError(f"support_x must be [N, K, {NUM_POINT}, {IN_CHANNELS}], got {tuple(support_x.shape)}")
+        n_way, k_shot = support_x.shape[:2]
+        f_s = self(support_x.flatten(0, 1)).unflatten(0, (n_way, k_shot))  # [N, K, 2048, 128]
+        f_q = self(query_x)  # [B_q, 2048, 128]
+        return f_s, f_q

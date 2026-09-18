@@ -30,3 +30,25 @@ Find the commit of an entry with `git log --oneline --grep "<step id>"`.
   input validation. Mutation check: six wrong variants (per-shot means, per-way background means,
   L2 normalisation, background from way 1 only, audit C2's flattened ways, zero empty background)
   each fail 1–6 tests; none survives.
+
+### 10b — shared point feature extractor (Eq.2)
+
+* **What.** `models/vipseg_backbone.py` rewritten as `PointFeatureExtractor` (`forward`,
+  `encode_episode`, `load_vipseg_weights`); `tests/test_feature_extractor.py` (FEAT-1…8, CPU) and
+  `tests/test_encoder.py` (ENC-1…8, GPU). `tests/test_backbone.py` removed (tested the deleted API).
+* **Why.** Audit C3/M1 and guardrail 6: the old backbone guessed the input layout from
+  `shape[i] in (3, 6, 9)`, padded 3-channel input with invented colours, and clamped the norm. The new
+  one accepts only `[B, 2048, 9]`, copies VIP-Seg's head layer for layer, and encodes every block as its
+  own sample.
+* **New finding.** The VIP-Seg encoder draws two fixed random projections (`vv`, `ww`) at construction
+  and keeps them as plain attributes [VIPSEG models/encoder.py:619-620]; `state_dict` does not contain
+  them. VIP-Seg is unaffected because it pickles the whole model, but our `train.py` saves a
+  `state_dict`, so `eval.py` would have rebuilt the model with new projections and scored a different
+  network. They are now buffers (same values), saved and restored with the weights; ENC-8 checks the
+  round trip on the real encoder. Recorded in 01 §2.1.
+* **Sources.** Encoder configuration and head [VIPSEG models/vipseg.py:34-53]; per-point channel L2
+  norm without clamp and the separate support/query batches [VIPSEG models/vipseg.py:79-97]; 9-channel
+  input read as rgb + XYZ [VIPSEG models/encoder.py:645].
+* **Verification.** CPU: 14 FEAT tests (float64, 1e-12). Mutation check: twelve wrong variants all fail
+  (see 05 §3.2b). GPU (ENC-1…8) runs on the VM with VIP-Seg's checkpoint; ENC-6 compares our features
+  with VIP-Seg's own forward path.
