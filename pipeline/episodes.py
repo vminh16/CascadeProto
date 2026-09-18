@@ -4,6 +4,7 @@ This module is the only place that builds `MyDataset` / `MyTestDataset`, so ever
 loader arguments of 04 §4.1 instead of the loader's own defaults (4096 points, 'xyz').
 """
 
+import math
 import os
 from dataclasses import dataclass
 from typing import List, Sequence
@@ -138,10 +139,17 @@ def build_eval_dataset(data_path: str, dataset: str, cvfold: int, n_way: int, k_
     state = np.random.get_state()
     np.random.seed(seed)
     try:
-        return MyTestDataset(tag, data_path, dataset, cvfold=cvfold,
-                             num_episode_per_comb=N_EPISODES_PER_COMBINATION,
-                             n_way=n_way, k_shot=k_shot, n_queries=N_QUERIES,
-                             num_point=NUM_POINT, pc_attribs=PC_ATTRIBS,
-                             way_ratio=WAY_RATIO, way_num=WAY_NUM, mode=mode)
+        episodes = MyTestDataset(tag, data_path, dataset, cvfold=cvfold,
+                                 num_episode_per_comb=N_EPISODES_PER_COMBINATION,
+                                 n_way=n_way, k_shot=k_shot, n_queries=N_QUERIES,
+                                 num_point=NUM_POINT, pc_attribs=PC_ATTRIBS,
+                                 way_ratio=WAY_RATIO, way_num=WAY_NUM, mode=mode)
     finally:
         np.random.set_state(state)
+    # The loader trusts any existing cache folder [VIPSEG dataloaders/loader.py:239-241]; a build that
+    # crashed half-way would silently shrink the test set, so check the count of 04 §6.1.
+    expected = math.comb(len(episodes.classes), n_way) * N_EPISODES_PER_COMBINATION
+    if len(episodes) != expected:
+        raise RuntimeError(f"{len(episodes)} cached {mode} episodes, expected {expected}; delete the "
+                           f"'{tag}_S_{cvfold}_N_{n_way}_K_{k_shot}_*' folder in {data_path} and rerun")
+    return episodes
