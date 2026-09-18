@@ -3,6 +3,7 @@
 Data path: $CASCADEPROTO_S3DIS, default datasets/S3DIS/blocks_bs1_s1 (layout of 04 §2.2).
 """
 
+import glob
 import os
 
 import numpy as np
@@ -23,6 +24,22 @@ def class_names():
     if not os.path.isdir(os.path.join(DATA_PATH, "data")):
         pytest.fail(f"no preprocessed blocks at {DATA_PATH}; run preprocess/prepare_s3dis.py")
     return read_class_names(DATA_PATH, "s3dis")
+
+
+def test_data0_every_block_loads(class_names):
+    """All 272 rooms [PAPER §4.1] have blocks, and every block is an [n >= 1000, 7] array."""
+    blocks = sorted(glob.glob(os.path.join(DATA_PATH, "data", "*.npy")))
+    rooms = {os.path.basename(p).rsplit("_block_", 1)[0] for p in blocks}
+    assert len(rooms) == 272
+    bad = []
+    for path in blocks:
+        try:
+            array = np.load(path, mmap_mode="r")
+            if array.ndim != 2 or array.shape[1] != 7 or array.shape[0] < 1000:
+                bad.append(path)
+        except (OSError, ValueError, EOFError):
+            bad.append(path)
+    assert not bad, f"{len(bad)} unreadable blocks, e.g. {bad[:3]}; rerun preprocess/prepare_s3dis.py"
 
 
 def test_data1_class_names_file(class_names):
