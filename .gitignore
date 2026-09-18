@@ -34,3 +34,5 @@ datasets/
 Thumbs.db
 .vscode/
 .idea/
+# Local secrets
+.env
