@@ -13,9 +13,12 @@ import pytest
 import torch
 import torch.optim as optim
 
-from models.cascadeproto import CascadeProto
 from models.lma import generate_clip_text_embeddings
 from loss.segmentation_loss import CascadeProtoLoss
+
+# Builds the VIP-Seg encoder, which needs mamba_ssm and pointnet2_ops (gate G2); imports are
+# inside the tests so that CPU-only collection (gate G1) does not import the encoder.
+pytestmark = pytest.mark.cuda
 
 
 def build_synthetic_episode(
@@ -53,6 +56,7 @@ def build_synthetic_episode(
 
 def test_smoke_episode_forward_shapes():
     """Verify full forward pass output shapes and contracts."""
+    from models.cascadeproto import CascadeProto
     device = torch.device("cpu")
     model = CascadeProto(input_points=2048, d_feature=128, d_subspace=72, num_stages=4).to(device)
 
@@ -81,6 +85,7 @@ def test_smoke_episode_forward_shapes():
 
 def test_smoke_episode_joint_loss_and_backward():
     """Verify joint loss calculation, full autodiff, and zero NaNs across all gradients."""
+    from models.cascadeproto import CascadeProto
     device = torch.device("cpu")
     model = CascadeProto(input_points=2048, d_feature=128, d_subspace=72, num_stages=4).to(device)
     criterion = CascadeProtoLoss(lambda_gmmn=1.0, w_bg=0.8, w_fg=1.0).to(device)
@@ -121,6 +126,7 @@ def test_smoke_episode_joint_loss_and_backward():
 
 def test_smoke_episode_optimizer_step():
     """Verify one AdamW optimizer step updates parameters without divergence."""
+    from models.cascadeproto import CascadeProto
     device = torch.device("cpu")
     model = CascadeProto(input_points=2048, d_feature=128, d_subspace=72, num_stages=4).to(device)
     criterion = CascadeProtoLoss(lambda_gmmn=1.0).to(device)
@@ -150,8 +156,10 @@ def test_smoke_episode_optimizer_step():
     assert any_changed, "Optimizer step did not update any parameters"
 
 
+@pytest.mark.clip
 def test_smoke_episode_with_real_clip():
     """Verify integration with real CLIP text embeddings extracted for category names."""
+    from models.cascadeproto import CascadeProto
     device = torch.device("cpu")
     class_names = ["chair", "table"]
 
@@ -176,6 +184,7 @@ def test_smoke_episode_with_real_clip():
 
 def test_smoke_episode_cuda():
     """Verify end-to-end forward/backward on CUDA GPU if available."""
+    from models.cascadeproto import CascadeProto
     if not torch.cuda.is_available():
         pytest.skip("CUDA is not available on this host")
 

@@ -29,7 +29,6 @@ from models.lma import (
     generate_clip_text_embeddings,
     fuse_initial_prototypes,
 )
-from models.vipseg_backbone import VIPSegBackbone, extract_point_prototypes
 from loss.gmmn_loss import (
     pairwise_sq_distance,
     multi_scale_rbf_kernel,
@@ -158,12 +157,15 @@ def test_invariant_5_autodiff_integrity_and_frozen_clip():
         assert param.grad.norm().item() > 0.0, f"Vanishing gradient (0.0) for layer: {name}"
 
 
+@pytest.mark.cuda
+@pytest.mark.clip
 def test_invariant_6_real_end_to_end_pipeline():
     """
     Invariant 6: Real Execution Flow.
     Integrates actual OpenAI CLIP ViT-B/32, official prompt templates,
     VIPSegBackbone geometric feature extraction, prototype fusion, and real AdamW step.
     """
+    from models.vipseg_backbone import VIPSegBackbone, extract_point_prototypes
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # 1. Real S3DIS category names for a 2-way 1-shot episode

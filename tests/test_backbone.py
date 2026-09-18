@@ -9,10 +9,14 @@ Verifies:
 
 import pytest
 import torch
-from models.vipseg_backbone import VIPSegBackbone, extract_point_prototypes
+
+# Builds the VIP-Seg encoder, which needs mamba_ssm and pointnet2_ops (gate G2); imports are
+# inside the tests so that CPU-only collection (gate G1) does not import the encoder.
+pytestmark = pytest.mark.cuda
 
 
 def test_vipseg_backbone_forward_cpu():
+    from models.vipseg_backbone import VIPSegBackbone, extract_point_prototypes
     backbone = VIPSegBackbone(input_points=2048, out_dim=128)
     backbone.eval()
     
@@ -27,6 +31,7 @@ def test_vipseg_backbone_forward_cpu():
 
 
 def test_point_prototype_extraction():
+    from models.vipseg_backbone import VIPSegBackbone, extract_point_prototypes
     B = 2
     n_way = 2
     total_pts = 2048
@@ -45,6 +50,7 @@ def test_point_prototype_extraction():
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 def test_vipseg_backbone_cuda():
+    from models.vipseg_backbone import VIPSegBackbone, extract_point_prototypes
     backbone = VIPSegBackbone(input_points=2048, out_dim=128).cuda()
     backbone.eval()
     
