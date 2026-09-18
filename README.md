@@ -74,10 +74,10 @@ Follow the AttMPTI protocol used by VIP-Seg. Preprocessed blocks can also be dow
 
 ### S3DIS
 
-One command (Linux or WSL2, about 4.4 GB download plus 30-60 min of processing):
+One command (Linux or WSL2, about 4.4 GB download plus 30-60 min of processing; **peak disk use about 50 GB**, about 14 GB with `--blocks_only` once finished):
 
 ```bash
-python preprocess/prepare_s3dis.py              # add --delete_raw to drop the zip and raw txt afterwards
+python preprocess/prepare_s3dis.py --blocks_only   # keeps blocks_bs1_s1 + meta; --delete_raw keeps scenes/ too
 ```
 
 It downloads `Stanford3dDataset_v1.2_Aligned_Version.zip` from a public Hugging Face backup (resumable, SHA-256 checked), strips the stray character in `Area_5/hallway_6`, writes `datasets/S3DIS/meta/s3dis_classnames.txt`, runs the inherited `collect_s3dis_data.py` and `room2blocks.py` unchanged, and fails if a room was skipped. `HF_TOKEN` is optional (see `.env.example`). Use `datasets/S3DIS/blocks_bs1_s1` as `--data_path`; the loader reads `datasets/S3DIS/meta/` next to it.
