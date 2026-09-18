@@ -9,7 +9,7 @@ Steps (each is skipped when its output already exists):
   4. Write <root>/meta/s3dis_classnames.txt in the loader's id order [VIPSEG dataloaders/s3dis.py:13-14].
   5. Run the inherited preprocess/collect_s3dis_data.py (rooms -> scenes/data/*.npy).
   6. Run the inherited preprocess/room2blocks.py with default arguments (-> blocks_bs1_s1/data).
-  7. Check that all 272 rooms have blocks. Rooms the inherited script skipped are redone one by
+  7. Check that all 272 rooms have blocks and that every block loads. Rooms the inherited script skipped are redone one by
      one with its own functions, so errors surface instead of being printed and ignored.
 
 The inherited scripts are called unchanged; they hard-code <repo>/datasets/S3DIS as the output
@@ -21,7 +21,8 @@ Usage:
     python preprocess/prepare_s3dis.py --blocks_only   # keep only blocks_bs1_s1 + meta
 
 Peak disk use is about 50 GB (zip 4 GB, raw txt 17 GB, scenes 15 GB, blocks 14 GB). A rerun only
-collects or splits rooms that are missing, so it never rewrites finished outputs.
+collects or splits rooms that are missing or have unreadable (truncated) files, so it never rewrites
+finished outputs.
 
 The dataset is public; HF_TOKEN (read from the environment or <repo>/.env) is optional and only
 raises Hugging Face's anonymous rate limits.
@@ -140,6 +141,29 @@ def rooms_with_blocks(blocks):
     return {os.path.basename(p).rsplit("_block_", 1)[0] for p in glob.glob(os.path.join(blocks, "*.npy"))}
 
 
+def readable(path, min_points=1):
+    """True if `path` loads as an [n, 7] XYZRGBL array with n >= min_points (catches truncated files)."""
+    try:
+        array = np.load(path, mmap_mode="r")
+    except (OSError, ValueError, EOFError):
+        return False
+    return array.ndim == 2 and array.shape[1] == 7 and array.shape[0] >= min_points
+
+
+def drop_unreadable(folder, room_of, room_files, min_points=1):
+    """Delete every file of a room that has an unreadable file (e.g. written while the disk was full).
+
+    room_of maps a file name to its room; room_files maps a room to the glob of all its files.
+    Returns the affected rooms, which the caller then redoes as a whole.
+    """
+    rooms = {room_of(os.path.basename(p)) for p in glob.glob(os.path.join(folder, "*.npy"))
+             if not readable(p, min_points)}
+    for room in rooms:
+        for path in glob.glob(os.path.join(folder, room_files(room))):
+            os.remove(path)
+    return sorted(rooms)
+
+
 def collect_rooms(rooms, scenes):
     """Collect the given rooms with the inherited collect_point_label (same output as its script)."""
     sys.path.insert(0, REPO)
@@ -196,7 +220,10 @@ def main():
         f.write("\n".join(CLASS_NAMES) + "\n")
 
     raw = raw_rooms()
-    if not glob.glob(os.path.join(scenes, "*.npy")):
+    bad = drop_unreadable(scenes, lambda f: f[:-4], lambda r: r + ".npy")
+    if bad:
+        log(f"      removed unreadable scene files of {bad}")
+    if not glob.glob(os.path.join(scenes, "*.npy")) and len(raw) == N_ROOMS:
         log("[5/7] Collecting rooms (inherited collect_s3dis_data.py, ~30 min)")
         run_inherited("collect_s3dis_data.py", "--data_path", RAW_DIR)
     missing = sorted(set(raw) - room_names(scenes, ".npy"))
@@ -208,6 +235,10 @@ def main():
     else:
         log("[5/7] All rooms collected")
 
+    bad = drop_unreadable(blocks, lambda f: f.rsplit("_block_", 1)[0], lambda r: r + "_block_*.npy",
+                          min_points=1000)  # room2blocks min_npts
+    if bad:
+        log(f"      removed the blocks of {len(bad)} room(s) with unreadable blocks: {bad}")
     if not glob.glob(os.path.join(blocks, "*.npy")):
         log("[6/7] Splitting rooms into 1 m blocks (inherited room2blocks.py)")
         run_inherited("room2blocks.py", "--data_path", os.path.join(ROOT, "scenes"), "--dataset", "s3dis")
@@ -219,10 +250,12 @@ def main():
         log("[6/7] Every room has blocks")
 
     log("[7/7] Checking outputs")
+    unreadable = [p for p in glob.glob(os.path.join(blocks, "*.npy")) if not readable(p, 1000)]
+    if unreadable:
+        raise RuntimeError(f"{len(unreadable)} unreadable blocks, e.g. {unreadable[:3]}")
     covered = rooms_with_blocks(blocks)
-    expected = set(raw) if raw else None
-    if expected is not None and covered != expected:
-        raise RuntimeError(f"rooms without blocks: {sorted(expected - covered)}")
+    if len(raw) == N_ROOMS and covered != set(raw):
+        raise RuntimeError(f"rooms without blocks: {sorted(set(raw) - covered)}")
     if len(covered) != N_ROOMS:
         raise RuntimeError(f"{len(covered)} rooms have blocks, expected {N_ROOMS}")
     n_blocks = len(glob.glob(os.path.join(blocks, "*.npy")))
