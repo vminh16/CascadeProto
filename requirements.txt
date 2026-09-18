@@ -1,10 +1,33 @@
-tensorboard 
-six 
-h5py 
-transforms3d
-einops 
-triton
-transformers==4.31 
-timm 
-numpy==1.24
-pytest
+# Runtime dependencies for CascadeProto (Linux or WSL2, Python 3.9, one CUDA GPU).
+#
+# Install order (see README §3):
+#   1. PyTorch built for CUDA 12.8 (needed by RTX 50-series; 2.7.x is the last line supporting
+#      Python 3.9):
+#        pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+#   2. pip install -r requirements.txt
+#   3. CUDA extensions, built against the installed torch (no fallback exists):
+#        pip install --no-build-isolation causal-conv1d==1.5.4 mamba-ssm==2.2.6.post3
+#        pip install --no-build-isolation ./pointnet2_ops_lib
+#      VIP-Seg vendors mamba_ssm 2.0.4 [VIPSEG mamba/mamba_ssm/__init__.py:1]; 2.0.4 predates
+#      PyTorch 2.7; both pinned versions publish cp39 cu12/torch2.7 wheels. models/encoder.py only
+#      uses mamba_simple.Mamba. Test ENC-1 (parameter count 2.37M) checks the encoder still
+#      matches VIP-Seg. The prebuilt wheels may lack kernels for your GPU; in that case rebuild
+#      with MAMBA_FORCE_BUILD=TRUE / CAUSAL_CONV1D_FORCE_BUILD=TRUE (needs nvcc 12.8+ in WSL,
+#      whose build flags include sm_120).
+#      Known issue: pointnet2_ops_lib/setup.py hard-codes TORCH_CUDA_ARCH_LIST
+#      "3.7+PTX;...;9.0"; nvcc 12.x no longer accepts compute_37, so this build is expected to
+#      fail on CUDA 12.8 until the arch list is fixed (planned for phase 14).
+#
+# torch, triton, mamba-ssm, causal-conv1d and pointnet2_ops are deliberately not listed
+# here: they must match the local CUDA toolkit and are installed by the steps above.
+
+numpy==1.24.4            # [VIPSEG requirements.txt] numpy==1.24
+h5py                     # dataloaders (ScanNet/S3DIS blocks)
+transforms3d             # dataloaders/loader.py augmentation
+timm                     # models/mamba_block.py DropPath
+einops                   # mamba_ssm
+tensorboard              # runs/training.py
+plyfile                  # preprocess/collect_scannet_data.py
+requests                 # preprocess/download_and_prepare_s3dis.py
+clip @ git+https://github.com/openai/CLIP.git@d05afc436d78f1c48dc0dbf8e5980a9d471f35f6
+pytest
