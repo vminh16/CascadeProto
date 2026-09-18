@@ -10,7 +10,7 @@ Rules for autonomous coding agents (Claude Code, Cursor, Copilot, Devin, Aider, 
 * **Base code:** the official VIP-Seg repository `changshuowang/VIP-Seg_NeurIPS2025`, pinned at commit `28aedc5093c0d386d526864c49505ae6921b1600`.
 * **Target hardware:** one NVIDIA GPU; the paper used an RTX 5090.
 * **Modality priority:** text first; image and audio are deferred and must raise until implemented.
-* **Status (2026-09-18):** the docs in `docs/spec/` were rewritten against the paper. Phase 8 restored the inherited VIP-Seg files, removed the encoder fallbacks and added gate G0. Phase 9 put `train.py` and `eval.py` on real episodes through `pipeline/`. The rest of `models/`, `loss/` and `tests/` predates the rewrite and does **not** follow it yet; [docs/research/paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) lists the known gaps.
+* **Status (2026-09-18):** the docs in `docs/spec/` were rewritten against the paper. Phase 8 restored the inherited VIP-Seg files, removed the encoder fallbacks and added gate G0. Phase 9 put `train.py` and `eval.py` on real episodes through `pipeline/`. Phase 10 rewrote the feature extractor, point prototypes and `CascadeProto` (Table 4 baseline only; see docs/CHANGELOG.md). The rest of `models/`, `loss/` and `tests/` predates the rewrite and does **not** follow it yet; [docs/research/paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) lists the known gaps.
 
 ---
 

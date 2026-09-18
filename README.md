@@ -110,7 +110,7 @@ Use `datasets/S3DIS/blocks_bs1_s1` as `--data_path`; the loader reads `datasets/
 
 ```bash
 D=datasets/S3DIS/blocks_bs1_s1
-python train.py --dataset s3dis --data_path $D --cvfold 0 --n_way 2 --k_shot 1 --dry_run true   # one step on real data
+python train.py --dataset s3dis --data_path $D --cvfold 0 --n_way 2 --k_shot 1 --use_lma false --num_stages 0 --dry_run true   # Table 4 baseline, one step
 python train.py --dataset s3dis --data_path $D --cvfold 0 --n_way 2 --k_shot 1                  # full schedule
 python eval.py  --dataset s3dis --data_path $D --cvfold 0 --n_way 2 --k_shot 1 \
                 --checkpoint log_cascadeproto/s3dis_S0_N2_K1_text/best.pt                         # also evaluate last.pt (D-15)

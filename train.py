@@ -41,6 +41,13 @@ def parse_args(argv=None):
     p.add_argument("--n_way", type=int, required=True, choices=[2, 3])
     p.add_argument("--k_shot", type=int, required=True, choices=[1, 5])
     p.add_argument("--modality", default="text", choices=["text", "image", "audio"])
+    # Ablation switches of spec 01 §3 / D-17; the defaults are the full model.
+    p.add_argument("--use_lma", type=str2bool, default=True)
+    p.add_argument("--num_stages", type=int, default=4)
+    p.add_argument("--use_gate", type=str2bool, default=True)
+    p.add_argument("--use_adrm", type=str2bool, default=True)
+    p.add_argument("--logit_scale", default="none", choices=["none", "sqrt_D"])
+    p.add_argument("--l2norm_point_proto", type=str2bool, default=False)
     p.add_argument("--epochs", type=int, default=None, help="default: 50 (S3DIS) / 30 (ScanNet) [D-12]")
     p.add_argument("--episodes_per_epoch", type=int, default=None, help="default: 480 / 800 [D-12]")
     p.add_argument("--lr", type=float, default=1e-3)
@@ -74,16 +81,26 @@ def seed_worker(worker_id: int) -> None:
     np.random.seed(seed)
 
 
-def build_model(args) -> torch.nn.Module:
-    if args.modality != "text":
-        raise NotImplementedError(f"modality {args.modality!r} is not implemented yet (03 §1)")
+def model_config(args):
+    from models.cascadeproto import CascadeProtoConfig
+
+    return CascadeProtoConfig(use_lma=args.use_lma, num_stages=args.num_stages, use_gate=args.use_gate,
+                              use_adrm=args.use_adrm, modality=args.modality, logit_scale=args.logit_scale,
+                              l2norm_point_proto=args.l2norm_point_proto)
+
+
+def build_model(config, feature_extractor=None) -> torch.nn.Module:
+    if config.use_lma and config.modality != "text":
+        raise NotImplementedError(f"modality {config.modality!r} is not implemented yet (03 §2.2)")
     from models.cascadeproto import CascadeProto
 
-    return CascadeProto(input_points=NUM_POINT, d_feature=128, d_subspace=72, num_stages=4)
+    return CascadeProto(config, feature_extractor)
 
 
 def run_dir(args) -> str:
-    return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{args.modality}")
+    variant = args.modality if args.use_lma else "point"
+    tag = f"_T{args.num_stages}" + ("" if args.use_adrm or args.num_stages == 0 else "_noadrm")
+    return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 
 
 def train_steps(model, optimizer, batches, device):
@@ -122,7 +139,9 @@ def main(argv=None):
     logger.cprint(f"train classes {list(train_set.classes)} | test classes {list(valid_set.classes)} | "
                   f"{total_episodes} training episodes, {steps_per_epoch} steps/epoch")
 
-    model = build_model(args).to(device)
+    config = model_config(args)
+    model = build_model(config).to(device)
+    logger.cprint(f"model config: {config.to_dict()}")
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_step_epochs, gamma=args.lr_gamma)
 
@@ -147,9 +166,11 @@ def main(argv=None):
             logger.cprint(f"epoch {epoch} | valid mIoU {miou:.4f}")
             if miou > best_miou:
                 best_miou = miou
-                torch.save({"model": model.state_dict(), "epoch": epoch, "valid_miou": miou, "args": vars(args)},
+                torch.save({"model": model.state_dict(), "config": config.to_dict(), "epoch": epoch,
+                            "valid_miou": miou, "args": vars(args)},
                            os.path.join(out_dir, "best.pt"))
-    torch.save({"model": model.state_dict(), "epoch": epoch, "args": vars(args)}, os.path.join(out_dir, "last.pt"))
+    torch.save({"model": model.state_dict(), "config": config.to_dict(), "epoch": epoch, "args": vars(args)},
+               os.path.join(out_dir, "last.pt"))
     logger.cprint(f"done: best valid mIoU {best_miou:.4f}; evaluate best.pt and last.pt with eval.py [D-15]")
     return 0
 

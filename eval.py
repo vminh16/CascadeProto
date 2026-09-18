@@ -30,7 +30,6 @@ def parse_args(argv=None):
     p.add_argument("--cvfold", type=int, required=True, choices=[0, 1])
     p.add_argument("--n_way", type=int, required=True, choices=[2, 3])
     p.add_argument("--k_shot", type=int, required=True, choices=[1, 5])
-    p.add_argument("--modality", default="text", choices=["text", "image", "audio"])
     p.add_argument("--checkpoint", required=True)
     p.add_argument("--model", default="cascadeproto", choices=["cascadeproto", "vipseg"])
     p.add_argument("--eval_protocol", default="fixed100", choices=["fixed100", "random600"],
@@ -48,9 +47,12 @@ def load_model(args, device) -> torch.nn.Module:
         from pipeline.vipseg_baseline import VIPSegBaseline
 
         return VIPSegBaseline(args.checkpoint).to(device)
-    model = build_model(args).to(device)
-    state = torch.load(args.checkpoint, map_location=device, weights_only=True)["model"]
-    model.load_state_dict(state, strict=True)
+    checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=True)
+    from models.cascadeproto import CascadeProtoConfig
+
+    config = CascadeProtoConfig(**checkpoint["config"])  # the architecture the weights were trained with
+    model = build_model(config).to(device)
+    model.load_state_dict(checkpoint["model"], strict=True)
     return model
 
 

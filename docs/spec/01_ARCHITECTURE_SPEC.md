@@ -144,7 +144,7 @@ flowchart TD
 
 ## 3. Ablation switches
 
-Required configuration options. Defaults reproduce the full model.
+Required configuration options. Defaults reproduce the full model. They live in `models/cascadeproto.py::CascadeProtoConfig` and on the `train.py` command line; every checkpoint stores its configuration and `eval.py` rebuilds the model from it. Until phases 11–13 land, only the Table 4 "Baseline" row (`use_lma=false, num_stages=0`, prediction `F^q P_pointᵀ`) is implemented; other combinations raise `NotImplementedError` naming the phase [DECISION D-17].
 
 | Option | Default | Values | Source |
 | :--- | :--- | :--- | :--- |

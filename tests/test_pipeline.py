@@ -127,9 +127,43 @@ def test_pipe6_eval_refuses_missing_checkpoint(tmp_path):
 
 
 def test_pipe6_unimplemented_modality_raises():
-    from train import build_model, parse_args
+    from train import build_model, model_config, parse_args
 
     args = parse_args(["--dataset", "s3dis", "--data_path", "x", "--cvfold", "0", "--n_way", "2", "--k_shot", "1",
                        "--modality", "audio"])
-    with pytest.raises(NotImplementedError):
-        build_model(args)
+    with pytest.raises(NotImplementedError, match="modality 'audio'"):
+        build_model(model_config(args))
+
+
+def test_pipe6_switch_defaults_are_the_full_model():
+    from train import model_config, parse_args
+
+    config = model_config(parse_args(["--dataset", "s3dis", "--data_path", "x", "--cvfold", "0",
+                                      "--n_way", "2", "--k_shot", "1"]))
+    assert (config.use_lma, config.num_stages, config.use_gate, config.use_adrm) == (True, 4, True, True)
+    assert (config.logit_scale, config.l2norm_point_proto, config.modality) == ("none", False, "text")
+
+
+def test_pipe7_eval_rebuilds_the_checkpoint_configuration(tmp_path, monkeypatch):
+    """eval.py builds the architecture stored in the checkpoint, not one from its own CLI."""
+    import eval as eval_script
+    from models.cascadeproto import CascadeProto, CascadeProtoConfig
+    from models.vipseg_backbone import PointFeatureExtractor
+    from tests.test_feature_extractor import StandInEncoder
+
+    def stand_in_model(config):
+        return CascadeProto(config, PointFeatureExtractor(encoder=StandInEncoder()))
+
+    monkeypatch.setattr(eval_script, "build_model", stand_in_model)
+    config = CascadeProtoConfig(use_lma=False, num_stages=0, logit_scale="sqrt_D")
+    torch.manual_seed(0)
+    trained = stand_in_model(config).eval()
+    path = tmp_path / "best.pt"
+    torch.save({"model": trained.state_dict(), "config": config.to_dict()}, path)
+    args = eval_script.parse_args(["--dataset", "s3dis", "--data_path", "x", "--cvfold", "0", "--n_way", "2",
+                                   "--k_shot", "1", "--checkpoint", str(path)])
+    torch.manual_seed(1)
+    loaded = eval_script.load_model(args, torch.device("cpu")).eval()
+    assert loaded.config == config
+    ep = make_episode(loader_item(), CLASS_NAMES)
+    assert torch.equal(loaded(ep).logits, trained(ep).logits)

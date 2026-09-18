@@ -141,6 +141,23 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 | ABL-2 | `num_stages` ∈ {1..6} gives `w_gate` of width `num_stages` | 01 §3, [PAPER Tab.5] |
 | ABL-3 | `modality=image` and `modality=audio` raise `NotImplementedError` | 03 §2.2 |
 
+### 3.6b `tests/test_cascadeproto.py` (G1)
+
+Phase-10 model = Table 4 "Baseline" row of D-17. The encoder is the per-point stand-in of 3.2b; feature head, prototypes, logits and loss are the real code. float64, 1e-12.
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| CP-1 | Logits `[B_q, 2048, N+1]`; `L_GMMN = 0` when `use_lma=false` | 02 §10, D-17 |
+| CP-2 | Logits equal `F^q P_pointᵀ` computed from the extractor and `point_prototypes`, element-wise | [PAPER Eq.23], D-10 |
+| CP-3 | Permuting the ways permutes logit channels 1..N and keeps channel 0 | 02 §3, §5.5 |
+| CP-4 | In eval mode one query's logits do not depend on the other queries | 02 §2 |
+| CP-5 | `logit_scale=sqrt_D` divides by √128; `l2norm_point_proto=true` normalises the prototype rows | D-10 |
+| CP-6 | Unimplemented switch combinations raise naming their phase; out-of-range switches raise `ValueError` | 01 §3, D-17 |
+| CP-7 | The loss reaches every parameter with a non-zero, finite gradient | 02 §7 |
+| CP-8 | 30 AdamW steps (lr 1e-3, wd 0.1) on a learnable episode lower the loss by > 20 % and beat chance; `state_dict` round trip is exact | 04 §5 |
+
+Mutation check (2026-09-18): eight wrong variants (cosine logits, scale always on, L2 flag ignored or always on, background prototype dropped, non-zero `L_GMMN`, no implementation check, reversed ways) each fail at least one test.
+
 ### 3.7 `tests/test_eval_metric.py` (G2, marker `cuda`)
 
 The metric is VIP-Seg's `evaluate_metric`, called unchanged; its module imports the VIP-Seg encoder, so these tests need the GPU environment. The reference is an independent implementation of 04 §6.2.
@@ -201,7 +218,8 @@ Before DATA-0…4, `python preprocess/verify_s3dis.py` compares the prepared blo
 | PIPE-3 | The loss is unweighted CE on `L_final` plus λ·`L_GMMN`; wrong logit shapes raise | 02 §7 |
 | PIPE-4 | One optimiser step uses the mean loss of the 4 episodes | 02 §7, [DECISION D-12] |
 | PIPE-5 | Default schedule: S3DIS 50×480, ScanNet 30×800 episodes (24,000), 4 per step, AdamW 1e-3 / 0.1, StepLR 10 / 0.5 | 04 §5 |
-| PIPE-6 | `eval.py` refuses a missing checkpoint; unimplemented modalities raise | 04 §6, 03 §2.2 |
+| PIPE-6 | `eval.py` refuses a missing checkpoint; unimplemented modalities raise; switch defaults are the full model | 04 §6, 03 §2.2, 01 §3 |
+| PIPE-7 | `eval.py` rebuilds the configuration stored in the checkpoint (not its own CLI) and reproduces the logits exactly | 01 §3 |
 
 ---
 

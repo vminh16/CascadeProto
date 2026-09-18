@@ -52,3 +52,25 @@ Find the commit of an entry with `git log --oneline --grep "<step id>"`.
 * **Verification.** CPU: 14 FEAT tests (float64, 1e-12). Mutation check: twelve wrong variants all fail
   (see 05 §3.2b). GPU (ENC-1…8) runs on the VM with VIP-Seg's checkpoint; ENC-6 compares our features
   with VIP-Seg's own forward path.
+
+### 10c — CascadeProto as the Table 4 baseline; checkpoint carries its configuration
+
+* **What.** `models/cascadeproto.py` rewritten: `CascadeProtoConfig` holds the switches of 01 §3 (full
+  model by default) and `CascadeProto.forward(episode) -> EpisodeOutput`. `train.py` exposes the
+  switches, logs the configuration and saves it in `best.pt` / `last.pt`; `eval.py` rebuilds the model
+  from the checkpoint's configuration. `tests/test_cascadeproto.py` (CP-1…8) and PIPE-6/7 added;
+  `tests/test_smoke_episode.py` and `test_lma.py::test_invariant_6` removed (old API).
+* **Why.** Phase 11–13 add LMA, EPPM and ADRM one block at a time; with the baseline row implemented
+  first, every phase ends with a model that trains end to end on real data. Only
+  `use_lma=false, num_stages=0` is implemented; any other combination raises `NotImplementedError`
+  naming the phase, so no half-built configuration can be trained by mistake. Storing the configuration
+  in the checkpoint prevents evaluating weights with a different architecture.
+* **Sources.** Table 4 baseline "plain VIP-Seg backbone with masked average pooling and single-step
+  prototype matching" [PAPER §4.3] = `F^q P_pointᵀ` [DECISION D-17]; Eq.23 without temperature or L2
+  normalisation, with the ablation flags `logit_scale`, `l2norm_point_proto` [DECISION D-10];
+  `use_lma=false` drops `L_GMMN` [DECISION D-17].
+* **Verification.** CP-1…8 in float64 (element-wise logits, way equivariance, query independence, flags,
+  gradients, learning on a structured episode, exact state_dict round trip); PIPE-7 checks that
+  eval.py restores the stored configuration. Mutation check: eight wrong variants all fail. A first
+  version of CP-8 used random labels, which no model can learn; it was replaced by an episode whose
+  colours depend on the class, as real data does.
