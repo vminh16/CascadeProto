@@ -1,250 +1,158 @@
-"""Episodic Training Script for CascadeProto.
+"""Episodic training of CascadeProto (spec 04 §4-§5).
 
-Paper: CascadeProto (ECCV 2026, Wang et al.)
-Command Example:
-    python train.py --dataset s3dis --cvfold 0 --n_way 2 --k_shot 1 --modality text --dry_run True
+Every episode comes from the inherited VIP-Seg loader through pipeline.episodes; there is no
+synthetic data here. `--dry_run true` means real data, one optimiser step.
+
+    python train.py --dataset s3dis --data_path datasets/S3DIS/blocks_bs1_s1 --cvfold 0 --n_way 2 --k_shot 1
 """
 
 import argparse
+import math
 import os
 import random
-import sys
+import time
+
 import numpy as np
 import torch
-import torch.optim as optim
+from torch.utils.data import DataLoader
 
-from models.cascadeproto import CascadeProto
-from models.lma import generate_clip_text_embeddings, format_category_prompt
-from loss.segmentation_loss import CascadeProtoLoss
+from pipeline.episodes import (AUGMENT_CONFIG, EPISODES_PER_BATCH, NUM_POINT, PC_ATTRIBS, SCHEDULE,
+                               EpisodeCollate, build_eval_dataset, build_train_dataset, read_class_names)
+from pipeline.evaluation import evaluate
+from pipeline.model_api import episode_loss
+from utils.logger import IOStream
+
+DRY_RUN_VALID_EPISODES = 5
 
 
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+def str2bool(v: str) -> bool:
+    if v.lower() in ("true", "1", "yes"):
         return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+    if v.lower() in ("false", "0", "no"):
         return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+    raise argparse.ArgumentTypeError(f"boolean expected, got {v!r}")
 
 
-def set_seed(seed: int = 42):
-    random.seed(seed)
+def parse_args(argv=None):
+    p = argparse.ArgumentParser(description="CascadeProto episodic training (spec 04)")
+    p.add_argument("--dataset", required=True, choices=sorted(SCHEDULE))
+    p.add_argument("--data_path", required=True, help="the blocks_bs1_s1 directory (04 §2.2)")
+    p.add_argument("--cvfold", type=int, required=True, choices=[0, 1])
+    p.add_argument("--n_way", type=int, required=True, choices=[2, 3])
+    p.add_argument("--k_shot", type=int, required=True, choices=[1, 5])
+    p.add_argument("--modality", default="text", choices=["text", "image", "audio"])
+    p.add_argument("--epochs", type=int, default=None, help="default: 50 (S3DIS) / 30 (ScanNet) [D-12]")
+    p.add_argument("--episodes_per_epoch", type=int, default=None, help="default: 480 / 800 [D-12]")
+    p.add_argument("--lr", type=float, default=1e-3)
+    p.add_argument("--weight_decay", type=float, default=0.1)
+    p.add_argument("--lr_step_epochs", type=int, default=10)
+    p.add_argument("--lr_gamma", type=float, default=0.5)
+    p.add_argument("--valid_every", type=int, default=10, help="epochs between validations [D-15]")
+    p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--num_workers", type=int, default=4)
+    p.add_argument("--save_dir", default="log_cascadeproto")
+    p.add_argument("--dry_run", type=str2bool, default=False)
+    args = p.parse_args(argv)
+    schedule = SCHEDULE[args.dataset]
+    args.epochs = args.epochs or schedule["epochs"]
+    args.episodes_per_epoch = args.episodes_per_epoch or schedule["episodes_per_epoch"]
+    if args.episodes_per_epoch % EPISODES_PER_BATCH:
+        p.error(f"--episodes_per_epoch must be a multiple of {EPISODES_PER_BATCH}")
+    return args
+
+
+def seed_everything(seed: int) -> None:
+    random.seed(seed)  # loader augmentation uses `random` [VIPSEG dataloaders/loader.py:92-100]
     np.random.seed(seed)
     torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
+    torch.cuda.manual_seed_all(seed)
 
 
-def get_s3dis_class_names(fold: int):
-    """Returns train and test class names for S3DIS splits."""
-    all_classes = [
-        'ceiling', 'floor', 'wall', 'beam', 'column',
-        'window', 'door', 'table', 'chair', 'sofa',
-        'bookcase', 'board', 'clutter'
-    ]
-    fold_0 = ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
-    fold_1 = ['door', 'floor', 'sofa', 'table', 'wall', 'window']
-    test_classes = fold_0 if fold == 0 else fold_1
-    train_classes = [c for c in all_classes if c not in test_classes and c != 'clutter']
-    return train_classes, test_classes
+def seed_worker(worker_id: int) -> None:
+    seed = torch.initial_seed() % 2**32
+    random.seed(seed)
+    np.random.seed(seed)
 
 
-def generate_dry_run_batch(
-    n_way: int,
-    k_shot: int,
-    device: torch.device,
-    sampled_classes=None
-):
-    """Generates 1 synthetic episodic batch conforming to the data spec."""
-    B = 1
-    N_p = 2048
-    num_classes = n_way + 1
+def build_model(args) -> torch.nn.Module:
+    if args.modality != "text":
+        raise NotImplementedError(f"modality {args.modality!r} is not implemented yet (03 §1)")
+    from models.cascadeproto import CascadeProto
 
-    # Support: [B, N_way * K_shot, N_p, 3]
-    support_x = torch.randn(B, n_way * k_shot, N_p, 3, device=device, dtype=torch.float32)
-    support_y = torch.zeros(B, n_way * k_shot, N_p, device=device, dtype=torch.float32)
-    for w in range(n_way):
-        for k in range(k_shot):
-            idx = w * k_shot + k
-            # Assign first 500 points to class w + 1
-            support_y[:, idx, :500] = float(w + 1)
-
-    # Query: [B, N_p, 3]
-    query_x = torch.randn(B, N_p, 3, device=device, dtype=torch.float32)
-    query_y = torch.randint(0, num_classes, (B, N_p), device=device, dtype=torch.int64)
-
-    # Text embeddings: [B, num_classes, 512]
-    if sampled_classes is not None and len(sampled_classes) == n_way:
-        E_text = generate_clip_text_embeddings(sampled_classes, device=device)
-    else:
-        # Generic synthetic embedding
-        E_text = torch.randn(B, num_classes, 512, device=device, dtype=torch.float32)
-        E_text = E_text / E_text.norm(dim=-1, keepdim=True)
-
-    return support_x, support_y, query_x, query_y, E_text
+    return CascadeProto(input_points=NUM_POINT, d_feature=128, d_subspace=72, num_stages=4)
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="CascadeProto Episodic Training")
-    parser.add_argument("--dataset", type=str, default="s3dis", choices=["s3dis", "scannet"],
-                        help="Dataset name (s3dis or scannet)")
-    parser.add_argument("--data_path", type=str, default="./data/s3dis",
-                        help="Root directory of preprocessed dataset")
-    parser.add_argument("--cvfold", type=int, default=0, choices=[0, 1],
-                        help="Cross-validation fold")
-    parser.add_argument("--n_way", type=int, default=2, choices=[2, 3],
-                        help="Number of classes per episode")
-    parser.add_argument("--k_shot", type=int, default=1, choices=[1, 5],
-                        help="Number of support shots per class")
-    parser.add_argument("--modality", type=str, default="text", choices=["text", "image", "audio"],
-                        help="Guiding modality")
-    parser.add_argument("--dry_run", type=str2bool, default=False,
-                        help="Run a dry-run test episode and exit")
-    parser.add_argument("--epochs", type=int, default=50,
-                        help="Number of training epochs")
-    parser.add_argument("--batch_size", type=int, default=4,
-                        help="Number of episodes per batch")
-    parser.add_argument("--lr", type=float, default=1e-3,
-                        help="Initial learning rate for AdamW")
-    parser.add_argument("--weight_decay", type=float, default=0.1,
-                        help="Weight decay for AdamW")
-    parser.add_argument("--step_size", type=int, default=10,
-                        help="Scheduler step size in epochs")
-    parser.add_argument("--gamma", type=float, default=0.5,
-                        help="Learning rate halving factor")
-    parser.add_argument("--seed", type=int, default=42,
-                        help="Random seed")
-    parser.add_argument("--save_path", type=str, default="./checkpoints",
-                        help="Directory to save model checkpoints")
-    return parser.parse_args()
+def run_dir(args) -> str:
+    return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{args.modality}")
 
 
-def main():
-    args = parse_args()
-    set_seed(args.seed)
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("=" * 60)
-    print(" CascadeProto Episodic Training Pipeline")
-    print(f" Dataset: {args.dataset.upper()} | Fold: {args.cvfold} | Setting: {args.n_way}-way {args.k_shot}-shot")
-    print(f" Modality: {args.modality} | Device: {device} | Dry-Run: {args.dry_run}")
-    print("=" * 60)
-
-    # 1. Initialize CascadeProto model
-    model = CascadeProto(
-        input_points=2048,
-        d_feature=128,
-        d_subspace=72,
-        num_stages=4,
-        text_dim=512,
-        init_theta=0.5,
-        tau=0.5,
-        alpha=0.5,
-        lambda_gmmn=1.0,
-        w_bg=0.8,
-        w_fg=1.0
-    ).to(device)
-
-    # 2. Initialize Joint Criterion (CrossEntropy with w_cls=[0.8, 1, 1] + 1.0 * GMMN)
-    criterion = CascadeProtoLoss(
-        lambda_gmmn=1.0,
-        w_bg=0.8,
-        w_fg=1.0,
-        gmmn_bg_weight=0.1,
-        gmmn_fg_weight=1.0
-    ).to(device)
-
-    # 3. Optimizer & Scheduler as specified in AGENTS.md
-    optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
-
-    train_classes, test_classes = get_s3dis_class_names(args.cvfold)
-    print(f" Active Train Classes ({len(train_classes)}): {train_classes}")
-    print(f" Unseen Test Classes ({len(test_classes)}): {test_classes}")
-
-    # 4. Dry-run execution
-    if args.dry_run:
-        print("\n[Executing Phase 3 Dry-Run Episode]...")
-        model.train()
-        sampled_fg = random.sample(train_classes, args.n_way)
-        print(f" Sampled Episode Foreground Classes: {sampled_fg}")
-
-        support_x, support_y, query_x, query_y, E_text = generate_dry_run_batch(
-            n_way=args.n_way,
-            k_shot=args.k_shot,
-            device=device,
-            sampled_classes=sampled_fg
-        )
-
+def train_steps(model, optimizer, batches, device):
+    """One optimiser step per batch of episodes; the loss is the mean over the batch (02 §7, D-12)."""
+    model.train()
+    for episodes in batches:
+        episodes = [ep.to(device) for ep in episodes]
+        loss = torch.stack([episode_loss(model(ep), ep) for ep in episodes]).mean()  # scalar
         optimizer.zero_grad()
-        output = model(support_x, support_y, query_x, text_embeddings=E_text, n_way=args.n_way)
-        total_loss, seg_loss, gmmn_loss = criterion(
-            output.logits, query_y, output.p_modal, output.p_point
-        )
-
-        total_loss.backward()
+        loss.backward()
         optimizer.step()
+        yield loss.item()
 
-        pred = torch.softmax(output.logits, dim=-1).argmax(dim=-1)
-        correct = (pred == query_y).sum().item()
-        acc = correct / query_y.numel()
 
-        print(f"\n[Dry-Run Step Metrics]")
-        print(f"  • Total Loss:   {total_loss.item():.4f}")
-        print(f"  • Seg Loss:     {seg_loss.item():.4f}")
-        print(f"  • GMMN Loss:    {gmmn_loss.item():.4f}")
-        print(f"  • Query Acc:    {acc * 100:.2f}%")
-        print(f"  • ADRM Weights: {[round(w, 4) for w in output.w_gate[0].tolist()]}")
-        print("\n[Dry-Run PASSED] 1 episode successfully executed forward, backward, and optimizer step!")
-        return 0
+def main(argv=None):
+    args = parse_args(argv)
+    seed_everything(args.seed)
+    device = torch.device("cuda")
+    out_dir = run_dir(args)
+    os.makedirs(out_dir, exist_ok=True)
+    logger = IOStream(os.path.join(out_dir, "log_train.txt"))
+    logger.cprint(f"args: {vars(args)}")
+    logger.cprint(f"data: {os.path.abspath(args.data_path)} | num_point={NUM_POINT} pc_attribs={PC_ATTRIBS} "
+                  f"augmentation={AUGMENT_CONFIG}")
 
-    # 5. Full Training Loop
-    os.makedirs(args.save_path, exist_ok=True)
-    print(f"\nStarting training for {args.epochs} epochs...")
+    class_names = read_class_names(args.data_path, args.dataset)
+    steps_per_epoch = args.episodes_per_epoch // EPISODES_PER_BATCH
+    total_episodes = EPISODES_PER_BATCH if args.dry_run else args.epochs * args.episodes_per_epoch
+    train_set = build_train_dataset(args.data_path, args.dataset, args.cvfold, args.n_way, args.k_shot,
+                                    num_episode=total_episodes)
+    train_loader = DataLoader(train_set, batch_size=EPISODES_PER_BATCH, shuffle=False,
+                              num_workers=args.num_workers, worker_init_fn=seed_worker,
+                              collate_fn=EpisodeCollate(class_names), drop_last=True)
+    valid_set = build_eval_dataset(args.data_path, args.dataset, args.cvfold, args.n_way, args.k_shot,
+                                   mode="valid", seed=args.seed)
+    logger.cprint(f"train classes {list(train_set.classes)} | test classes {list(valid_set.classes)} | "
+                  f"{total_episodes} training episodes, {steps_per_epoch} steps/epoch")
 
-    for epoch in range(1, args.epochs + 1):
-        model.train()
-        epoch_losses = []
+    model = build_model(args).to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_step_epochs, gamma=args.lr_gamma)
 
-        # Run episodic iterations per epoch (e.g. 100 episodes)
-        num_episodes_per_epoch = 100
-        for ep in range(num_episodes_per_epoch):
-            sampled_fg = random.sample(train_classes, args.n_way)
-            support_x, support_y, query_x, query_y, E_text = generate_dry_run_batch(
-                n_way=args.n_way,
-                k_shot=args.k_shot,
-                device=device,
-                sampled_classes=sampled_fg
-            )
-
-            optimizer.zero_grad()
-            output = model(support_x, support_y, query_x, text_embeddings=E_text, n_way=args.n_way)
-            total_loss, _, _ = criterion(output.logits, query_y, output.p_modal, output.p_point)
-            total_loss.backward()
-            optimizer.step()
-
-            epoch_losses.append(total_loss.item())
-
+    best_miou, step, epoch, epoch_losses, t0 = -math.inf, 0, 0, [], time.time()
+    for loss in train_steps(model, optimizer, train_loader, device):
+        step += 1
+        epoch_losses.append(loss)
+        if args.dry_run:
+            logger.cprint(f"[dry run] one step on {EPISODES_PER_BATCH} real episodes, loss {loss:.4f}")
+            miou = evaluate(model, valid_set, class_names, logger, device, max_episodes=DRY_RUN_VALID_EPISODES)
+            logger.cprint(f"[dry run] valid mIoU on {DRY_RUN_VALID_EPISODES} episodes: {miou:.4f}")
+            return 0
+        if step % steps_per_epoch:
+            continue
+        epoch += 1
         scheduler.step()
-        avg_loss = sum(epoch_losses) / len(epoch_losses)
-        current_lr = scheduler.get_last_lr()[0]
-        print(f"Epoch [{epoch:02d}/{args.epochs:02d}] - Loss: {avg_loss:.4f} - LR: {current_lr:.6f}")
-
-        if epoch % 10 == 0 or epoch == args.epochs:
-            ckpt_path = os.path.join(args.save_path, f"cascadeproto_epoch_{epoch}.pt")
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'loss': avg_loss,
-            }, ckpt_path)
-            print(f"Saved checkpoint to {ckpt_path}")
-
-    print("Training completed successfully!")
+        logger.cprint(f"epoch {epoch}/{args.epochs} | loss {np.mean(epoch_losses):.4f} | "
+                      f"lr {scheduler.get_last_lr()[0]:.2e} | {time.time() - t0:.0f}s")
+        epoch_losses = []
+        if epoch % args.valid_every == 0 or epoch == args.epochs:
+            miou = evaluate(model, valid_set, class_names, logger, device)
+            logger.cprint(f"epoch {epoch} | valid mIoU {miou:.4f}")
+            if miou > best_miou:
+                best_miou = miou
+                torch.save({"model": model.state_dict(), "epoch": epoch, "valid_miou": miou, "args": vars(args)},
+                           os.path.join(out_dir, "best.pt"))
+    torch.save({"model": model.state_dict(), "epoch": epoch, "args": vars(args)}, os.path.join(out_dir, "last.pt"))
+    logger.cprint(f"done: best valid mIoU {best_miou:.4f}; evaluate best.pt and last.pt with eval.py [D-15]")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
