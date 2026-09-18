@@ -28,7 +28,7 @@ Read [docs/spec/00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.
 | Task | Files | Read first |
 | :--- | :--- | :--- |
 | Encoder, feature head, model assembly | `models/encoder.py`, `models/vipseg_backbone.py`, `models/cascadeproto.py` | [01 §2.1](docs/spec/01_ARCHITECTURE_SPEC.md), [02 §2](docs/spec/02_TENSOR_MATH_SPEC.md) |
-| Point prototypes | `models/vipseg_backbone.py` | [02 §3](docs/spec/02_TENSOR_MATH_SPEC.md) |
+| Point prototypes | `models/prototypes.py` | [02 §3](docs/spec/02_TENSOR_MATH_SPEC.md) |
 | Modality front-ends, LMA, generator | `models/lma.py` | [03](docs/spec/03_MULTIMODAL_SPEC.md), [02 §4](docs/spec/02_TENSOR_MATH_SPEC.md) |
 | GMMN / MMD loss | `loss/gmmn_loss.py` | [03 §4](docs/spec/03_MULTIMODAL_SPEC.md), [02 §4.3–4.4](docs/spec/02_TENSOR_MATH_SPEC.md) |
 | EPPM (gate, cross-attention, diffusion, fusion) | `models/eppm.py` | [02 §5](docs/spec/02_TENSOR_MATH_SPEC.md), [01 §2.4](docs/spec/01_ARCHITECTURE_SPEC.md), decisions D-01, D-02, D-11, D-14, D-16 |

@@ -67,6 +67,9 @@ $$P_{point} = [P_{bg}; P_{fg}^{(1)}; \dots; P_{fg}^{(N)}] \in \mathbb{R}^{(N+1) 
 
 * `P_fg^(k)` pools over the K shots of way k only; `P_bg` pools over all ways and shots [VIPSEG models/vipseg.py:108,127].
 * No L2 normalisation of `P_point` [DECISION D-10].
+* **Empty background** (every support point is foreground): `P_bg = 0.1·1` [VIPSEG models/vipseg.py:111-113].
+* **Empty foreground** for a way raises an error. It cannot happen with the inherited loader: a support block holds more than `max(0.05·n, 100)` target points [VIPSEG dataloaders/s3dis.py:54-57] and keeps all of them or `int(ratio·2048) ≥ 102` [VIPSEG dataloaders/loader.py:41-47].
+* Implementation: `models/prototypes.py::point_prototypes`, mask-weighted `einsum` over the K shots (per way) or over all ways and shots (background); no reshape across the way or shot axes.
 
 ---
 

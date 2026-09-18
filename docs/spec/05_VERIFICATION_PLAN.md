@@ -54,6 +54,14 @@ Fixture: `F^s ∈ [N=3, K=2, 2048, 128]` random, binary masks with different for
 | PROTO-2 | Row 0 equals the mean over all mask-0 points of all ways and shots | 02 §3 |
 | PROTO-3 | No row is all-zero; rows 1..N differ pairwise when the masks differ | 02 §3 |
 | PROTO-4 | Changing way 2's mask leaves rows 1 and 3 unchanged | 02 §3 |
+| PROTO-5 | Equals a line-by-line port of VIP-Seg's loop (without its L2 normalisation) on 5 random episodes | [VIPSEG models/vipseg.py:108-130], D-10 |
+| PROTO-6 | Invariant to point order and shot order; permuting ways permutes rows 1..N and keeps row 0 | 02 §3 |
+| PROTO-7 | Affine equivariance `P(aF + b) = aP(F) + b` | 02 §3 (means) |
+| PROTO-8 | Autograd gradient of row k equals `mask / count` | 02 §3 |
+| PROTO-9 | Empty background gives `0.1·1`; an empty foreground raises and names the way | 02 §3 |
+| PROTO-10 | Non-binary masks, wrong point count, missing way axis and flattened ways raise; float32 matches float64 to 1e-5 | 02 §1 |
+
+All PROTO checks run in float64 with tolerance 1e-12. Mutation check (2026-09-18): six wrong variants (per-shot means, per-way background means, L2 normalisation, background from one way, audit C2's flattened ways, zero empty background) each fail at least one test.
 
 ### 3.3 `tests/test_lma_gmmn.py` (G1)
 
