@@ -3,7 +3,7 @@
 # Install order (see README §3):
 #   1. PyTorch built for CUDA 12.8 (needed by RTX 50-series; 2.7.x is the last line supporting
 #      Python 3.9):
-#        pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+#        pip install torch==2.7.1 torchvision==0.22.1 --index-url https://download.pytorch.org/whl/cu128
 #   2. pip install -r requirements.txt
 #   3. CUDA extensions, built against the installed torch (no fallback exists). With
 #      --no-build-isolation their setup.py imports wheel, packaging and ninja from this env:
@@ -20,9 +20,12 @@
 #      "3.7+PTX;...;9.0"; nvcc 12.x no longer accepts compute_37, so this build is expected to
 #      fail on CUDA 12.8 until the arch list is fixed (planned for phase 14).
 #
-# torch, triton, mamba-ssm, causal-conv1d and pointnet2_ops are deliberately not listed
+# triton, mamba-ssm, causal-conv1d and pointnet2_ops are deliberately not listed
 # here: they must match the local CUDA toolkit and are installed by the steps above.
 
+# Pinned so that CLIP (which requires torch and torchvision) cannot upgrade the CUDA build of step 1.
+torch==2.7.1
+torchvision==0.22.1
 numpy==1.24.4            # [VIPSEG requirements.txt] numpy==1.24
 h5py                     # dataloaders (ScanNet/S3DIS blocks)
 transforms3d             # dataloaders/loader.py augmentation

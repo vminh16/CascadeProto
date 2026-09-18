@@ -57,7 +57,7 @@ Exact formulas, shapes and the interpretation of ambiguous equations are in the 
 * **PyTorch with CUDA.** VIP-Seg documents `torch==1.13.1+cu117` on an RTX 4090. The paper trained CascadeProto on an **RTX 5090**, which needs CUDA 12.8; this repository pins `torch==2.7.1+cu128`, the last release line that supports Python 3.9.
 * **Install** (order matters; `mamba_ssm` and `pointnet2_ops` are required and have no fallback):
   ```bash
-  pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+  pip install torch==2.7.1 torchvision==0.22.1 --index-url https://download.pytorch.org/whl/cu128
   pip install -r requirements.txt
   pip install -U pip setuptools wheel packaging ninja   # build tools for --no-build-isolation
   pip install --no-build-isolation causal-conv1d==1.5.3.post1 mamba-ssm==2.2.6.post3
