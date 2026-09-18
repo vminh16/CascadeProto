@@ -160,7 +160,7 @@ Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real
 | DATA-5 | `python train.py --dataset s3dis --data_path <blocks> --cvfold 0 --n_way 2 --k_shot 1 --dry_run true` loads 4 real episodes, runs one optimiser step and exits 0; the log names the data path, CLIP variant and loader arguments | 04 §4–5 |
 | DATA-6 | `python eval.py --dry_run true ...` evaluates 5 fixed test episodes with the 04 §6.2 metric and refuses to run without a loadable checkpoint (the refusal is also unit-tested, PIPE-6) | 04 §6 |
 
-DATA-0…4 are in `tests/test_data.py` (data path `$CASCADEPROTO_S3DIS`, default `datasets/S3DIS/blocks_bs1_s1`; DATA-0 checks that all 272 rooms have loadable blocks; on Windows reading a WSL path, set `HDF5_USE_FILE_LOCKING=FALSE` so the episode cache can be written); DATA-5 and DATA-6 are command-line checks that need the rewritten model (phase 10 onwards).
+Before DATA-0…4, `python preprocess/verify_s3dis.py` compares the prepared blocks with `preprocess/s3dis_blocks_manifest.json` (272 rooms, 7,547 blocks, per-block point and class counts, independent of point order). DATA-0…4 are in `tests/test_data.py` (data path `$CASCADEPROTO_S3DIS`, default `datasets/S3DIS/blocks_bs1_s1`; DATA-0 checks that all 272 rooms have loadable blocks; on Windows reading a WSL path, set `HDF5_USE_FILE_LOCKING=FALSE` so the episode cache can be written); DATA-5 and DATA-6 are command-line checks that need the rewritten model (phase 10 onwards).
 
 ### 3.11 `tests/test_pipeline.py` (G1)
 

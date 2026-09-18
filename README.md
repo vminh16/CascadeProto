@@ -80,7 +80,13 @@ One command (Linux or WSL2, about 4.4 GB download plus 30-60 min of processing; 
 python preprocess/prepare_s3dis.py --blocks_only   # keeps blocks_bs1_s1 + meta; --delete_raw keeps scenes/ too
 ```
 
-It downloads `Stanford3dDataset_v1.2_Aligned_Version.zip` from a public Hugging Face backup (resumable, SHA-256 checked), strips the stray character in `Area_5/hallway_6`, writes `datasets/S3DIS/meta/s3dis_classnames.txt`, runs the inherited `collect_s3dis_data.py` and `room2blocks.py` unchanged, and fails if a room was skipped. `HF_TOKEN` is optional (see `.env.example`). Use `datasets/S3DIS/blocks_bs1_s1` as `--data_path`; the loader reads `datasets/S3DIS/meta/` next to it.
+It downloads `Stanford3dDataset_v1.2_Aligned_Version.zip` from a public Hugging Face backup (resumable, SHA-256 checked), strips the stray character in `Area_5/hallway_6`, writes `datasets/S3DIS/meta/s3dis_classnames.txt`, runs the inherited `collect_s3dis_data.py` and `room2blocks.py` unchanged, and fails if a room was skipped. `HF_TOKEN` is optional (see `.env.example`). Then check the result against the reference manifest (all 272 rooms, 7,547 blocks, identical per-block class counts):
+
+```bash
+python preprocess/verify_s3dis.py        # must end with "RESULT: OK"
+```
+
+Use `datasets/S3DIS/blocks_bs1_s1` as `--data_path`; the loader reads `datasets/S3DIS/meta/` next to it.
 
 ### ScanNet v2
 
