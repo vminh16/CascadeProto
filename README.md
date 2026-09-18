@@ -4,7 +4,7 @@ Re-implementation of **CascadeProto: Cascaded Cross-Modal Prototype Purification
 
 > **Status: work in progress, not usable for results.**
 > * This is **not** the authors' code. Their repository `github.com/changshuowang/CascadeProto` says "We will release it soon." (checked 2026-09-17).
-> * The specifications in [`docs/spec/`](docs/spec/) were rewritten against the paper on 2026-09-17. The code in `models/`, `loss/`, `train.py`, `eval.py` and `tests/` predates that rewrite and does not follow it yet. In particular, `train.py` and `eval.py` currently run on random tensors instead of the dataset. See [the audit](docs/research/paper_vs_repo_audit.md).
+> * The specifications in [`docs/spec/`](docs/spec/) were rewritten against the paper on 2026-09-17. The code in `models/`, `loss/`, `train.py`, `eval.py` and `tests/` predates that rewrite and does not follow it yet. Phase 9 (2026-09-18) moved `train.py` and `eval.py` onto real episodes; the model in `models/` is still the pre-rewrite one. See [the audit](docs/research/paper_vs_repo_audit.md).
 > * All numbers in §6 are **reported by the paper**; none have been reproduced here.
 
 ---
@@ -74,14 +74,13 @@ Follow the AttMPTI protocol used by VIP-Seg. Preprocessed blocks can also be dow
 
 ### S3DIS
 
-1. Download `Stanford3dDataset_v1.2_Aligned_Version` into `datasets/S3DIS/`. The inherited script notes an extra character in `Area_5/hallway_6` of v1.2 that has to be fixed by hand.
-2. Create `datasets/S3DIS/meta/s3dis_classnames.txt` with these 13 lines, in this order: `ceiling floor wall beam column window door table chair sofa bookcase board clutter`.
-3. Run from the repository root:
-   ```bash
-   python preprocess/collect_s3dis_data.py --data_path datasets/S3DIS/Stanford3dDataset_v1.2_Aligned_Version
-   python preprocess/room2blocks.py --data_path datasets/S3DIS/scenes --dataset s3dis   # writes datasets/S3DIS/blocks_bs1_s1
-   ```
-4. Use `datasets/S3DIS/blocks_bs1_s1` as the data path (passing `--block_size`/`--stride` explicitly would name it `blocks_bs1.0_s1.0`); the loader reads `datasets/S3DIS/meta/` next to it.
+One command (Linux or WSL2, about 4.4 GB download plus 30-60 min of processing):
+
+```bash
+python preprocess/prepare_s3dis.py              # add --delete_raw to drop the zip and raw txt afterwards
+```
+
+It downloads `Stanford3dDataset_v1.2_Aligned_Version.zip` from a public Hugging Face backup (resumable, SHA-256 checked), strips the stray character in `Area_5/hallway_6`, writes `datasets/S3DIS/meta/s3dis_classnames.txt`, runs the inherited `collect_s3dis_data.py` and `room2blocks.py` unchanged, and fails if a room was skipped. `HF_TOKEN` is optional (see `.env.example`). Use `datasets/S3DIS/blocks_bs1_s1` as `--data_path`; the loader reads `datasets/S3DIS/meta/` next to it.
 
 ### ScanNet v2
 
@@ -92,8 +91,6 @@ Follow the AttMPTI protocol used by VIP-Seg. Preprocessed blocks can also be dow
    python preprocess/room2blocks.py --data_path datasets/ScanNet/scenes --dataset scannet   # writes datasets/ScanNet/blocks_bs1_s1
    ```
 
-`preprocess/download_and_prepare_s3dis.py` is an experimental local helper whose output layout does not yet match the loader (audit finding C5).
-
 ### Splits and protocol (summary)
 
 * Class-based folds of the inherited loader. S3DIS S0 test classes: beam, board, bookcase, ceiling, chair, column; S1: door, floor, sofa, table, wall, window. ScanNet folds: 10 test classes each ([04 §3](docs/spec/04_DATA_AND_EPISODES.md)).
@@ -103,18 +100,31 @@ Follow the AttMPTI protocol used by VIP-Seg. Preprocessed blocks can also be dow
 
 ## 5. Training and evaluation
 
-Not available yet. `train.py` and `eval.py` currently generate random episodes and must not be used for results.
+`train.py` and `eval.py` read real episodes only. The CascadeProto model itself is rewritten in the next phases, so do not report its numbers yet.
 
-The target behaviour is fixed by the specs:
+```bash
+D=datasets/S3DIS/blocks_bs1_s1
+python train.py --dataset s3dis --data_path $D --cvfold 0 --n_way 2 --k_shot 1 --dry_run true   # one step on real data
+python train.py --dataset s3dis --data_path $D --cvfold 0 --n_way 2 --k_shot 1                  # full schedule
+python eval.py  --dataset s3dis --data_path $D --cvfold 0 --n_way 2 --k_shot 1 \
+                --checkpoint log_cascadeproto/s3dis_S0_N2_K1_text/best.pt                         # also evaluate last.pt (D-15)
+```
+
+The schedule is fixed by the specs:
 
 | Setting | Value | Spec |
 | :--- | :--- | :--- |
 | Optimiser | AdamW, lr 1e-3, weight decay 0.1, StepLR ×0.5 every 10 epochs | [04 §5](docs/spec/04_DATA_AND_EPISODES.md) |
 | Batch / epochs | 4 episodes; S3DIS 50 epochs × 480 episodes; ScanNet 30 epochs × 800 episodes | [04 §5](docs/spec/04_DATA_AND_EPISODES.md) |
 | Settings | 2/3-way × 1/5-shot × folds S0/S1 × modality | [04 §3](docs/spec/04_DATA_AND_EPISODES.md) |
-| First check | `python train.py --dataset s3dis --cvfold 0 --n_way 2 --k_shot 1 --modality text --dry_run true` on real data | [05 §3.10](docs/spec/05_VERIFICATION_PLAN.md) |
+| First check | `python train.py ... --dry_run true` on real data | [05 §3.10](docs/spec/05_VERIFICATION_PLAN.md) |
 
-Before training CascadeProto, the data and metric pipeline must come close to VIP-Seg's logged result for its released S0 2-way 1-shot checkpoint (mean IoU 0.722) ([05 §4](docs/spec/05_VERIFICATION_PLAN.md)).
+Before training CascadeProto, the data and metric pipeline must come close to VIP-Seg's logged result for its released S0 2-way 1-shot checkpoint (mean IoU 0.722) ([05 §4](docs/spec/05_VERIFICATION_PLAN.md)):
+
+```bash
+wget https://github.com/changshuowang/VIP-Seg_NeurIPS2025/raw/28aedc5093c0d386d526864c49505ae6921b1600/log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/checkpoint.pt -O vipseg_S0_N2_K1.pt
+python eval.py --model vipseg --checkpoint vipseg_S0_N2_K1.pt --dataset s3dis --data_path $D --cvfold 0 --n_way 2 --k_shot 1
+```
 
 ---
 

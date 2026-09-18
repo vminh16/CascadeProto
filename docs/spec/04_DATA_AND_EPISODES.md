@@ -136,7 +136,7 @@ The loader's own defaults (`num_point=4096`, `pc_attribs='xyz'`) are wrong for t
 
 Primary protocol [DECISION D-08]:
 
-* Episodes: `MyTestDataset(mode='test', num_episode_per_comb=100, n_queries=1)`, i.e. 100 fixed episodes for every combination of N test classes, cached as `.h5` [VIPSEG dataloaders/loader.py:230-267] [VIPSEG scripts/vipseg_eval_s3dis.sh].
+* Episodes: `MyTestDataset(mode='test', num_episode_per_comb=100, n_queries=1)`, i.e. 100 fixed episodes for every combination of N test classes, cached as `.h5` [VIPSEG dataloaders/loader.py:230-267] [VIPSEG scripts/vipseg_eval_s3dis.sh]. The cache folder is named after VIP-Seg's own tags (`vipseg_eval` for test, `vipseg` for valid) so that the VIP-Seg sanity run (05 §4) and CascadeProto are scored on the same episodes; the first build is seeded [DECISION D-08].
 * Episode counts per fold:
 
   | Dataset (test classes) | 2-way | 3-way |

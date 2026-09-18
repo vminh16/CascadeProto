@@ -116,11 +116,13 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 | ABL-2 | `num_stages` ∈ {1..6} gives `w_gate` of width `num_stages` | 01 §3, [PAPER Tab.5] |
 | ABL-3 | `modality=image` and `modality=audio` raise `NotImplementedError` | 03 §2.2 |
 
-### 3.7 `tests/test_eval_metric.py` (G1)
+### 3.7 `tests/test_eval_metric.py` (G2, marker `cuda`)
+
+The metric is VIP-Seg's `evaluate_metric`, called unchanged; its module imports the VIP-Seg encoder, so these tests need the GPU environment. The reference is an independent implementation of 04 §6.2.
 
 | ID | Check | Source |
 | :--- | :--- | :--- |
-| EVAL-1 | The project's metric equals VIP-Seg's `evaluate_metric` on hand-made predictions over several episodes | 04 §6.2 |
+| EVAL-1 | The project's metric (VIP-Seg's `evaluate_metric`) equals an independent implementation of 04 §6.2 on random predictions over 20 episodes | 04 §6.2 |
 | EVAL-2 | A crafted two-episode case where accumulated IoU ≠ mean of per-episode IoU; the project returns the accumulated value | 04 §6.2, [DECISION D-08] |
 | EVAL-3 | Background (local label 0) is excluded from the mean | 04 §6.2 |
 
@@ -155,14 +157,27 @@ Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real
 | DATA-2 | `MyDataset` with the 04 §4.1 arguments returns tensors of 04 §4.3; support masks ∈ {0, 1}; 9 channels; `XYZ` ∈ [0, 1] | 04 §4 |
 | DATA-3 | Training classes of fold 0 exclude the S0 test classes and `clutter` | 04 §3 |
 | DATA-4 | `MyTestDataset(mode='test')` for S0, 2-way 1-shot yields 1,500 episodes | 04 §6.1 |
-| DATA-5 | `python train.py --dataset s3dis --cvfold 0 --n_way 2 --k_shot 1 --modality text --dry_run true` loads 4 real episodes, runs one optimiser step and exits 0; the log names the data path, CLIP variant and loader arguments | 04 §4–5 |
-| DATA-6 | `python eval.py --dry_run true ...` evaluates 5 fixed test episodes with the 04 §6.2 metric and refuses to run without a loadable checkpoint | 04 §6 |
+| DATA-5 | `python train.py --dataset s3dis --data_path <blocks> --cvfold 0 --n_way 2 --k_shot 1 --dry_run true` loads 4 real episodes, runs one optimiser step and exits 0; the log names the data path, CLIP variant and loader arguments | 04 §4–5 |
+| DATA-6 | `python eval.py --dry_run true ...` evaluates 5 fixed test episodes with the 04 §6.2 metric and refuses to run without a loadable checkpoint (the refusal is also unit-tested, PIPE-6) | 04 §6 |
+
+DATA-1…4 are in `tests/test_data.py` (data path `$CASCADEPROTO_S3DIS`, default `datasets/S3DIS/blocks_bs1_s1`); DATA-5 and DATA-6 are command-line checks that need the rewritten model (phase 10 onwards).
+
+### 3.11 `tests/test_pipeline.py` (G1)
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| PIPE-1 | A loader item becomes an `Episode` in the 02 §1 layout; non-binary masks, 3-channel input and labels above N raise | 02 §1, 04 §4.3 |
+| PIPE-2 | A batch of 4 loader items yields 4 separate episodes | 04 §4.3 |
+| PIPE-3 | The loss is unweighted CE on `L_final` plus λ·`L_GMMN`; wrong logit shapes raise | 02 §7 |
+| PIPE-4 | One optimiser step uses the mean loss of the 4 episodes | 02 §7, [DECISION D-12] |
+| PIPE-5 | Default schedule: S3DIS 50×480, ScanNet 30×800 episodes (24,000), 4 per step, AdamW 1e-3 / 0.1, StepLR 10 / 0.5 | 04 §5 |
+| PIPE-6 | `eval.py` refuses a missing checkpoint; unimplemented modalities raise | 04 §6, 03 §2.2 |
 
 ---
 
 ## 4. Pipeline sanity check with VIP-Seg (before G5)
 
-Restore VIP-Seg's reference model and run scripts (00 §5.1), then evaluate its released checkpoint `log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/checkpoint.pt` with this repository's data and evaluation code. Reference: mean IoU 0.722026 on 1,500 test episodes [VIPSEG log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/log_vipseg_eval.txt:1-9]. The test episodes are sampled when the `.h5` cache is first built, so a local run uses different episodes and will not match exactly; no tolerance has been measured yet. Record the value; a gap of several points indicates that the data layout, loader arguments or metric differ from VIP-Seg, in which case CascadeProto numbers would not be comparable either.
+Evaluate VIP-Seg's released checkpoint `log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/checkpoint.pt` with this repository's data and evaluation code: `python eval.py --model vipseg --checkpoint <file> ...` (README §5). Reference: mean IoU 0.722026 on 1,500 test episodes [VIPSEG log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/log_vipseg_eval.txt:1-9]. The test episodes are sampled when the `.h5` cache is first built, so a local run uses different episodes and will not match exactly; no tolerance has been measured yet. Record the value; a gap of several points indicates that the data layout, loader arguments or metric differ from VIP-Seg, in which case CascadeProto numbers would not be comparable either.
 
 ---
 

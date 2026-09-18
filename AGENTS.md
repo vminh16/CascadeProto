@@ -10,7 +10,7 @@ Rules for autonomous coding agents (Claude Code, Cursor, Copilot, Devin, Aider, 
 * **Base code:** the official VIP-Seg repository `changshuowang/VIP-Seg_NeurIPS2025`, pinned at commit `28aedc5093c0d386d526864c49505ae6921b1600`.
 * **Target hardware:** one NVIDIA GPU; the paper used an RTX 5090.
 * **Modality priority:** text first; image and audio are deferred and must raise until implemented.
-* **Status (2026-09-18):** the docs in `docs/spec/` were rewritten against the paper. Phase 8 restored the inherited VIP-Seg files, removed the encoder fallbacks and added gate G0. The rest of `models/`, `loss/`, `train.py`, `eval.py` and `tests/` predates the rewrite and does **not** follow it yet; [docs/research/paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) lists the known gaps.
+* **Status (2026-09-18):** the docs in `docs/spec/` were rewritten against the paper. Phase 8 restored the inherited VIP-Seg files, removed the encoder fallbacks and added gate G0. Phase 9 put `train.py` and `eval.py` on real episodes through `pipeline/`. The rest of `models/`, `loss/` and `tests/` predates the rewrite and does **not** follow it yet; [docs/research/paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) lists the known gaps.
 
 ---
 
@@ -34,7 +34,7 @@ Read [docs/spec/00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.
 | EPPM (gate, cross-attention, diffusion, fusion) | `models/eppm.py` | [02 §5](docs/spec/02_TENSOR_MATH_SPEC.md), [01 §2.4](docs/spec/01_ARCHITECTURE_SPEC.md), decisions D-01, D-02, D-11, D-14, D-16 |
 | ADRM, segmentation loss | `models/adrm.py`, `loss/segmentation_loss.py` | [02 §6–7](docs/spec/02_TENSOR_MATH_SPEC.md) |
 | Ablation switches | `models/cascadeproto.py`, CLI | [01 §3](docs/spec/01_ARCHITECTURE_SPEC.md), D-17 |
-| Data, splits, episodes, schedule, evaluation | `train.py`, `eval.py`, `dataloaders/` (read-only) | [04](docs/spec/04_DATA_AND_EPISODES.md) |
+| Data, splits, episodes, schedule, evaluation | `pipeline/`, `train.py`, `eval.py`, `preprocess/prepare_s3dis.py`, `dataloaders/` (read-only) | [04](docs/spec/04_DATA_AND_EPISODES.md) |
 | Tests | `tests/` | [05](docs/spec/05_VERIFICATION_PLAN.md) |
 
 ---
@@ -107,6 +107,7 @@ CascadeProto/
 ├── pointnet2_ops_lib/      vendored CUDA ops
 ├── runs/, main.py, scripts/  VIP-Seg reference code (inherited, read-only)
 ├── tests/                  see 05
+├── pipeline/               episodes over the inherited loader, model contract, evaluation
 ├── train.py, eval.py
 └── requirements.txt
 ```
@@ -123,7 +124,7 @@ pytest -m "not cuda and not clip and not data" -v   # G1 unit, CPU
 pytest -m cuda -v                                   # G2 encoder on GPU
 pytest -m clip -v                                   # G3 episode with real CLIP
 pytest -m data -v                                   # G4 real data
-python train.py --dataset s3dis --cvfold 0 --n_way 2 --k_shot 1 --modality text --dry_run true
+python train.py --dataset s3dis --data_path datasets/S3DIS/blocks_bs1_s1 --cvfold 0 --n_way 2 --k_shot 1 --dry_run true
 ```
 
 Before any reproduction run, evaluate VIP-Seg's released S0 2-way 1-shot checkpoint with this repository's data and metric; the result must be close to VIP-Seg's logged 0.722; a gap of several points means the pipeline differs (05 §4).
