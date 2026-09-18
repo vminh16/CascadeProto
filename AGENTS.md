@@ -10,7 +10,7 @@ Rules for autonomous coding agents (Claude Code, Cursor, Copilot, Devin, Aider, 
 * **Base code:** the official VIP-Seg repository `changshuowang/VIP-Seg_NeurIPS2025`, pinned at commit `28aedc5093c0d386d526864c49505ae6921b1600`.
 * **Target hardware:** one NVIDIA GPU; the paper used an RTX 5090.
 * **Modality priority:** text first; image and audio are deferred and must raise until implemented.
-* **Status (2026-09-17):** the docs in `docs/spec/` were rewritten against the paper. The code in `models/`, `loss/`, `train.py`, `eval.py` and `tests/` predates that rewrite and does **not** follow it yet; [docs/research/paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) lists the known gaps.
+* **Status (2026-09-18):** the docs in `docs/spec/` were rewritten against the paper. Phase 8 restored the inherited VIP-Seg files, removed the encoder fallbacks and added gate G0. The rest of `models/`, `loss/`, `train.py`, `eval.py` and `tests/` predates the rewrite and does **not** follow it yet; [docs/research/paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) lists the known gaps.
 
 ---
 
@@ -68,8 +68,8 @@ Values are defined in the specs; this list is a reminder, not a source. If a val
 ## 4. Guardrails
 
 1. **No pre-trained point-cloud weights.** Only frozen CLIP (and, later, Whisper) weights may be loaded (01 §2.1).
-2. **Inherited files are read-only.** `dataloaders/{loader,s3dis,scannet}.py`, `preprocess/{collect_s3dis_data,collect_scannet_data,room2blocks}.py` and `utils/{checkpoint_util,cuda_util,logger}.py` must stay byte-identical to the pinned VIP-Seg commit. Change behaviour through arguments or wrappers. `models/encoder.py`, `models/mamba_block.py` and `models/model_utils.py` may only lose the local fallbacks (00 §5.2).
-3. **Restore, don't rewrite, VIP-Seg's evaluation.** The metric in `runs/training_free.py` and the patterns in `runs/{training,evaluate}.py` come from the pinned commit (00 §5.1). The current `.gitignore` ignores `runs/`; fix that before restoring.
+2. **Inherited files are read-only.** `dataloaders/{loader,s3dis,scannet}.py`, `preprocess/{collect_s3dis_data,collect_scannet_data,room2blocks}.py` and `utils/{checkpoint_util,cuda_util,logger}.py` must stay byte-identical to the pinned VIP-Seg commit. Change behaviour through arguments or wrappers. The same holds for `models/{encoder,mamba_block,model_utils,vipseg,vipseg_learner}.py`, `runs/*.py` and `main.py`; test ENV-3 checks all of them (00 §5.2).
+3. **Restore, don't rewrite, VIP-Seg's evaluation.** The metric in `runs/training_free.py` and the patterns in `runs/{training,evaluate}.py` come from the pinned commit (00 §5.1). They were restored byte-identical in phase 8; call or wrap them, never copy-edit them.
 4. **Shape comments.** Every tensor operation carries an inline shape comment, e.g. `# [B_q, N+1, 128]`.
 5. **No silent maths drift.** Formulas must match 02 exactly. Changing an interpretation means editing the decision in `00` first, with evidence, then the spec, then the code.
 6. **No shape guessing.** Never infer layouts from `shape[i] in (3, 6, 9)`, never infer N from mask values, never `reshape`/`view` across batch, class or shot axes to make a product fit; use explicit indices or `einsum`. If shapes do not fit, stop: the spec or the input is wrong. Do not invent a projection layer to force a fit.
@@ -105,7 +105,7 @@ CascadeProto/
 │   └── cascadeproto.py     end-to-end model
 ├── loss/                   gmmn_loss.py, segmentation_loss.py
 ├── pointnet2_ops_lib/      vendored CUDA ops
-├── runs/                   (to restore) VIP-Seg training/evaluation reference code
+├── runs/, main.py, scripts/  VIP-Seg reference code (inherited, read-only)
 ├── tests/                  see 05
 ├── train.py, eval.py
 └── requirements.txt
@@ -136,7 +136,7 @@ The test files and markers named above are the target of 05; until the tests are
 
 | Symptom | Likely cause | Where to look |
 | :--- | :--- | :--- |
-| `ModuleNotFoundError: mamba_ssm` | Mamba not built for this GPU/CUDA | VIP-Seg installs it from its vendored `mamba/` directory [VIPSEG README.md]; the RTX 5090 needs a PyTorch/CUDA build that supports it |
+| `ModuleNotFoundError: mamba_ssm` | Mamba not installed for this PyTorch/CUDA | Install order in `requirements.txt`; pinned versions in 00 §5.2 |
 | `FileNotFoundError: …/meta/s3dis_classnames.txt` | `--data_path` not inside the documented layout | 04 §2.2 |
 | Class-2 prototype is all zeros | masks compared with `== k` instead of per way | 02 §3 |
 | Entropy is NaN | missing probability clamp | 02 §9 |

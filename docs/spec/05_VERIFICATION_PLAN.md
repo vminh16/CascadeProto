@@ -22,14 +22,14 @@ Run in order; a gate starts only when the previous one passes.
 
 | Gate | Needs | Command | Purpose |
 | :--- | :--- | :--- | :--- |
-| G0 Environment | GPU runtime | `pytest tests/test_environment.py -v` | Required packages import; CUDA available |
+| G0 Environment | GPU runtime | `pytest tests/test_environment.py -v` | Required packages import; extensions run on the GPU; inherited files unchanged |
 | G1 Unit (CPU) | nothing external | `pytest -m "not cuda and not clip and not data" -v` | Math and wiring of 02–03 |
 | G2 Unit (GPU) | CUDA, `mamba_ssm`, `pointnet2_ops` | `pytest -m cuda -v` | Encoder batching and parameter counts |
 | G3 Integration | G2 + CLIP weights | `pytest -m clip -v` | End-to-end episode with real CLIP embeddings |
 | G4 Data | preprocessed S3DIS | `pytest -m data -v`, then `python train.py --dry_run ...` | Real loader, real episodes, one optimiser step |
 | G5 Reproduction | full data, compute | training + evaluation runs | Tables 2–5 comparison (§5) |
 
-Markers `cuda`, `clip`, `data` are registered in `pytest.ini`.
+Markers `cuda`, `clip`, `data` are registered in `pytest.ini`. ENV-3 and ENV-4 carry no marker, so they also run in G1.
 
 ---
 
@@ -39,9 +39,9 @@ Markers `cuda`, `clip`, `data` are registered in `pytest.ini`.
 
 | ID | Check | Source |
 | :--- | :--- | :--- |
-| ENV-1 | `import mamba_ssm`, `import pointnet2_ops`, `import clip`, `import h5py`, `import transforms3d` succeed | 01 §2.1, 04 §4 |
-| ENV-2 | `torch.cuda.is_available()` and a 1-point CUDA op runs on the target GPU | [PAPER §4.1 "single NVIDIA RTX 5090"] |
-| ENV-3 | Inherited files are byte-identical to the pinned VIP-Seg commit: `dataloaders/{loader,s3dis,scannet}.py`, `preprocess/{collect_s3dis_data,collect_scannet_data,room2blocks}.py`, `utils/{checkpoint_util,cuda_util,logger}.py` (SHA-256 list stored in the test) | 04 header, [00 §5.2](00_SOURCES_AND_DECISIONS.md) |
+| ENV-1 | `import mamba_ssm`, `import pointnet2_ops`, `import clip`, `import h5py`, `import transforms3d`, `import timm` succeed (marker `cuda`) | 01 §2.1, 04 §4 |
+| ENV-2 | `torch.cuda.is_available()`; the GPU's `sm_XY` is in `torch.cuda.get_arch_list()`; `furthest_point_sample` and a `Mamba` forward run on it (marker `cuda`) | [PAPER §4.1 "single NVIDIA RTX 5090"] |
+| ENV-3 | Inherited files are byte-identical to the pinned VIP-Seg commit: `dataloaders/{loader,s3dis,scannet}.py`, `preprocess/{collect_s3dis_data,collect_scannet_data,room2blocks}.py`, `utils/{checkpoint_util,cuda_util,logger}.py`, `models/{encoder,mamba_block,model_utils,vipseg,vipseg_learner}.py`, `runs/{training_free,training,evaluate}.py`, `main.py` (git blob SHA-1 of the CRLF-normalised file, compared with the pinned tree) | 04 header, [00 §5.2](00_SOURCES_AND_DECISIONS.md) |
 | ENV-4 | `models/encoder.py` contains no fallback block and imports `mamba_ssm` unconditionally | 01 §2.1 |
 
 ### 3.2 `tests/test_prototypes.py` (G1)

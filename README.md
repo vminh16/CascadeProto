@@ -53,17 +53,17 @@ Exact formulas, shapes and the interpretation of ambiguous equations are in the 
 
 ## 3. Environment
 
-Requirements follow the base VIP-Seg repository, with one hardware caveat.
-
-* **Python 3.9**, Linux. The inherited preprocessing splits paths on `/` and does not work on Windows.
-* **PyTorch with CUDA.** VIP-Seg documents `torch==1.13.1+cu117` on an RTX 4090. The paper trained CascadeProto on an **RTX 5090**; RTX 50-series GPUs need a PyTorch build for CUDA 12.8 or newer (PyTorch 2.7+), so pick the version matching your GPU.
-* **Compiled extensions** (both required; there is no fallback):
+* **Python 3.9 on Linux or WSL2, one CUDA GPU.** The inherited preprocessing splits paths on `/` and does not work on native Windows.
+* **PyTorch with CUDA.** VIP-Seg documents `torch==1.13.1+cu117` on an RTX 4090. The paper trained CascadeProto on an **RTX 5090**, which needs CUDA 12.8; this repository pins `torch==2.7.1+cu128`, the last release line that supports Python 3.9.
+* **Install** (order matters; `mamba_ssm` and `pointnet2_ops` are required and have no fallback):
   ```bash
-  cd pointnet2_ops_lib && python setup.py install && cd ..
-  # mamba_ssm: VIP-Seg builds it from the `mamba/` directory of its repository
-  # (github.com/changshuowang/VIP-Seg_NeurIPS2025, commit 28aedc5), which is not vendored here.
+  pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+  pip install -r requirements.txt
+  pip install --no-build-isolation causal-conv1d==1.5.4 mamba-ssm==2.2.6.post3
+  pip install --no-build-isolation ./pointnet2_ops_lib
+  pytest tests/test_environment.py -v   # gate G0
   ```
-* **Python packages:** `pip install -r requirements.txt`, plus CLIP: `pip install git+https://github.com/openai/CLIP.git`. `requirements.txt` does not yet list `torch`, `mamba_ssm`, `pointnet2_ops` or CLIP.
+  `requirements.txt` explains the pinned versions. Known issue: `pointnet2_ops_lib/setup.py` hard-codes a CUDA arch list starting at `3.7`, which nvcc 12.x rejects; the fix is planned (00 §5.3).
 
 ---
 

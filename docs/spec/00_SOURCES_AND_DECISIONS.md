@@ -230,27 +230,26 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 
 ## 5. Official VIP-Seg files: restore, reuse, avoid
 
-### 5.1 Missing locally, to restore as reference implementations
+### 5.1 Reference implementations restored from L2
 
-| File at pinned L2 commit | Local status | Purpose |
-| :--- | :--- | :--- |
-| `runs/training_free.py` (`evaluate_metric`, `test_few_shot`) | Missing | Evaluation metric of D-08 |
-| `runs/evaluate.py` | Missing | Evaluation entry point pattern |
-| `runs/training.py` | Missing | Training loop, validation and checkpointing pattern (D-15) |
-| `main.py` | Missing | CLI argument names and defaults (augmentation, `pc_npts`, `pc_attribs`) |
-| `scripts/vipseg_s3dis.sh`, `scripts/vipseg_scannet.sh`, `scripts/vipseg_eval_*.sh` | Missing | Reference hyper-parameters |
-| `models/vipseg.py` | Local file is a 7-line stub | Baseline sanity run and source of D-01 / D-10 evidence; not imported by CascadeProto |
+Restored byte-identical on 2026-09-18 (phase 8a); their git blob SHA-1s match the pinned tree. CascadeProto does not import them.
 
-Restoring `runs/` needs a `.gitignore` change: the current `.gitignore` ignores `runs/` and `log_*/`, so restored files would not be committed.
-
-### 5.2 Present locally, compared on 2026-09-17
-
-| File | Difference from L2 |
+| File at pinned L2 commit | Purpose |
 | :--- | :--- |
-| `dataloaders/loader.py`, `dataloaders/s3dis.py`, `dataloaders/scannet.py`, `models/vipseg_learner.py` | Identical |
-| `models/encoder.py` | Adds optional imports and a `TransBlock` fallback when `mamba_ssm` or `pointnet2_ops` is missing; device-agnostic tensors. Backbone configuration otherwise identical |
-| `models/mamba_block.py` | `TransBlock.forward` signature changed to match `MambaBlock` |
-| `models/model_utils.py` | Adds pure-PyTorch `furthest_point_sample_py` |
+| `runs/training_free.py` (`evaluate_metric`, `test_few_shot`) | Evaluation metric of D-08 |
+| `runs/evaluate.py` | Evaluation entry point pattern |
+| `runs/training.py` | Training loop, validation and checkpointing pattern (D-15) |
+| `main.py` | CLI argument names and defaults (augmentation, `pc_npts`, `pc_attribs`) |
+| `scripts/vipseg_s3dis.sh`, `scripts/vipseg_scannet.sh`, `scripts/vipseg_eval_*.sh` | Reference hyper-parameters |
+| `models/vipseg.py` (replaces a 7-line local stub) | Baseline sanity run (05 §4) and source of D-01 / D-10 evidence |
+
+`.gitignore` no longer ignores `runs/`; `log_*/` and checkpoints stay ignored.
+
+### 5.2 Inherited files present locally
+
+Every file below is byte-identical to L2 (CRLF normalised), checked by test ENV-3 [05 §3.1]: `dataloaders/{loader,s3dis,scannet}.py`, `preprocess/{collect_s3dis_data,collect_scannet_data,room2blocks}.py`, `utils/{checkpoint_util,cuda_util,logger}.py`, `models/{encoder,mamba_block,model_utils,vipseg_learner}.py` and the Python files of §5.1. The local `TransBlock` and Python-FPS fallbacks and the `.cuda()`→`device` edits in `models/{encoder,mamba_block,model_utils}.py` were removed on 2026-09-18 (phase 8b); the model runs on a single CUDA GPU.
+
+**Environment deviation.** L2 vendors `mamba_ssm` 2.0.4 [VIPSEG mamba/mamba_ssm/__init__.py:1] and documents PyTorch 1.13.1 + CUDA 11.7 [VIPSEG README.md]. This repository targets PyTorch 2.7.1 + CUDA 12.8 (RTX 50-series, [PAPER §4.1]) with `mamba-ssm` 2.2.6.post3; the encoder only uses `mamba_simple.Mamba`. Test ENC-1 (2.37M parameters) checks that the encoder is unchanged.
 
 ### 5.3 Known L2 defects and traps not to copy
 
@@ -261,6 +260,7 @@ Restoring `runs/` needs a `.gitignore` change: the current `.gitignore` ignores 
 | Loader defaults `num_point=4096`, `pc_attribs='xyz'` | [VIPSEG dataloaders/loader.py:118,232] | Always pass `num_point=2048`, `pc_attribs='xyzrgbXYZ'` explicitly |
 | Validation episodes are drawn from test classes | [VIPSEG runs/training.py] | Allowed only under D-15, always logged alongside `last` |
 | `requirements.txt` omits `mamba_ssm`, `pointnet2_ops`, CLIP | [VIPSEG requirements.txt] | List every runtime dependency explicitly |
+| `pointnet2_ops_lib/setup.py` sets `TORCH_CUDA_ARCH_LIST="3.7+PTX;…;9.0"` | [VIPSEG pointnet2_ops_lib/setup.py:19] | nvcc 12.x rejects `compute_37` and the list lacks `sm_120`; fix the arch list when building on CUDA 12.8 (phase 14) |
 
 ---
 
@@ -299,3 +299,4 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-17 | Phase 2: added D-17 (meaning of the ablation switches). |
 | 2026-09-17 | Verification run (executable reference of spec 02; pinned VIP-Seg loader and metric on a synthetic dataset): corrected D-14 (conditions for `c_unique = 0`; class-independence comes from Eq.15–18 themselves), D-01 (shot averaging is our choice; class slots are a VIP-Seg construct, flagged), D-07 (baseline protocol evidence), D-12 (shift augmentation is a no-op for the encoder input), D-16 (reading of `dim=1`). |
 | 2026-09-17 | Phases 3–7: specs 04, 03, 05, AGENTS.md and README.md rewritten; D-09 corrected with VIP-Seg's logged parameter breakdown (encoder 2.37M, VIP module 0.19M); D-13 extended (L2-normalised embeddings, verbatim class names); §5.1 notes the `.gitignore` conflict for `runs/`. |
+| 2026-09-18 | Phase 8: §5.1 files restored from L2; §5.2 rewritten (all inherited files identical, fallbacks removed, `mamba-ssm` version deviation recorded); §5.3 adds the `pointnet2_ops` arch-list trap. |
