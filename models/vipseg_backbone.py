@@ -3,7 +3,6 @@ VIP-Seg Backbone and Point Prototype Extraction for CascadeProto.
 Implements:
 1. Shared VIP-Seg Encoder mapping point clouds to dense geometric features D = 128.
 2. Point-based Prototype Extraction (Module B from 01_ARCHITECTURE_SPEC.md).
-3. GatingNetwork (foundation for ADRM dynamic routing).
 
 Reference:
 - 01_ARCHITECTURE_SPEC.md (Sections 2 & 4)
@@ -147,30 +146,3 @@ def extract_point_prototypes(
 
     P_point = torch.stack(prototypes_batch, dim=0)  # [B, N+1, D]
     return P_point
-
-
-class GatingNetwork(nn.Module):
-    """
-    Attention-based Dynamic Routing Gating Network.
-    Computes a probability simplex over T cascade stages based on query scene features:
-        w_gate = softmax(W_g * mean(F_q)) in (0, 1)^T
-        sum_{t=1}^T w_gate^(t) = 1.0
-    """
-    def __init__(self, input_dim: int = 128, num_stages: int = 4):
-        super().__init__()
-        self.input_dim = input_dim
-        self.num_stages = num_stages
-        self.fc = nn.Linear(input_dim, num_stages, bias=False)
-
-    def forward(self, query_feat: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            query_feat: [B, N_q, D] dense query point features.
-        Returns:
-            w_gate: [B, T] gating probabilities on the probability simplex.
-        """
-        # Global Average Pooling: [B, D]
-        v_q = query_feat.mean(dim=1)
-        # Softmax gating across stages: [B, T]
-        w_gate = F.softmax(self.fc(v_q), dim=-1)
-        return w_gate

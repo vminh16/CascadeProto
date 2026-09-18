@@ -9,7 +9,7 @@ Verifies:
 
 import pytest
 import torch
-from models.vipseg_backbone import VIPSegBackbone, extract_point_prototypes, GatingNetwork
+from models.vipseg_backbone import VIPSegBackbone, extract_point_prototypes
 
 
 def test_vipseg_backbone_forward_cpu():
@@ -41,20 +41,6 @@ def test_point_prototype_extraction():
     p_point = extract_point_prototypes(features, masks, n_way=n_way)
     assert p_point.shape == (B, n_way + 1, D), f"Expected ({B}, {n_way + 1}, {D}), got {p_point.shape}"
     assert not torch.isnan(p_point).any(), "Found NaNs in extracted prototypes!"
-
-
-def test_gating_network_simplex():
-    B = 2
-    num_stages = 4
-    D = 128
-    
-    gating = GatingNetwork(input_dim=D, num_stages=num_stages)
-    query_feat = torch.randn(B, 2048, D)
-    
-    w_gate = gating(query_feat)
-    assert w_gate.shape == (B, num_stages), f"Expected ({B}, {num_stages}), got {w_gate.shape}"
-    assert torch.all(w_gate >= 0.0), "Gating weights must be non-negative"
-    assert torch.allclose(w_gate.sum(dim=-1), torch.ones(B, dtype=w_gate.dtype), atol=1e-6), "Gating weights must sum to 1.0"
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
