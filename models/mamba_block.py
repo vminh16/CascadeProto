@@ -24,14 +24,15 @@ class TransBlock(nn.Module):
             nn.Linear(embed_dim * 4, embed_dim),
         )
 
-    def forward(self, x, residual=None, inference_params=None, attn_mask=None):
-        out = self.ln_1(x)
-        a, _ = self.attn(out, out, out, attn_mask=attn_mask, need_weights=False)
-        out = out + a
-        m = self.mlp(self.ln_2(out))
-        out = out + m
-        return out, residual
+    def forward(self, x, attn_mask=None):
 
+        x = self.ln_1(x)
+        # a, _ = self.attn(x, x, x, attn_mask=attn_mask, need_weights=False)
+        a, _ = self.attn(x, x, x, attn_mask=attn_mask, need_weights=False)
+        x = x + a
+        m = self.mlp(self.ln_2(x))
+        x = x + m
+        return x
 
 class MambaBlock(nn.Module):
     def __init__(

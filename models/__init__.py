@@ -1,44 +1,6 @@
-"""CascadeProto models package."""
+"""CascadeProto models package.
 
-from models.vipseg_backbone import VIPSegBackbone, extract_point_prototypes, GatingNetwork
-from models.lma import (
-    TextModalityAdapter,
-    GMMNGenerator,
-    LearnableModalityAdapter,
-    fuse_initial_prototypes,
-    format_category_prompt,
-    generate_clip_text_embeddings
-)
-from models.eppm import (
-    compute_shannon_entropy,
-    InformationTheoreticGating,
-    CrossAttentionRefinement,
-    PrototypeDiffusion,
-    AdaptiveFusionRecalibration,
-    EPPMStage,
-    EPPMCascade
-)
-from models.adrm import AttentionDynamicRouting
-from models.cascadeproto import CascadeProto, CascadeProtoForwardOutput
-
-__all__ = [
-    "VIPSegBackbone",
-    "extract_point_prototypes",
-    "GatingNetwork",
-    "TextModalityAdapter",
-    "GMMNGenerator",
-    "LearnableModalityAdapter",
-    "fuse_initial_prototypes",
-    "format_category_prompt",
-    "generate_clip_text_embeddings",
-    "compute_shannon_entropy",
-    "InformationTheoreticGating",
-    "CrossAttentionRefinement",
-    "PrototypeDiffusion",
-    "AdaptiveFusionRecalibration",
-    "EPPMStage",
-    "EPPMCascade",
-    "AttentionDynamicRouting",
-    "CascadeProto",
-    "CascadeProtoForwardOutput",
-]
+Submodules are imported explicitly (e.g. `from models.eppm import EPPMStage`) so that
+the pure-PyTorch modules load without `mamba_ssm` and `pointnet2_ops`; only
+`models.encoder` and the modules built on it require them.
+"""

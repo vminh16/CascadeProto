@@ -53,28 +53,3 @@ def knn_point(nsample, xyz, new_xyz):
     sqrdists = square_distance(new_xyz, xyz)
     _, group_idx = torch.topk(sqrdists, nsample, dim=-1, largest=False, sorted=False)
     return group_idx
-
-
-def furthest_point_sample_py(xyz, npoint):
-    """
-    Pure-PyTorch implementation of furthest point sampling (FPS).
-    Input:
-        xyz: point cloud coordinates, [B, N, 3]
-        npoint: number of samples
-    Return:
-        centroids: sampled points indices, [B, npoint]
-    """
-    device = xyz.device
-    B, N, C = xyz.shape
-    centroids = torch.zeros(B, npoint, dtype=torch.long, device=device)
-    distance = torch.ones(B, N, device=device) * 1e10
-    farthest = torch.randint(0, N, (B,), dtype=torch.long, device=device)
-    batch_indices = torch.arange(B, dtype=torch.long, device=device)
-    for i in range(npoint):
-        centroids[:, i] = farthest
-        centroid = xyz[batch_indices, farthest, :].view(B, 1, 3)
-        dist = torch.sum((xyz - centroid) ** 2, -1)
-        mask = dist < distance
-        distance[mask] = dist[mask]
-        farthest = torch.max(distance, -1)[1]
-    return centroids

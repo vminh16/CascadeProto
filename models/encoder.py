@@ -14,26 +14,17 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-try:
-    from pointnet2_ops_lib.pointnet2_ops import pointnet2_utils
-except (ImportError, ModuleNotFoundError):
-    pointnet2_utils = None
-
+from pointnet2_ops_lib.pointnet2_ops import pointnet2_utils
 from models.model_utils import *
 
 # Mamba imports
 from functools import partial
-try:
-    from mamba_ssm.modules.mamba_simple import Mamba
-    from .mamba_block import MambaBlock as mamblock
-except (ImportError, ModuleNotFoundError):
-    Mamba = None
-    mamblock = None
-from .mamba_block import TransBlock
+from mamba_ssm.modules.mamba_simple import Mamba
+from .mamba_block import MambaBlock as mamblock
 
 try:
     from mamba_ssm.ops.triton.layernorm import RMSNorm, layer_norm_fn, rms_norm_fn
-except (ImportError, ModuleNotFoundError):
+except ImportError:
     RMSNorm, layer_norm_fn, rms_norm_fn = None, None, None
 
 torch.pi = math.pi
@@ -54,10 +45,6 @@ def create_mamblock(
         device=None,
         dtype=None,
 ):
-    if Mamba is None or mamblock is None:
-        # Pure-PyTorch fallback transformer block when mamba_ssm is unavailable
-        return TransBlock(embed_dim=d_model, num_heads=4)
-
     if ssm_cfg is None:
         ssm_cfg = {}
     factory_kwargs = {"device": device, "dtype": dtype}
@@ -91,10 +78,7 @@ class FPS_kNN(nn.Module):
     def forward(self, xyz, x, rgb):
         
         # FPS
-        if pointnet2_utils is not None and xyz.is_cuda:
-            fps_idx = pointnet2_utils.furthest_point_sample(xyz.contiguous(), self.group_num).long()
-        else:
-            fps_idx = furthest_point_sample_py(xyz, self.group_num)
+        fps_idx = pointnet2_utils.furthest_point_sample(xyz.contiguous(), self.group_num).long() 
         lc_xyz = index_points(xyz, fps_idx)
         lc_x = index_points(x, fps_idx)
         
@@ -135,7 +119,7 @@ class PosE_Initial(nn.Module):
         B, _, N = x.shape
         feat_dim = self.out_dim // (self.in_dim * 2)
         
-        feat_range = torch.arange(feat_dim, device=x.device).float() / feat_dim   
+        feat_range = torch.arange(feat_dim).float().cuda() / feat_dim   
         dim_embed = torch.pow(self.alpha, feat_range)
         x_div = torch.div(self.beta * x.unsqueeze(-1), dim_embed)
         rgbx_div = torch.div(self.beta * rgbx.unsqueeze(-1), dim_embed)
@@ -264,7 +248,7 @@ class LowOrderConvolution(nn.Module):
         feat_dim = self.out_dim // (self.in_dim * 2)
 
         # Create frequency embeddings
-        feat_range = torch.arange(feat_dim, device=knn_xyz.device).float()     
+        feat_range = torch.arange(feat_dim).float().cuda()     
         dim_embed = torch.pow(self.alpha, feat_range / feat_dim)
         
         # Encode coordinates
@@ -289,9 +273,8 @@ class LowOrderConvolution(nn.Module):
         
         # Apply unlearnable parameterless weight projection
         knn_x_new = knn_x_new.permute(0, 2, 3, 1)
-        device = knn_x_new.device
-        pos = self.vv[:, :self.out_dim].to(device).T @ torch.arange(self.out_dim, device=device).unsqueeze(0).float()
-        W_l = torch.cos(pos * 2 * torch.pi).to(device)  
+        pos = self.vv[:, :self.out_dim].cuda().T @ torch.arange(self.out_dim).unsqueeze(0).float().cuda()
+        W_l = torch.cos(pos * 2 * torch.pi).cuda()  
 
         knn_x_new = knn_x_new @ W_l
 
@@ -354,7 +337,7 @@ class DynamicHighOrderConvolution(nn.Module):
         B, _, N, K = knn_xyz.shape
         feat_dim = self.out_dim // (self.in_dim * 2)
         
-        feat_range = torch.arange(feat_dim, device=knn_xyz.device).float()     
+        feat_range = torch.arange(feat_dim).float().cuda()     
         dim_embed = torch.pow(self.alpha, feat_range / feat_dim)
         
         knn_xyz_1 = knn_xyz.permute(0, 2, 3, 1)[..., None]
@@ -423,9 +406,8 @@ class DynamicHighOrderConvolution(nn.Module):
 
         knn_x_new = knn_x_new.unsqueeze(-1).permute(0, 2, 3, 1)
 
-        device = knn_x_new.device
-        pos = self.ww[:, :self.out_dim].to(device).T @ torch.arange(self.out_dim, device=device).unsqueeze(0).float()
-        W_l = torch.cos(pos * 2 * torch.pi).to(device)    
+        pos = self.ww[:, :self.out_dim].cuda().T @ torch.arange(self.out_dim).unsqueeze(0).float().cuda()
+        W_l = torch.cos(pos * 2 * torch.pi).cuda()    
 
         knn_x_new = knn_x_new @ W_l
         mean_knn_x_new = knn_x_new.mean()
