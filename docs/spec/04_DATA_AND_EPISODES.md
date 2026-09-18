@@ -1,129 +1,159 @@
-# 04_DATA_AND_EPISODES: Data Processing Protocol, Splits & Episodic Benchmark Setup
+# 04_DATA_AND_EPISODES: Datasets, Preprocessing, Episodes, Schedule & Evaluation
 
-* **Reference Paper:** *CascadeProto: Cascaded Cross-Modal Prototype Purification via Entropy-Aware Learning for Few-Shot 3D Point Cloud Segmentation* (Wang et al., ECCV 2026).
-* **Reference Repository Link:** [https://github.com/changshuowang/CascadeProto](https://github.com/changshuowang/CascadeProto).
-* **Data Standards:** Block-based partitioning with 2048 points per block matching the AttMPTI / VIP-Seg protocol.
-
----
-
-## 1. Dataset Specifications & Preprocessing
-
-### 1.1 S3DIS (Stanford 3D Indoor Spaces Dataset)
-* **Dataset Scale:** 272 indoor rooms collected across 6 large-scale architectural areas.
-* **Semantic Categories (13 total):** `ceiling`, `floor`, `wall`, `beam`, `column`, `window`, `door`, `table`, `chair`, `sofa`, `bookcase`, `board`, `clutter`.
-* **Area Partitioning:** Areas 1, 2, 3, 4, and 6 serve as the training set, while Area 5 is reserved exclusively for testing.
-* **Point Sampling:** Point clouds are partitioned into standard regular spatial blocks, each containing exactly $N_p = 2048$ randomly sampled points with normalized 3D coordinates and RGB values.
-* **Evaluation Splits:**
-  * **Split $S_0$ Unseen Evaluation Classes (6 classes):** `ceiling`, `floor`, `wall`, `beam`, `column`, `window`.
-  * **Split $S_1$ Unseen Evaluation Classes (6 classes):** `door`, `table`, `chair`, `sofa`, `bookcase`, `board`.
-  * The `clutter` category is strictly designated as background ($k = 0$).
-
-### 1.2 ScanNet Benchmark
-* **Dataset Scale:** 1,513 RGB-D indoor scans annotated across 20 semantic object categories.
-* **Dataset Splits:** 1,201 training scenes and 312 validation scenes.
-* **Spatial Blocks:** The 312 validation scenes are pre-partitioned into 36,350 uniform blocks of 2,048 points each.
-* **Sampling Protocol:** Points per block are normalized and sub-sampled to exactly $N_s = N_q = 2048$ points.
+* **Ground truth:** [00_SOURCES_AND_DECISIONS.md](00_SOURCES_AND_DECISIONS.md). Every normative line carries a source tag.
+* **Scope:** everything between raw datasets and the numbers reported in Tables 2–3: preprocessing, directory layout, class splits, episode sampling, training schedule, model selection and the evaluation metric.
+* **Inherited code:** `dataloaders/*.py` and `preprocess/{collect_s3dis_data,collect_scannet_data,room2blocks}.py` are byte-identical to the pinned VIP-Seg commit (checked 2026-09-17) and must stay that way. Change behaviour through arguments, never by editing these files [VIPSEG dataloaders/loader.py] [VIPSEG README.md].
+* **Rewritten:** 2026-09-17 (Phase 3).
 
 ---
 
-## 2. Episodic Sampling Protocol
+## 1. Datasets
 
-Few-shot learning follows an episodic meta-learning paradigm where the network is trained on seen categories $\mathcal{C}_{seen}$ and evaluated on novel unseen categories $\mathcal{C}_{unseen}$.
+| Item | S3DIS | ScanNet | Source |
+| :--- | :--- | :--- | :--- |
+| Content | RGB point clouds, 272 rooms, 6 areas | 1513 RGB-D scans | [PAPER §4.1] |
+| Annotated classes | 13 | 20 | [PAPER §4.1] |
+| Class ids in files | 0–12; `clutter` = 12 | 0–20; `unannotated` = 0 | [VIPSEG dataloaders/s3dis.py:12-13] [VIPSEG dataloaders/scannet.py:12-13] |
+| Classes eligible as episode targets | 0–11 (`clutter` never sampled) | 1–20 (`unannotated` never sampled) | [VIPSEG dataloaders/s3dis.py:30] [VIPSEG dataloaders/scannet.py:31] |
+| Scene split stated in the paper | Areas 1, 2, 3, 4, 6 train; Area 5 test | 1201 train / 312 validation scenes | [PAPER §4.1] |
+| Blocks | 2048 points sampled per block | 36,350 blocks of 2048 points in total | [PAPER §4.1 "split into 1201 training and 312 validation scenes partitioned into 36350 blocks of 2048 points each"] |
 
-```mermaid
-flowchart TD
-    Start["Episode Generation (N-Way, K-Shot)"] --> Step1["1. Target Class Selection: Sample N classes from C_seen or C_unseen"]
-    
-    Step1 --> Step2["2. Support Set Construction: Sample K blocks/class with >= 50 target points"]
-    Step1 --> Step3["3. Query Set Construction: Sample 1 block with target points and remap labels"]
-    Step1 --> Step4["4. Modality Prompts: Map category names to (N+1) CLIP embeddings"]
+How the paper's scene split is used is decided in §3 [DECISION D-07].
 
-    Step2 --> Batch["Episodic Batch Assembly"]
-    Step3 --> Batch
-    Step4 --> Batch
+---
+
+## 2. Preprocessing and directory layout
+
+### 2.1 Pipeline
+
+Data preparation follows AttMPTI, as VIP-Seg does [VIPSEG README.md]:
+
+1. **Rooms → `.npy`.** `preprocess/collect_s3dis_data.py` writes one `N×7` array (`X Y Z R G B L`) per room to `<root>/scenes/data/Area_<a>_<room>.npy` [VIPSEG preprocess/collect_s3dis_data.py:16-20]. ScanNet uses `preprocess/collect_scannet_data.py`, which additionally needs `<root>/meta/scannet_classnames.txt` and `<root>/meta/scannetv2-labels.combined.tsv` [VIPSEG preprocess/collect_scannet_data.py:123-125].
+2. **Rooms → blocks.** `preprocess/room2blocks.py --data_path <root>/scenes --dataset {s3dis|scannet}` cuts 1 m × 1 m columns with stride 1 m and discards blocks with fewer than 1000 points (defaults) [VIPSEG preprocess/room2blocks.py:73-78,49]. Each block is saved as `<room>_block_<i>.npy` [VIPSEG preprocess/room2blocks.py:102].
+3. **Directory name.** `room2blocks.py` names the output `blocks_bs{block_size}_s{stride}` [VIPSEG preprocess/room2blocks.py:87]. With the default arguments (argparse does not apply `type=float` to non-string defaults) this is `blocks_bs1_s1`, which the VIP-Seg run scripts expect [VIPSEG preprocess/room2blocks.py:75-76] [VIPSEG scripts/vipseg_s3dis.sh]. Passing `--block_size 1 --stride 1` explicitly produces `blocks_bs1.0_s1.0` instead; then rename the directory or pass that name as `--data_path`.
+
+### 2.2 Required layout
+
+```text
+<root>/                          e.g. datasets/S3DIS
+├── meta/
+│   └── s3dis_classnames.txt     13 lines, id order: ceiling floor wall beam column window door table chair sofa bookcase board clutter
+├── scenes/data/*.npy            step 1 output
+└── blocks_bs1_s1/               --data_path points here
+    ├── data/*.npy               step 2 output (Area_<a>_<room>_block_<i>.npy)
+    ├── class2scans_100.pkl      created by the loader on first use
+    └── <model>_S_<fold>_N_<N>_K_<K>_[test_]episodes_100_pts_2048/*.h5   fixed evaluation episodes (§6)
 ```
 
-### 2.1 Episode Configuration Matrix
-Every episode evaluated across both benchmarks adheres strictly to the four configurations:
-* **2-Way 1-Shot:** $N = 2$ classes, $K = 1$ support block per class.
-* **2-Way 5-Shot:** $N = 2$ classes, $K = 5$ support blocks per class.
-* **3-Way 1-Shot:** $N = 3$ classes, $K = 1$ support block per class.
-* **3-Way 5-Shot:** $N = 3$ classes, $K = 5$ support blocks per class.
-
-### 2.2 Algorithmic Episode Sampler Logic & Tensor Contract
-
-#### Mathematical Definitions & Sets
-Let the preprocessed point dataset be represented as a collection of blocks:
-$$\mathcal{D} = \{(X_b, Y_b^{raw})\}_{b=1}^M$$
-where $X_b \in \mathbb{R}^{N_p \times 3}$ denotes normalized 3D coordinates, $Y_b^{raw} \in \{0, 1, \dots, C-1\}^{N_p}$ denotes global dataset category IDs, and $N_p = 2048$ points per block. Let $\mathcal{C}_{pool} \subset \{1, \dots, C-1\}$ denote the active category pool ($\mathcal{C}_{seen}$ during training, $\mathcal{C}_{unseen}$ during testing).
-
-#### Sequential Sampling Logic
-1. **Target Category Selection:**
-   Sample $N$ distinct target categories uniformly at random without replacement:
-   $$\mathcal{C}_{target} = \{c_1, c_2, \dots, c_N\} \subset \mathcal{C}_{pool}, \quad |\mathcal{C}_{target}| = N$$
-
-2. **Support Set Assembly ($S$):**
-   For each category $c_k \in \mathcal{C}_{target}$ ($k \in \{1, \dots, N\}$):
-   * Identify all candidate spatial blocks containing sufficient foreground points for class $c_k$:
-     $$\mathcal{B}_{cand}(c_k) = \left\{ b \in \{1, \dots, M\} \;\middle|\; \sum_{i=1}^{N_p} \mathbb{I}[Y_{b, i}^{raw} = c_k] \ge 50 \right\}$$
-   * Sample $K$ distinct block indices $\{b_{k, 1}, \dots, b_{k, K}\} \subset \mathcal{B}_{cand}(c_k)$ without replacement.
-   * For each block $b_{k, j}$, extract point coordinates $X_s = X_{b_{k, j}}[:, :3] \in \mathbb{R}^{N_p \times 3}$ and construct the binary foreground mask:
-     $$Y_{s, i}^{(k, j)} = \mathbb{I}[Y_{b_{k, j}, i}^{raw} = c_k] \in \{0, 1\}, \quad i \in \{1, \dots, N_p\}$$
-   * Concatenate all samples into the support tensors:
-     $$X_s \in \mathbb{R}^{(N \cdot K) \times 2048 \times 3}, \quad Y_s \in \mathbb{R}^{(N \cdot K) \times 2048}$$
-
-3. **Query Set Assembly ($Q$):**
-   * Identify all candidate query blocks containing at least 50 points belonging to at least one target class:
-     $$\mathcal{B}_{query} = \left\{ b \in \{1, \dots, M\} \;\middle|\; \exists c_k \in \mathcal{C}_{target} \text{ s.t. } \sum_{i=1}^{N_p} \mathbb{I}[Y_{b, i}^{raw} = c_k] \ge 50 \right\}$$
-   * Sample a single query block $b_q \in \mathcal{B}_{query}$ uniformly at random: $X_q = X_{b_q}[:, :3] \in \mathbb{R}^{1 \times 2048 \times 3}$.
-   * Remap global ground-truth semantic IDs into episode-local categorical labels $\{0, 1, \dots, N\}$:
-     $$Y_{q, i} = \begin{cases} k, & \text{if } Y_{b_q, i}^{raw} = c_k \text{ for some } k \in \{1, \dots, N\} \\ 0, & \text{otherwise (background clutter)} \end{cases}$$
-     producing query label tensor $Y_q \in \{0, 1, \dots, N\}^{1 \times 2048}$.
-
-#### Output Tensor Contract Table
-
-| Tensor Field | Shape | Data Type | Value Range / Description |
-| :--- | :--- | :--- | :--- |
-| `support_x` | `[N * K, 2048, 3]` | `torch.float32` | Normalized 3D point coordinates $(x, y, z)$ |
-| `support_y` | `[N * K, 2048]` | `torch.float32` | Binary foreground category masks $\{0.0, 1.0\}$ |
-| `query_x` | `[1, 2048, 3]` | `torch.float32` | Query scene point coordinates $(x, y, z)$ |
-| `query_y` | `[1, 2048]` | `torch.int64` | Local category ground-truth labels $\{0, 1, \dots, N\}$ |
-| `selected_classes` | `List[int]` | `int` | Global dataset category IDs for the $N$ sampled classes |
+* The loader reads class names from `dirname(data_path)/meta/` [VIPSEG dataloaders/s3dis.py:15] [VIPSEG dataloaders/scannet.py:16].
+* Class-name order follows the commented id map in the loader [VIPSEG dataloaders/s3dis.py:13-14] [VIPSEG dataloaders/scannet.py:13-15].
+* `class2scans_<n>.pkl` and the `.h5` episode folders are caches; delete them after changing the data or the split [VIPSEG dataloaders/s3dis.py:36-62] [VIPSEG dataloaders/loader.py:239-253].
 
 ---
 
-## 3. Training & Optimization Hyperparameters
+## 3. Class splits
 
-All agents and reproduction pipelines must strictly configure the optimizer, scheduler, and epoch budgets according to the paper specification:
+Primary protocol: split by **class**, over all scenes [DECISION D-07].
 
-| Parameter | S3DIS Setup | ScanNet Setup | Reference / Notes |
+| Dataset | Fold | Test (unseen) classes | Source |
 | :--- | :--- | :--- | :--- |
-| **Encoder Backbone** | VIP-Seg ($D = 128$) | VIP-Seg ($D = 128$) | Scratch training, no external pre-training |
-| **Cascade Depth ($T$)** | 4 Stages | 4 Stages | Optimal accuracy-efficiency trade-off |
-| **Optimizer** | AdamW | AdamW | Cross-entropy + Decoupled GMMN loss |
-| **Initial Learning Rate** | $1.0 \times 10^{-3}$ | $1.0 \times 10^{-3}$ | Scaled dot-product prototype matching |
-| **Weight Decay** | $0.1$ | $0.1$ | L2 regularization coefficient |
-| **LR Scheduler** | StepLR | StepLR | Factor $\gamma = 0.5$ applied every 10 epochs |
-| **Total Epochs** | 50 Epochs | 30 Epochs | Convergence reached at ~50/30 epochs |
-| **Batch Size** | 4 Episodes | 4 Episodes | Batch of episodic graphs |
-| **Loss Balance ($\lambda$)** | $1.0$ | $1.0$ | $\mathcal{L}_{total} = \mathcal{L}_{seg} + 1.0 \cdot \mathcal{L}_{GMMN}$ |
-| **Validation Budget** | 600 Episodes | 600 Episodes | Averaged over Splits $S_0$ and $S_1$ |
+| S3DIS | S0 | beam, board, bookcase, ceiling, chair, column | [VIPSEG dataloaders/s3dis.py:20] |
+| S3DIS | S1 | door, floor, sofa, table, wall, window | [VIPSEG dataloaders/s3dis.py:21] |
+| ScanNet | S0 | bathtub, bed, bookshelf, cabinet, chair, counter, curtain, desk, door, floor | [VIPSEG dataloaders/scannet.py:21] |
+| ScanNet | S1 | otherfurniture, picture, refridgerator, shower curtain, sink, sofa, table, toilet, wall, window | [VIPSEG dataloaders/scannet.py:22] |
+
+* Training classes = eligible classes (§1) minus the fold's test classes [VIPSEG dataloaders/s3dis.py:30-31] [VIPSEG dataloaders/scannet.py:31-32].
+* The paper does not list the classes of S0/S1; it only names the splits [PAPER §4.1].
+* Ablation `split_protocol=area5` (S3DIS only): additionally restrict training blocks to names starting with `Area_1`–`Area_4`, `Area_6` and test/valid blocks to `Area_5` [PAPER §4.1] [DECISION D-07]. Implement it as a filter on scan names passed around the inherited loader, not as an edit to it.
 
 ---
 
-## 4. Evaluation Metric Formulation
+## 4. Episode sampling
 
-Performance across all episodes is quantified using Mean Intersection-over-Union (mIoU) evaluated across unseen target foreground categories.
+All sampling is done by the inherited `MyDataset` [VIPSEG dataloaders/loader.py:116-225].
 
-For an episode with $N$ target classes, the per-class IoU for class $k \in \{1, \dots, N\}$ is defined as:
-$$\text{IoU}_k = \frac{\text{TP}_k}{\text{TP}_k + \text{FP}_k + \text{FN}_k}$$
-where:
-* $\text{TP}_k$: True positives (Query points with true label $k$ predicted as $k$).
-* $\text{FP}_k$: False positives (Query points with true label $\ne k$ predicted as $k$).
-* $\text{FN}_k$: False negatives (Query points with true label $k$ predicted as $\ne k$).
+### 4.1 Required loader arguments
 
-The per-episode mean IoU over all foreground target categories:
-$$\text{mIoU} = \frac{1}{N} \sum_{k=1}^N \text{IoU}_k$$
+| Argument | Value | Source |
+| :--- | :--- | :--- |
+| `num_point` | 2048 | [PAPER §4.1] [VIPSEG scripts/vipseg_s3dis.sh] |
+| `pc_attribs` | `'xyzrgbXYZ'` | [VIPSEG scripts/vipseg_s3dis.sh] [VIPSEG main.py:48] |
+| `way_ratio`, `way_num` | `[0.05, 0.05]`, `[100, 100]` | [VIPSEG scripts/vipseg_s3dis.sh] |
+| `n_queries` | 1 | [VIPSEG scripts/vipseg_s3dis.sh] |
+| `pc_augm` | true in training, false in evaluation | [DECISION D-12] [VIPSEG dataloaders/loader.py:236] |
+| `pc_augm_config` | `scale 0, rot 1, mirror_prob 0, jitter 1, shift 0.1, random_color 0` | [VIPSEG main.py:56-66] [VIPSEG scripts/vipseg_s3dis.sh] [DECISION D-12] |
+| `random_sample` | false | [VIPSEG main.py:69] |
 
-The final reported benchmark metric is the average foreground mIoU across all 600 test episodes over both Splits $S_0$ and $S_1$:
-$$\text{mIoU}_{Avg} = \frac{1}{2} \left(\text{mIoU}_{S_0} + \text{mIoU}_{S_1}\right)$$
+The loader's own defaults (`num_point=4096`, `pc_attribs='xyz'`) are wrong for this project; always pass the values above [VIPSEG dataloaders/loader.py:118,232].
+
+### 4.2 Algorithm (one episode)
+
+1. **Candidate blocks per class.** A block is a candidate for class c if it holds **more than** `max(int(0.05 · n_points_in_block), 100)` points of c [VIPSEG dataloaders/s3dis.py:54-57].
+2. **Classes.** Sample N distinct classes from the active pool (training or test classes) [VIPSEG dataloaders/loader.py:163]. The order of sampling defines local labels 1…N.
+3. **Blocks.** For each sampled class, draw `n_queries` query blocks, then K support blocks, never reusing a block within the episode [VIPSEG dataloaders/loader.py:181-194].
+4. **Points.** From a block with fraction r of target-class points, draw `int(r · 2048)` target points without replacement plus `2048 − int(r · 2048)` points from the whole block (with replacement only if the block has fewer than 2048 points), then shuffle the point order [VIPSEG dataloaders/loader.py:37-58]. The expected target fraction is therefore ≈ r + (1 − r)·r: the target class is over-represented (measured 0.36 → 0.59).
+5. **Features.** `xyz ← xyz − min(xyz)`; training augmentation on `xyz` (rotation about z, jitter σ = 0.01 clipped at 0.05, shift); `XYZ = (xyz − min(xyz)) / max(xyz − min(xyz))` per axis ∈ [0, 1]; `rgb ← rgb / 255`; concatenate `xyz, rgb, XYZ` [VIPSEG dataloaders/loader.py:65-80,92-113]. The encoder ignores columns 0–2 [VIPSEG models/encoder.py:645] and the minimum is subtracted again before `XYZ`, so the shift augmentation has no effect on the model input [DECISION D-12].
+6. **Labels.** Support: binary mask `label == sampled_class`. Query: `k` if the point's class is the k-th sampled class, else 0 [VIPSEG dataloaders/loader.py:82-88].
+
+### 4.3 Loader output (one episode)
+
+| Field | Shape | dtype | Source |
+| :--- | :--- | :--- | :--- |
+| `support_x` | `[N, K, 9, 2048]` | float32 | [VIPSEG dataloaders/loader.py:220,280] |
+| `support_y` | `[N, K, 2048]` ∈ {0, 1} | int32 | [VIPSEG dataloaders/loader.py:168,221] |
+| `query_x` | `[N·n_queries, 9, 2048]` | float32 | [VIPSEG dataloaders/loader.py:222,281] |
+| `query_y` | `[N·n_queries, 2048]` ∈ {0..N} | int64 | [VIPSEG dataloaders/loader.py:223,281] |
+| `sampled_classes` | `[N]` global class ids | int32 | [VIPSEG dataloaders/loader.py:171,283] |
+
+* `batch_task_collate` returns exactly **one** episode per loader item (`batch[0]`) and moves the channel axis before the points [VIPSEG dataloaders/loader.py:277-283]. The model converts to the shapes of 02 §1.
+* A batch of 4 episodes = 4 loader items, each forwarded separately, with the mean loss back-propagated once [PAPER §4.1] [DECISION D-12].
+* CLIP prompts are built from `sampled_classes` through the class-name file (§2.2) [DECISION D-13].
+
+---
+
+## 5. Training schedule
+
+| Parameter | S3DIS | ScanNet | Source |
+| :--- | :--- | :--- | :--- |
+| Optimiser | AdamW, lr 1e-3, weight decay 0.1 | same | [PAPER §4.1] |
+| Scheduler | StepLR, ×0.5 every 10 epochs | same | [PAPER §4.1] |
+| Batch | 4 episodes | 4 episodes | [PAPER §4.1] |
+| Epochs | 50 | 30 | [PAPER §4.1] |
+| Episodes per epoch | 480 | 800 | [DECISION D-12] |
+| Optimiser steps per epoch | 120 | 200 | [DECISION D-12] |
+| Total training episodes | 24,000 | 24,000 | [DECISION D-12] [VIPSEG scripts/vipseg_s3dis.sh] [VIPSEG scripts/vipseg_scannet.sh] |
+| Validation | every 10 epochs | every 10 epochs | [DECISION D-15] |
+| Checkpoint kept | best validation mIoU, plus the last epoch | same | [DECISION D-15] [VIPSEG runs/training.py:82-98] |
+
+* Validation uses `MyTestDataset(mode='valid')`, test-time evaluation `MyTestDataset(mode='test')`; both are built from the **test classes** with different random episodes [VIPSEG dataloaders/loader.py:235-244] [VIPSEG runs/training.py:58-73]. Selecting the checkpoint on them leaks test-class information; this matches VIP-Seg and is logged next to the last-epoch result [DECISION D-15].
+* One run per (dataset, fold, N, K, modality).
+
+---
+
+## 6. Evaluation
+
+### 6.1 Protocol
+
+Primary protocol [DECISION D-08]:
+
+* Episodes: `MyTestDataset(mode='test', num_episode_per_comb=100, n_queries=1)`, i.e. 100 fixed episodes for every combination of N test classes, cached as `.h5` [VIPSEG dataloaders/loader.py:230-267] [VIPSEG scripts/vipseg_eval_s3dis.sh].
+* Episode counts per fold:
+
+  | Dataset (test classes) | 2-way | 3-way |
+  | :--- | ---: | ---: |
+  | S3DIS (6) | C(6,2)·100 = 1,500 | C(6,3)·100 = 2,000 |
+  | ScanNet (10) | C(10,2)·100 = 4,500 | C(10,3)·100 = 12,000 |
+
+* Model in eval mode, z = 0, no augmentation [DECISION D-06] [VIPSEG dataloaders/loader.py:236].
+* Ablation `eval_protocol=random600`: 600 episodes with random class draws [PAPER §4.1] [DECISION D-08].
+
+### 6.2 Metric
+
+Accumulated over **all** episodes of the fold, per global test class, background excluded [VIPSEG runs/training_free.py:14-61]:
+
+$$\text{IoU}_c = \frac{TP_c}{GT_c + PRED_c - TP_c + 0.001}, \qquad \text{mIoU} = \frac{1}{|\mathcal{C}_{test}|}\sum_{c \in \mathcal{C}_{test}} \text{IoU}_c$$
+
+* Local labels are mapped back to global classes through `sampled_classes`; local 0 counts as background [VIPSEG runs/training_free.py:36-52].
+* Per-episode averaging is not used [DECISION D-08].
+* Report S0, S1 and `Avg = (S0 + S1) / 2` for every (N, K) setting, as in Tables 2–3 [PAPER Tab.2] [PAPER Tab.3].
+* L2 reproduces its paper number with this protocol: the released S0 2-way 1-shot checkpoint evaluates 1,500 test episodes to `Mean IoU: 0.722026`, the 72.20 of Table 6 [PAPER Tab.6] [VIPSEG log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/log_vipseg_eval.txt:3-9] [DECISION D-08].

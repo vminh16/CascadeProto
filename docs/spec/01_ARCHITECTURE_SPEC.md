@@ -1,198 +1,179 @@
-# 01_ARCHITECTURE_SPEC: Detailed Architectural & Module Specification
+# 01_ARCHITECTURE_SPEC: Module Structure & Dataflow
 
-* **Reference Paper:** *CascadeProto: Cascaded Cross-Modal Prototype Purification via Entropy-Aware Learning for Few-Shot 3D Point Cloud Segmentation* (Wang et al., ECCV 2026).
-* **Reference Repository Link:** [https://github.com/changshuowang/CascadeProto](https://github.com/changshuowang/CascadeProto).
-* **Base Encoder Lineage:** VIP-Seg backbone architecture without external pre-training.
+* **Ground truth:** [00_SOURCES_AND_DECISIONS.md](00_SOURCES_AND_DECISIONS.md). Every normative line carries a source tag.
+* **Scope:** which modules exist, how they are wired, their parameters and runtime requirements. All formulas and shapes are defined once in [02_TENSOR_MATH_SPEC.md](02_TENSOR_MATH_SPEC.md) and only referenced here (`02 §n`), so the two files cannot drift apart.
+* **Rewritten:** 2026-09-17 (Phase 2).
+* **Code status:** the code in `models/` and `loss/` predates this rewrite and does not yet follow it; see [the audit](../research/paper_vs_repo_audit.md).
 
 ---
 
-## 1. System Overview & Stage Execution
+## 1. Pipeline overview
 
-CascadeProto partitions few-shot point cloud segmentation into three discrete stages:
-1. **Stage 1: Multi-Modal Prototype Generation:** Joint projection and fusion of point cloud geometric features and frozen CLIP modality representations.
-2. **Stage 2: Cascaded Entropy-Aware Purification:** Iterative refinement of noisy prototypes through $T = 4$ cascaded Entropy-aware Prototype Purification Modules (EPPM).
-3. **Stage 3: Attention-based Dynamic Routing:** Query-guided aggregation of intermediate predictions across all cascade stages via an Attention-based Dynamic Routing Mechanism (ADRM).
+CascadeProto runs one episode in three stages [PAPER §3.2] [PAPER Fig.1]:
+
+1. **Multi-modal prototype generation:** shared encoder → point prototypes → LMA/generator → `P^0` [PAPER §3.3].
+2. **Cascaded entropy-aware purification:** T = 4 EPPM stages producing `P^1..P^4` and logits `L^1..L^4` [PAPER §3.4–3.5].
+3. **Dynamic routing:** ADRM mixes `L^1..L^4` into `L_final` [PAPER §3.5].
 
 ```mermaid
 flowchart TD
-    subgraph S1["Stage 1: Multi-Modal Prototype Generation"]
-        Xs["Support Point Cloud X_s"] --> EncS["VIP-Seg Encoder"]
-        EncS --> Fs["Support Features F_s (N_s x 128)"]
-        Fs --> MAP["Masked Average Pooling"]
-        MAP --> Ppoint["Point Prototypes P_point ((N+1) x 128)"]
-
-        CLIP["CLIP Modality (Text / Image / Audio)"] --> LMA["LMA (2-Layer MLP)"]
-        LMA --> Ead["Adapted Embedding E_adapted ((N+1) x 128)"]
-        Ead --> GMMN["GMMN Generator G"]
-        GMMN --> Pmodal["Modal Prototypes P_modal ((N+1) x 128)"]
-
-        Ppoint --> SumP(("+"))
-        Pmodal --> SumP
-        SumP --> P0["Initial Multi-Modal Prototype P_0 ((N+1) x 128)"]
+    subgraph S1["Stage 1 · Prototype generation (02 §2–4)"]
+        Xs["Support X^s [N,K,2048,9]"] --> EncS["Shared VIP-Seg encoder<br/>one block at a time"]
+        Xq["Query X^q [B_q,2048,9]"] --> EncQ["Shared VIP-Seg encoder<br/>one block at a time"]
+        EncS --> Fs["F^s [N,K,2048,128]"]
+        EncQ --> Fq["F^q [B_q,2048,128]"]
+        Fs --> MAP["Masked average pooling<br/>binary mask, per way"]
+        Ys["Y^s [N,K,2048] ∈ {0,1}"] --> MAP
+        MAP --> Ppoint["P_point [N+1,128]"]
+        CLIP["Frozen CLIP embedding [N+1,512]<br/>one modality per run"] --> Adapter["Adapter^(m)"]
+        Adapter --> Gen["Generator G([E; z])"]
+        Gen --> Pmodal["P_modal [N+1,128]"]
+        Ppoint --> Add(("+"))
+        Pmodal --> Add
+        Add --> P0["P^0, copied per query [B_q,N+1,128]"]
+        Ppoint -.-> GMMN["L_GMMN (squared MMD)"]
+        Pmodal -.-> GMMN
     end
 
-    subgraph S2["Stage 2: Cascaded Entropy-Aware Purification (T = 4)"]
-        P0 --> EPPM1["EPPM Stage 1"]
-        EPPM1 -->|"P_1"| EPPM2["EPPM Stage 2"]
-        EPPM2 -->|"P_2"| EPPM3["EPPM Stage 3"]
-        EPPM3 -->|"P_3"| EPPM4["EPPM Stage 4"]
-
-        EPPM1 -->|"Logits L_1"| ADRM["ADRM Dynamic Routing"]
-        EPPM2 -->|"Logits L_2"| ADRM
-        EPPM3 -->|"Logits L_3"| ADRM
-        EPPM4 -->|"Logits L_4"| ADRM
+    subgraph S2["Stage 2 · Cascade, T = 4 (02 §5–6)"]
+        P0 --> E1["EPPM_1"] -->|P^1| E2["EPPM_2"] -->|P^2| E3["EPPM_3"] -->|P^3| E4["EPPM_4"]
+        Fs -.-> E1 & E2 & E3 & E4
+        Fq -.-> E1 & E2 & E3 & E4
     end
 
-    subgraph S3["Stage 3: Attention-based Dynamic Routing"]
-        Xq["Query Point Cloud X_q"] --> EncQ["VIP-Seg Encoder"]
-        EncQ --> Fq["Query Features F_q (N_q x 128)"]
-        Fq --> ADRM
-        ADRM --> FinalLogits["Final Aggregated Logits L_final (N_q x (N+1))"]
+    subgraph S3["Stage 3 · Routing (02 §6)"]
+        E1 -->|L^1| ADRM["ADRM<br/>softmax(W_g · mean F^q)"]
+        E2 -->|L^2| ADRM
+        E3 -->|L^3| ADRM
+        E4 -->|L^4| ADRM
+        Fq -.-> ADRM
+        ADRM --> Lfinal["L_final [B_q,2048,N+1]"]
+        Lfinal --> Lseg["L_seg (unweighted CE)"]
     end
 ```
 
----
-
-## 2. Structural Module Specifications
-
-### Module A: Shared VIP-Seg Encoder
-* **Role:** Extracts dense point-wise geometric feature representations from unstructured 3D coordinates.
-* **Weight Sharing:** A single instance $f_{enc}$ processes both support point sets $X_s \in \mathbb{R}^{N_s \times 3}$ and query point sets $X_q \in \mathbb{R}^{N_q \times 3}$.
-* **Point Budget:** $N_s = 2048$ points per support sample; $N_q = 2048$ points per query scene.
-* **Output Dimension:** $F_s \in \mathbb{R}^{N_s \times D}$ and $F_q \in \mathbb{R}^{N_q \times D}$, where feature dimension $D = 128$.
-* **Initialization:** Initialized from scratch; no pre-trained weights are utilized.
-
-### Module B: Point-Based Prototype Extraction
-* **Foreground Extraction:** For each category $k \in \{1, \dots, N\}$, foreground features are isolated using the support binary mask $Y_s$ and pooled via masked average pooling:
-  $$P_{fg}^{(k)} = \frac{1}{|M_{fg}^{(k)}|} \sum_{i \in M_{fg}^{(k)}} F_{s, i}, \quad M_{fg}^{(k)} = \{i \mid Y_{s, i} = 1 \text{ and } \text{class}(i) = k\}$$
-* **Background Extraction:** Background features across all support points are pooled uniformly:
-  $$P_{bg} = \frac{1}{|M_{bg}|} \sum_{i \in M_{bg}} F_{s, i}, \quad M_{bg} = \{i \mid Y_{s, i} = 0\}$$
-* **Point Prototype Matrix:** Stacked vertically to establish $P_{point} = [P_{bg}; P_{fg}^{(1)}; \dots; P_{fg}^{(N)}] \in \mathbb{R}^{(N+1) \times D}$.
-
-### Module C: Learnable Modality Adapters (LMA) & GMMN Generator
-* **Input Embeddings:** Normalized CLIP modality vector $E_{CLIP}^{(m)} \in \mathbb{R}^{(N+1) \times 512}$ where $m \in \{\text{text}, \text{image}, \text{audio}\}$.
-* **Adapter Network Structure:** A 2-layer Multi-Layer Perceptron (MLP) mapping 2D representation spaces to 3D point cloud space:
-  $$\text{Adapter}(E) = W_2 \cdot \text{ReLU}(\text{LayerNorm}(W_1 \cdot E + b_1)) + b_2$$
-  * Layer 1: Linear projection $512 \to 128$, LayerNorm, ReLU, Dropout ($p = 0.1$).
-  * Layer 2: Linear projection $128 \to 128$.
-* **Generative Distribution Matcher ($G$):** A 3-layer MLP generator reconciling domain discrepancies between modality embeddings and point prototypes:
-  * Input: Concatenation of adapted embedding $E_{adapted}^{(m)} \in \mathbb{R}^{(N+1) \times D}$ and standard normal noise vector $z \sim \mathcal{N}(0, I_D) \in \mathbb{R}^{(N+1) \times D}$, forming an input tensor of size $\mathbb{R}^{(N+1) \times 256}$.
-  * Layer 1: Linear $256 \to 128$, ReLU.
-  * Layer 2: Linear $128 \to 128$, ReLU.
-  * Layer 3: Linear $128 \to 128$.
-  * Output: Modal prototype matrix $P_{modal} \in \mathbb{R}^{(N+1) \times D}$.
-* **Prototype Merging:** Initial multi-modal prototype is computed via point-wise residual addition:
-  $$P_0 = P_{point} + P_{modal} \in \mathbb{R}^{(N+1) \times D}$$
+Sources for the diagram: [PAPER Fig.1] [PAPER Eq.2–9] [PAPER Eq.22–27] [DECISION D-01] [DECISION D-05].
 
 ---
 
-## 3. Entropy-Aware Prototype Purification Module (EPPM)
+## 2. Modules
 
-The cascade employs $T = 4$ identical EPPM stages connected sequentially. Each stage $t \in \{1, \dots, T\}$ processes the incoming prototype $P_{t-1} \in \mathbb{R}^{(N+1) \times D}$, support features $F_s \in \mathbb{R}^{N_s \times D}$, and query features $F_q \in \mathbb{R}^{N_q \times D}$ through four specialized internal operations:
+### 2.1 Shared encoder
+
+| Item | Specification | Source |
+| :--- | :--- | :--- |
+| Architecture | VIP-Seg encoder–decoder: `Encoder(input_points=2048, num_stages=3, embed_dim=60, k_neighbors=16, de_neighbors=10, alpha=1000, beta=30, num_experts=3)` | [PAPER §4.1] [VIPSEG models/vipseg.py:34-43] |
+| Feature head | L2 norm → `BN(900)+ReLU` → `Conv1d(900→196)+BN+ReLU` → `Conv1d(196→128)+BN+ReLU` | [VIPSEG models/vipseg.py:45-53,85-97] |
+| Input | 9 channels `xyz, rgb, XYZ`; the encoder uses `XYZ` (columns 6–8) as positions and `rgb` (3–5) as colour, and ignores columns 0–2 | [VIPSEG models/encoder.py:645] [VIPSEG scripts/vipseg_s3dis.sh] |
+| Weight sharing | One instance for support and query | [PAPER §3.3 "The encoder is shared between support and query branches"] |
+| Batching | Every block is its own sample: support `[N·K, 2048, 9]`, query `[B_q, 2048, 9]` | [PAPER Eq.2] [VIPSEG models/vipseg.py:79-81] |
+| Initialisation | From scratch; no pre-trained point-cloud weights | [PAPER Tab.1] [PAPER §1 "requires no pre-training"] [VIPSEG README.md] |
+| Mamba | `mamba_ssm` is **required**. Import failure must stop the program; no fallback block | [VIPSEG models/encoder.py:22-23] [PAPER §4.1] |
+| FPS | `pointnet2_ops` CUDA furthest-point sampling | [VIPSEG models/encoder.py:81] |
+| Output | `F^s [N,K,2048,128]`, `F^q [B_q,2048,128]`, all entries ≥ 0 | 02 §2 |
+
+### 2.2 Point prototype extraction
+
+* Masked average pooling of binary masks, one prototype per way, background from all ways and shots (02 §3) [PAPER Eq.3] [VIPSEG models/vipseg.py:108-130].
+* No parameters.
+
+### 2.3 Learnable Modality Adapter and generator
+
+| Component | Layers | Params (D = 128) | Source |
+| :--- | :--- | ---: | :--- |
+| `Adapter^(m)`, one per modality | `Linear(512→128) → LN(128) → ReLU → Dropout(0.1) → Linear(128→128)` | 82,432 | [PAPER Eq.4–5] [DECISION D-16] |
+| Generator G | `Linear(256→128) → ReLU → Linear(128→128) → ReLU → Linear(128→128)` | 65,920 | [PAPER Eq.6] [DECISION D-16] |
+
+* Input: frozen, L2-normalised CLIP embedding `[N+1, 512]`, index 0 = background prompt [DECISION D-13].
+* Noise z: sampled in training, zero in evaluation [DECISION D-06].
+* Outputs `P_modal`; `P^0 = P_point + P_modal` (02 §4.5) [PAPER Eq.9].
+
+### 2.4 EPPM stage (×T, parameters not shared)
 
 ```mermaid
 flowchart TD
-    Pin["Input Prototype P_{t-1} ((N+1) x 128)"] --> Sub1["1. Information-Theoretic Gating (Threshold theta)"]
-    
-    Sub1 --> Sub2["2. Cross-Attention Refinement (d = 72)"]
-    
-    Fs["Support Features F_s"] -.-> Sub2
-    Fq["Query Features F_q"] -.-> Sub2
-
-    Fs -.-> Sub3["3. Prototype Diffusion (tau = 0.5, alpha = 0.5)"]
-    Fq -.-> Sub3
-
-    Sub2 -->|"P_cross ((N+1) x 128)"| Sub4["4. Adaptive Fusion & SE Recalibration"]
-    Sub3 -->|"P_diffuse ((N+1) x 128)"| Sub4
-
-    Sub4 --> Attn["Channel Recalibrated Prototype P_attended"]
-    Attn --> Wcls["Class Weight Modulation w_cls"]
-    Wcls --> ResSum(("+"))
-    Pin -.->|"Residual Connection"| ResSum
-    ResSum --> LN["LayerNorm"]
-    LN --> Pout["Purified Prototype P_t ((N+1) x 128)"]
-    
-    Fq -.-> StageLogits["Logit Matching: L_t = F_q * P_t^T"]
-    Pout -.-> StageLogits
-    StageLogits --> OutLogits["Intermediate Logits L_t (N_q x (N+1))"]
+    Pin["P^{t-1} [B_q,N+1,128]"] --> Gate["1 · Entropy gate<br/>θ_t (scalar)"]
+    Gate -->|P_gated| Psi["ψ = Linear(128→128)"]
+    Fq["F^q"] --> PoolQ["MaxPool 32"] --> PhiQ["φ = Conv1d(64→72, k=1)"]
+    Fs["F^s (+ way-mean bg slot)"] --> PoolS["MaxPool 32"] --> PhiS["φ (same module)"]
+    PhiQ --> Corr["2 · A = softmax(Q'ᵀS'/√72)<br/>[B_q,N+1,K,128,128]"]
+    PhiS --> Corr
+    Corr --> Cross["P_cross = mean_k A·ψ(P_gated)"]
+    Psi --> Cross
+    Fq --> Diff["3 · Diffusion<br/>τ = 0.5, α = 0.5"]
+    Fs --> Diff
+    Cross --> Fuse["4 · Fusion MLP → w ∈ R²<br/>SE (r = 4) → w_cls rows"]
+    Diff -->|P_diffuse| Fuse
+    Fuse --> Out["LN(W_out·ReLU(P_weighted) + P^{t-1})"]
+    Pin -.->|ungated residual| Out
+    Out --> Pt["P^t [B_q,N+1,128]"]
+    Pt --> Logit["L^t = F^q (P^t)ᵀ"]
+    Fq -.-> Logit
 ```
 
-### Sub-Module 1: Information-Theoretic Gating
-* **Principle:** Background features exhibit high Shannon entropy due to diverse clutter, whereas foreground points remain structured and low-entropy.
-* **Normalization:** Channel responses are mapped to probabilities via sigmoid activation: $p_i = \sigma(x_i)$.
-* **Shannon Entropy Formulation:**
-  $$H_i = -p_i \log(p_i + \epsilon) - (1 - p_i) \log(1 - p_i + \epsilon), \quad \epsilon = 10^{-8}$$
-* **Learnable Soft Gate:** Parameterized by scalar threshold $\theta$ (learnable parameter, initialized to $0.5$):
-  $$g_i = \sigma(2(\theta - H_i)), \quad x_{gated} = x \odot g$$
-
-### Sub-Module 2: Cross-Attention Refinement
-* **Subspace Dimensionality:** Both query and support features are mapped into a lower-dimensional manifold $d = 72$ via $1 \times 1$ convolutions: $Q' = \varphi(F_q) \in \mathbb{R}^{N_q \times 72}$ and $S' = \varphi(F_s) \in \mathbb{R}^{N_s \times 72}$.
-* **Correlation Attention Matrix:**
-  $$A_{qs} = \text{softmax}\left(\frac{Q' (S')^\top}{\sqrt{72}}\right) \in \mathbb{R}^{N_q \times N_s}$$
-  where $A_{qs}$ models dense point-to-point geometric correlations between query and support scenes.
-* **Support Context Propagation & Prototype Cross-Attention:**
-  Support features are transferred to the query space via correlation matrix $A_{qs}$:
-  $$F_{qs} = A_{qs} F_s \in \mathbb{R}^{N_q \times D}$$
-  The prototype representation is refined through cross-attention with query-aligned features:
-  $$A_{proto} = \text{softmax}\left(\frac{\psi(P_{t-1}) \cdot \varphi(F_{qs})^\top}{\sqrt{72}}\right) \in \mathbb{R}^{(N+1) \times N_q}$$
-  $$P_{cross} = A_{proto} \cdot F_{qs} \in \mathbb{R}^{(N+1) \times D}$$
-  where $\psi, \varphi: \mathbb{R}^D \to \mathbb{R}^{72}$ denote linear projections ($1 \times 1$ convolutions) into the cross-attention subspace $d = 72$.
-  *(Note: Alternatively, under direct support cross-attention: $A_{proto} = \text{softmax}\left(\frac{\psi(P_{t-1}) (S')^\top}{\sqrt{72}}\right) \in \mathbb{R}^{(N+1) \times N_s}$ and $P_{cross} = A_{proto} \cdot F_s \in \mathbb{R}^{(N+1) \times D}$)*.
-
-### Sub-Module 3: Prototype Diffusion
-* **Channel Activation Statistics:** Point-averaged channel activations are computed for both query and support branches:
-  $$q_{ch} = \sigma\left(\frac{1}{N_q}\sum_{j=1}^{N_q} F_{q, j}\right), \quad s_{ch} = \sigma\left(\frac{1}{N_s}\sum_{j=1}^{N_s} F_{s, j}\right)$$
-* **Activation Masks:** Gated with fixed threshold $\tau = 0.5$:
-  $$m_q = \mathbb{I}[q_{ch} > 0.5], \quad m_s = \mathbb{I}[s_{ch} > 0.5], \quad m_{common} = m_q \odot m_s$$
-* **Decomposed Diffusion Components:**
-  $$c_{common} = \frac{q_{ch} + s_{ch}}{2} \odot m_{common}$$
-  $$c_{unique} = \frac{q_{ch} \odot (m_q - m_{common}) + s_{ch} \odot (m_s - m_{common})}{2}$$
-* **Diffused Prototype:** Blended with constant $\alpha = 0.5$ and broadcast across all $N+1$ classes:
-  $$P_{diffuse} = 0.5 \cdot c_{common} + 0.5 \cdot c_{unique} \in \mathbb{R}^{(N+1) \times D}$$
-
-### Sub-Module 4: Adaptive Fusion & Class-Weighted Output
-* **Two-Layer MLP Aggregator:** Computes normalized weights between cross-attention and diffusion representations:
-  $$w = \text{softmax}(f_{fusion}([P_{cross}; P_{diffuse}])) \in \mathbb{R}^2$$
-  $$P_{combined} = w_1 P_{cross} + w_2 P_{diffuse} \in \mathbb{R}^{(N+1) \times D}$$
-* **Squeeze-and-Excitation (SE) Recalibration:**
-  $$a = \sigma(W_2 \cdot \text{ReLU}(W_1 \cdot \text{AvgPool}(P_{combined}))), \quad P_{attended} = P_{combined} \odot a$$
-* **Class Weight Modulation:** Background attenuation vector $w_{cls} = [0.8, 1.0, \dots, 1.0] \in \mathbb{R}^{N+1}$ downweights background prototype updates:
-  $$P_{weighted} = P_{attended} \odot w_{cls}$$
-* **Residual Connection & LayerNorm:**
-  $$P_t = \text{LayerNorm}(W_{out} \cdot \text{ReLU}(P_{weighted}) + P_{t-1}) \in \mathbb{R}^{(N+1) \times D}$$
-
----
-
-## 4. Attention-Based Dynamic Routing Mechanism (ADRM)
-
-Rather than evaluating predictions exclusively from final stage $P_4$, the model treats every cascade stage $t \in \{1, \dots, 4\}$ as a specialized predictor:
-* **Intermediate Stage Logits:** Computed using matrix product matching:
-  $$L_t = F_q (P_t)^\top \in \mathbb{R}^{N_q \times (N+1)}$$
-* **Query Complexity Conditioning:** Global average pooling summarizes query scene characteristics:
-  $$\bar{F}_q = \frac{1}{N_q} \sum_{j=1}^{N_q} F_{q, j} \in \mathbb{R}^D$$
-* **Routing Gate Vector:** Computed via learnable projection matrix $W_g \in \mathbb{R}^{T \times D}$ ($T = 4, D = 128$):
-  $$w_{gate} = \text{softmax}(W_g \bar{F}_q) \in \mathbb{R}^4$$
-* **Final Aggregated Logits:**
-  $$L_{final} = \sum_{t=1}^4 w_{gate}^{(t)} \cdot L_t \in \mathbb{R}^{N_q \times (N+1)}$$
-
----
-
-## 5. Tensor Dimension Contract Table
-
-All AI agents must ensure dimensions strictly conform to the following contract at every layer boundary:
-
-| Tensor Description | Symbol | Dimensions | Data Type |
+| Sub-module | Parameters | Definition | Source |
 | :--- | :--- | :--- | :--- |
-| Support Point Coordinates | $X_s$ | `[Batch, N_way * K_shot, 2048, 3]` | `torch.float32` |
-| Query Point Coordinates | $X_q$ | `[Batch, 2048, 3]` | `torch.float32` |
-| Extracted Support Features | $F_s$ | `[Batch, N_s, 128]` | `torch.float32` |
-| Extracted Query Features | $F_q$ | `[Batch, 2048, 128]` | `torch.float32` |
-| CLIP Frozen Embeddings | $E_{CLIP}$ | `[Batch, N_way + 1, 512]` | `torch.float32` |
-| Adapted Modality Embeddings | $E_{adapted}$ | `[Batch, N_way + 1, 128]` | `torch.float32` |
-| Point Prototype Matrix | $P_{point}$ | `[Batch, N_way + 1, 128]` | `torch.float32` |
-| Synthesized Modal Prototypes | $P_{modal}$ | `[Batch, N_way + 1, 128]` | `torch.float32` |
-| Stage $t$ Refined Prototype | $P_t$ | `[Batch, N_way + 1, 128]` | `torch.float32` |
-| Cross-Attention Subspace | $Q', S'$ | `[Batch, 2048, 72]` | `torch.float32` |
-| Intermediate Stage Logits | $L_t$ | `[Batch, 2048, N_way + 1]` | `torch.float32` |
-| ADRM Routing Weights | $w_{gate}$ | `[Batch, 4]` | `torch.float32` |
-| Final Output Logits | $L_{final}$ | `[Batch, 2048, N_way + 1]` | `torch.float32` |
+| 1 Entropy gate | θ_t (1 scalar, init 0.5) | 02 §5.1 | [PAPER Eq.10–12] [DECISION D-02] |
+| 2 Cross-attention | φ `Conv1d(64→72, bias=False)`, ψ `Linear(128→128)` | 02 §5.2 | [PAPER Eq.13–14] [DECISION D-01] |
+| 3 Diffusion | none | 02 §5.3 | [PAPER Eq.15–18] [DECISION D-14] |
+| 4 Fusion | `f_fusion` `Linear(256→128)+ReLU+Linear(128→2)` | 02 §5.4 | [PAPER Eq.19] [DECISION D-11] [DECISION D-16] |
+| 4 SE | `W_1 Linear(128→32)`, `W_2 Linear(32→128)` | 02 §5.4 | [PAPER Eq.20] [DECISION D-16] |
+| 4 Class weights | fixed `w_cls = [0.8, 1, …, 1]`, not learnable | 02 §5.4 | [PAPER §3.4] |
+| 4 Output | `W_out Linear(128→128)`, `LayerNorm(128)` | 02 §5.4 | [PAPER Eq.21] [DECISION D-16] |
+| Stage logits | none | 02 §5.5 | [PAPER Eq.23] [DECISION D-10] |
+
+### 2.5 Cascade
+
+* T = 4 stages in sequence, each with its own parameters and its own θ_t [PAPER Eq.22] [PAPER §3.5] [DECISION D-16].
+* Every stage receives the same `F^s` and `F^q`; only the prototype flows from stage to stage [PAPER §3.4 "It takes as input the current prototype P^{t−1} along with support features F^s and query features F^q"].
+* All T stage logits are kept for routing [PAPER §3.5].
+
+### 2.6 ADRM
+
+* `W_g ∈ R^{T×D}`, no bias; gate from the mean query feature; softmax over stages; weighted sum of stage logits (02 §6) [PAPER Eq.24–25].
+
+### 2.7 Losses
+
+* `L_total = L_seg + 1.0 · L_GMMN` (02 §7) [PAPER Eq.26].
+* `L_seg`: unweighted cross-entropy on `L_final` only [PAPER Eq.27].
+* `L_GMMN`: squared multi-scale MMD, background weight 0.1, foreground weight 1.0 (02 §4.3–4.4) [PAPER Eq.7–8] [DECISION D-04].
+
+---
+
+## 3. Ablation switches
+
+Required configuration options. Defaults reproduce the full model.
+
+| Option | Default | Values | Source |
+| :--- | :--- | :--- | :--- |
+| `use_lma` | true | true / false | [PAPER Tab.4] [DECISION D-17] |
+| `use_gate` | true | true / false | [PAPER Tab.4] [DECISION D-17] |
+| `num_stages` | 4 | 0–6 | [PAPER Tab.5] [DECISION D-17] |
+| `use_adrm` | true | true / false | [PAPER Tab.4] [DECISION D-17] |
+| `modality` | text | text (image, audio: not yet implemented, must raise) | [PAPER Eq.4] [DECISION D-13] |
+| `cross_attn` | channel | channel / two_hop | [DECISION D-01] |
+| `cross_attn_scale` | sqrt_d | sqrt_d / sqrt_D | [DECISION D-01] |
+| `gate_target` | prototype | prototype / features | [DECISION D-02] |
+| `gmmn_fg_mode` | joint | joint / per_class | [DECISION D-04] |
+| `gmmn_detach_point` | false | true / false | [DECISION D-04] |
+| `eval_noise` | zero | zero / sample / mean_of_M | [DECISION D-06] |
+| `logit_scale` | none | none / sqrt_D | [DECISION D-10] |
+| `l2norm_point_proto` | false | true / false | [DECISION D-10] |
+| `fusion_weight` | per_query | per_query / per_class | [DECISION D-11] |
+| `diffusion_input` | post_relu | post_relu / pre_relu | [DECISION D-14] |
+
+---
+
+## 4. Parameter budget
+
+| Part | Expected | Source |
+| :--- | :--- | :--- |
+| Encoder | 2.37M once `mamba_ssm` is used | [VIPSEG log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/log_vipseg.txt:5] [DECISION D-09] |
+| Feature head (900→196→128 with BN) | 204,260 | §2.1 |
+| Adapter + generator | 148,352 | §2.3 |
+| One EPPM stage | 79,395 (φ 4,608 · ψ 16,512 · f_fusion 33,154 · SE 8,352 · W_out 16,512 · LN 256 · θ 1) | §2.4 |
+| Cascade (T = 4) | 317,580 | §2.5 |
+| ADRM | 512 | §2.6 |
+| **Total** | ≈ 3.04M (encoder + head ≈ 2.57M, added modules 466,444) | [DECISION D-09] |
+
+Table 6 reports 2.88M for CascadeProto and 2.76M for the whole VIP-Seg model, which includes VIP-Seg's own 0.19M prototype module [PAPER Tab.6] [VIPSEG log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/log_vipseg.txt:2-8]. The paper therefore implies ≈ 0.31M for LMA + EPPM + ADRM, against 466,444 here. Table 6 is not an acceptance criterion; report measured values instead [DECISION D-09].

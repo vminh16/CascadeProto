@@ -1,124 +1,145 @@
-# AGENTS.md: Machine Operating Protocols & Technical Invariants
+# AGENTS.md: Operating Rules for Coding Agents
 
-This document serves as the **"README for machines"** (autonomous AI coding agents including Cursor, Claude Code, Antigravity, Copilot, Devin, and Aider). It defines operational boundaries, non-negotiable architectural invariants, task-to-spec routing protocols, and sequential verification workflows for the **CascadeProto** repository.
-
----
-
-## 1. Project Context & Mission
-
-* **Mission:** Re-implement and reproduce the CascadeProto framework for few-shot 3D point cloud semantic segmentation without backbone pre-training.
-* **Base Codebase:** Forked and modified from `changshuowang/VIP-Seg_NeurIPS2025`.
-* **Hardware Target:** Single NVIDIA GPU (verified on NVIDIA RTX 5090).
-* **Modality Priority:** Implement the text-guided pipeline first (which achieved 86.53% 2-way 1-shot mIoU on S3DIS), while maintaining polymorphic interfaces for image and audio adapters.
+Rules for autonomous coding agents (Claude Code, Cursor, Copilot, Devin, Aider, …) working in this repository. Humans should start with [README.md](README.md).
 
 ---
 
-## 2. Task-to-Spec Citation & Routing Matrix
+## 1. Project context
 
-Before modifying, implementing, or debugging any module, agents **must** consult and cite the corresponding ground-truth specification document:
-
-| Technical Task / Responsibility | Target Implementation File(s) | Mandatory Ground-Truth Specification | Key Invariants & Verification Focus |
-| :--- | :--- | :--- | :--- |
-| **Backbone & Network Assembly** | `models/vipseg_backbone.py`<br>`models/cascadeproto.py` | [01_ARCHITECTURE_SPEC.md](docs/spec/01_ARCHITECTURE_SPEC.md) | Shared VIP-Seg encoder ($D=128$), $T=4$ EPPM sequential cascade, residual prototype links $P_{t-1} \to P_t$. |
-| **Mathematical Bounds & Shapes** | All modules & tensor operations | [02_TENSOR_MATH_SPEC.md](docs/spec/02_TENSOR_MATH_SPEC.md) | Subspace dimension $d=72$, Shannon entropy bounds $[0, \log 2]$, clamping $[10^{-7}, 1-10^{-7}]$, probability simplex. |
-| **Multimodal Adapters & GMMN** | `models/lma.py`<br>`loss/gmmn_loss.py` | [03_MULTIMODAL_SPEC.md](docs/spec/03_MULTIMODAL_SPEC.md) | CLIP projection $512 \to 128$, Gaussian noise $z$, multi-scale RBF $\sigma \in \{2..80\}$, decoupled weights $0.1$ bg / $1.0$ fg. |
-| **Purification Module (EPPM)** | `models/eppm.py` | [01_ARCHITECTURE_SPEC.md](docs/spec/01_ARCHITECTURE_SPEC.md)<br>[02_TENSOR_MATH_SPEC.md](docs/spec/02_TENSOR_MATH_SPEC.md) | Shannon gating $\theta=0.5$, query-support cross-attention affinity $A_{qs}$, diffusion threshold $\tau=0.5$, blend $\alpha=0.5$. |
-| **Dynamic Routing (ADRM)** | `models/adrm.py` | [01_ARCHITECTURE_SPEC.md](docs/spec/01_ARCHITECTURE_SPEC.md)<br>[02_TENSOR_MATH_SPEC.md](docs/spec/02_TENSOR_MATH_SPEC.md) | Query global average pooling $v_q$, softmax gating simplex $\sum_{t=1}^4 w_{gate}^{(t)} = 1.0$, all 4 stages receive gradients. |
-| **Dataloader & Episodic Sampling** | `dataloaders/s3dis.py`<br>`dataloaders/scannet.py` | [04_DATA_AND_EPISODES.md](docs/spec/04_DATA_AND_EPISODES.md) | $N$-way $K$-shot sampling, $N_p=2048$ points/block, minimum $\ge 50$ points/class threshold, local label remapping $Y_{q, i}$. |
-| **Unit Verification & Smoke Tests** | `tests/*.py`<br>`train.py` | [05_VERIFICATION_PLAN.md](docs/spec/05_VERIFICATION_PLAN.md) | 3-phase testing pipeline, synthetic tensor fixtures, zero NaNs across all trainable parameters, 8-component acceptance matrix. |
+* **Mission:** an **unofficial** re-implementation of *CascadeProto: Cascaded Cross-Modal Prototype Purification via Entropy-Aware Learning for Few-Shot 3D Point Cloud Segmentation* (Wang et al.), aiming to reproduce its Tables 2–5. The authors' code is not released yet.
+* **Base code:** the official VIP-Seg repository `changshuowang/VIP-Seg_NeurIPS2025`, pinned at commit `28aedc5093c0d386d526864c49505ae6921b1600`.
+* **Target hardware:** one NVIDIA GPU; the paper used an RTX 5090.
+* **Modality priority:** text first; image and audio are deferred and must raise until implemented.
+* **Status (2026-09-17):** the docs in `docs/spec/` were rewritten against the paper. The code in `models/`, `loss/`, `train.py`, `eval.py` and `tests/` predates that rewrite and does **not** follow it yet; [docs/research/paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) lists the known gaps.
 
 ---
 
-## 3. Hardcoded Architectural Invariants & Constants
+## 2. Sources of truth
 
-Every agent modifying or generating code must strictly adhere to the following numerical constants:
+Read [docs/spec/00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) before any change. In short:
 
-* **Point Cloud Backbone:** Shared VIP-Seg encoder producing feature dimension $D = 128$ for both support and query branches.
-* **Input Resolution:** Block-based point clouds with exactly $N_s = 2048$ support points and $N_q = 2048$ query points.
-* **Cascade Depth:** Exactly $T = 4$ sequential Entropy-aware Prototype Purification Modules (EPPM).
-* **Cross-Attention Subspace:** Projected feature dimension $d = 72$ via $1 \times 1$ convolutions.
-* **Information-Theoretic Gating:** Per-channel Shannon entropy calculation normalized with $\epsilon = 10^{-8}$, modulated by a learnable scalar threshold $\theta$ initialized to $0.5$.
-* **Prototype Diffusion:** Channel activation threshold $\tau = 0.5$ and common-unique blending factor $\alpha = 0.5$.
-* **Class Weighting Vector:** Fixed vector $w_{cls} = [0.8, 1.0, \dots, 1.0] \in \mathbb{R}^{N+1}$, where background index $0$ receives weight $0.8$ and all $N$ foreground categories receive $1.0$.
-* **MMD RBF Kernel Bandwidths:** Multi-scale kernel $\sigma \in \{2, 5, 10, 20, 40, 80\}$.
-* **Decoupled Distribution Alignment Weights:** Factor $0.1$ for background MMD and $1.0$ for foreground MMD.
-* **Total Loss Balancing:** $\lambda = 1.0$ weighting $\mathcal{L}_{GMMN}$ against $\mathcal{L}_{seg}$.
-* **Optimization Hyperparameters:** AdamW optimizer, initial learning rate $\eta = 10^{-3}$, weight decay $0.1$, StepLR scheduler halving the learning rate every 10 epochs.
-* **Training Durations:** 50 epochs on S3DIS, 30 epochs on ScanNet, with batch size of 4 episodes.
+1. **Paper** (L1) beats **pinned VIP-Seg code** (L2) beats the **decision log** D-01…D-17 (L3).
+2. Specs `01`–`05` restate L1–L3 with a source tag on every normative line: `[PAPER …]`, `[VIPSEG path:line]`, `[DECISION D-nn]`.
+3. Code, tests, this file and the README are **not** sources. When code and spec disagree, the spec wins; when a spec line has no tag, treat it as unverified.
+4. If the paper is ambiguous and no decision covers the case, **stop and ask the maintainer**. Record the answer as a new decision in `00` before writing code.
 
----
+### 2.1 Task routing
 
-## 4. Strict Development Guardrails
-
-1. **Zero Pre-training Dependency:** Do not load external pre-trained checkpoints for the 3D point cloud encoder; the VIP-Seg backbone is trained from scratch within the episodic meta-learning scheme. Pre-trained weights are restricted solely to frozen CLIP encoders.
-2. **Data Pipeline Immutability:** Never rewrite the episodic sampling logic, block generation, or evaluation routines inherited from the base VIP-Seg repository. All episodes must evaluate standard 2-way and 3-way settings under 1-shot and 5-shot splits.
-3. **Mandatory Shape Annotations:** Every PyTorch tensor transformation must be accompanied by an inline comment explicitly tracking tensor rank and shapes (e.g., `# [B, N+1, D]`).
-4. **No Silent Mathematical Drift:** Never replace explicit paper formulations (e.g., substituting Shannon entropy with simple variance, or replacing MMD with Cosine Similarity). All math must match [02_TENSOR_MATH_SPEC.md](docs/spec/02_TENSOR_MATH_SPEC.md) identically.
-5. **No Blind Hallucinations:** When tensor dimensions conflict during broadcasting or multi-head attention, agents must resolve dimensions by projecting with explicit linear layers ($1 \times 1$ conv) rather than arbitrary squeezing, flattening, or truncation.
+| Task | Files | Read first |
+| :--- | :--- | :--- |
+| Encoder, feature head, model assembly | `models/encoder.py`, `models/vipseg_backbone.py`, `models/cascadeproto.py` | [01 §2.1](docs/spec/01_ARCHITECTURE_SPEC.md), [02 §2](docs/spec/02_TENSOR_MATH_SPEC.md) |
+| Point prototypes | `models/vipseg_backbone.py` | [02 §3](docs/spec/02_TENSOR_MATH_SPEC.md) |
+| Modality front-ends, LMA, generator | `models/lma.py` | [03](docs/spec/03_MULTIMODAL_SPEC.md), [02 §4](docs/spec/02_TENSOR_MATH_SPEC.md) |
+| GMMN / MMD loss | `loss/gmmn_loss.py` | [03 §4](docs/spec/03_MULTIMODAL_SPEC.md), [02 §4.3–4.4](docs/spec/02_TENSOR_MATH_SPEC.md) |
+| EPPM (gate, cross-attention, diffusion, fusion) | `models/eppm.py` | [02 §5](docs/spec/02_TENSOR_MATH_SPEC.md), [01 §2.4](docs/spec/01_ARCHITECTURE_SPEC.md), decisions D-01, D-02, D-11, D-14, D-16 |
+| ADRM, segmentation loss | `models/adrm.py`, `loss/segmentation_loss.py` | [02 §6–7](docs/spec/02_TENSOR_MATH_SPEC.md) |
+| Ablation switches | `models/cascadeproto.py`, CLI | [01 §3](docs/spec/01_ARCHITECTURE_SPEC.md), D-17 |
+| Data, splits, episodes, schedule, evaluation | `train.py`, `eval.py`, `dataloaders/` (read-only) | [04](docs/spec/04_DATA_AND_EPISODES.md) |
+| Tests | `tests/` | [05](docs/spec/05_VERIFICATION_PLAN.md) |
 
 ---
 
-## 5. Repository Layout & Module Ownership
+## 3. Invariants
+
+Values are defined in the specs; this list is a reminder, not a source. If a value here disagrees with a spec, the spec is right and this file must be fixed.
+
+| Invariant | Value | Spec |
+| :--- | :--- | :--- |
+| Points per block, input channels | 2048, `xyzrgbXYZ` (9) | 02 §0, 04 §4.1 |
+| Feature dim D, projection d, cascade depth T | 128, 72, 4 | 02 §0 |
+| Support encoding | each block independently, `[N·K, 2048, 9]` | 02 §2 |
+| Support masks | binary {0, 1}, prototypes pooled per way | 02 §3 |
+| Encoder | VIP-Seg with `mamba_ssm`; no fallback block | 01 §2.1 |
+| Cross-attention | channel correlation `A ∈ [B_q, N+1, K, D, D]`, shared φ = `Conv1d(64→72)`, scale √72 | 02 §5.2, D-01 |
+| Gate | per-channel Shannon entropy on `P^{t−1}`, ε = 10⁻⁸, θ₀ = 0.5 per stage | 02 §5.1, D-02 |
+| Diffusion | τ = 0.5, α = 0.5 | 02 §5.3 |
+| Class weights `w_cls = [0.8, 1, …, 1]` | inside EPPM only, **never** in the loss | 02 §5.4, 02 §7 |
+| Stage logits | `F^q (P^t)ᵀ`, no temperature | 02 §5.5, D-10 |
+| MMD | **squared**, σ ∈ {2, 5, 10, 20, 40, 80}, weights bg 0.1 / fg 1.0, fg rows as one set | 02 §4.3–4.4, D-04 |
+| Losses | `L_total = CE(L_final, Y_q) + 1.0 · L_GMMN`, CE unweighted | 02 §7 |
+| Noise at evaluation | z = 0 | D-06 |
+| Optimiser | AdamW lr 1e-3, wd 0.1, StepLR ×0.5 every 10 epochs | 04 §5 |
+| Schedule | batch 4 episodes; S3DIS 50 epochs × 480 episodes; ScanNet 30 × 800 | 04 §5, D-12 |
+| Splits | class-based folds of the inherited loader | 04 §3, D-07 |
+| Metric | TP/FP/FN accumulated per class over 100 fixed episodes per class combination, background excluded | 04 §6, D-08 |
+
+---
+
+## 4. Guardrails
+
+1. **No pre-trained point-cloud weights.** Only frozen CLIP (and, later, Whisper) weights may be loaded (01 §2.1).
+2. **Inherited files are read-only.** `dataloaders/{loader,s3dis,scannet}.py`, `preprocess/{collect_s3dis_data,collect_scannet_data,room2blocks}.py` and `utils/{checkpoint_util,cuda_util,logger}.py` must stay byte-identical to the pinned VIP-Seg commit. Change behaviour through arguments or wrappers. `models/encoder.py`, `models/mamba_block.py` and `models/model_utils.py` may only lose the local fallbacks (00 §5.2).
+3. **Restore, don't rewrite, VIP-Seg's evaluation.** The metric in `runs/training_free.py` and the patterns in `runs/{training,evaluate}.py` come from the pinned commit (00 §5.1). The current `.gitignore` ignores `runs/`; fix that before restoring.
+4. **Shape comments.** Every tensor operation carries an inline shape comment, e.g. `# [B_q, N+1, 128]`.
+5. **No silent maths drift.** Formulas must match 02 exactly. Changing an interpretation means editing the decision in `00` first, with evidence, then the spec, then the code.
+6. **No shape guessing.** Never infer layouts from `shape[i] in (3, 6, 9)`, never infer N from mask values, never `reshape`/`view` across batch, class or shot axes to make a product fit; use explicit indices or `einsum`. If shapes do not fit, stop: the spec or the input is wrong. Do not invent a projection layer to force a fit.
+7. **No silent fallbacks.** Missing `mamba_ssm`, `pointnet2_ops` or CLIP, an unknown modality, or an unloadable checkpoint must raise.
+8. **No synthetic data outside `tests/`.** `train.py` and `eval.py` only read real episodes through the inherited loader; `--dry_run` means "real data, few steps".
+9. **Tags in docs.** Any new normative line in `docs/spec/` carries a source tag (00 §2.3). Unsourced statements are deleted.
+10. **Security.** Never disable TLS verification (`ssl._create_default_https_context`). Never add global monkey-patches. The inherited `utils/checkpoint_util.py` already replaces `torch.load` with `weights_only=False` on import [VIPSEG utils/checkpoint_util.py:9-16]; import it only where a VIP-Seg checkpoint must be loaded (05 §4), and only load checkpoints from trusted sources.
+
+---
+
+## 5. Repository layout
 
 ```text
 CascadeProto/
-├── AGENTS.md                       # Machine operating instructions & routing matrix
-├── README.md                       # Human onboarding, benchmarks, and run commands
+├── AGENTS.md, README.md
 ├── docs/
-│   └── spec/                       # Ground-truth technical documentation
-│       ├── 01_ARCHITECTURE_SPEC.md # Structural and layer-level specs
-│       ├── 02_TENSOR_MATH_SPEC.md  # Exact mathematical formulas and loss functions
-│       ├── 03_MULTIMODAL_SPEC.md   # CLIP text/image/audio adapter pipelines
-│       ├── 04_DATA_AND_EPISODES.md # S3DIS/ScanNet splits and episode configurations
-│       └── 05_VERIFICATION_PLAN.md # Test suite and pass/fail criteria
+│   ├── spec/00_SOURCES_AND_DECISIONS.md   source hierarchy + decision log (read first)
+│   ├── spec/01_ARCHITECTURE_SPEC.md       modules, wiring, switches, parameter budget
+│   ├── spec/02_TENSOR_MATH_SPEC.md        all formulas and shapes
+│   ├── spec/03_MULTIMODAL_SPEC.md         modality front-ends, LMA, GMMN rules
+│   ├── spec/04_DATA_AND_EPISODES.md       data layout, splits, episodes, schedule, metric
+│   ├── spec/05_VERIFICATION_PLAN.md       tests, gates, acceptance
+│   └── research/paper_vs_repo_audit.md    audit of the pre-rewrite code (2026-09-17)
+├── dataloaders/            inherited, read-only
+├── preprocess/             inherited scripts (read-only) + download_and_prepare_s3dis.py (local)
+├── utils/                  inherited, read-only
 ├── models/
-│   ├── vipseg_backbone.py          # Inherited VIP-Seg encoder (D=128)
-│   ├── lma.py                      # Learnable Modality Adapters & GMMN generator
-│   ├── eppm.py                     # Entropy gating, cross-attention, diffusion
-│   ├── adrm.py                     # Dynamic routing & multi-stage logit aggregation
-│   └── cascadeproto.py             # End-to-end network assembly
-├── loss/
-│   ├── gmmn_loss.py                # Decoupled multi-scale MMD calculation
-│   └── segmentation_loss.py        # Cross-entropy loss on routed logits
-├── dataloaders/
-│   ├── s3dis.py                    # S3DIS episodic dataloader (Areas 1-4, 6 train; Area 5 test)
-│   └── scannet.py                  # ScanNet episodic dataloader
-├── tests/                          # Modular unit testing suite
-│   ├── test_lma.py                 # LMA projection & decoupled GMMN test
-│   ├── test_eppm.py                # EPPM gating, attention, diffusion test
-│   ├── test_adrm.py                # ADRM routing simplex & gradient flow test
-│   └── test_smoke_episode.py       # End-to-end synthetic forward/backward smoke test
-├── train.py                        # Episodic training loop
-└── eval.py                         # 600-episode evaluation benchmark script
+│   ├── encoder.py, mamba_block.py, model_utils.py   inherited VIP-Seg encoder
+│   ├── vipseg_backbone.py  encoder + feature head + point prototypes
+│   ├── lma.py              modality adapters and generator
+│   ├── eppm.py             EPPM stage and cascade
+│   ├── adrm.py             dynamic routing
+│   └── cascadeproto.py     end-to-end model
+├── loss/                   gmmn_loss.py, segmentation_loss.py
+├── pointnet2_ops_lib/      vendored CUDA ops
+├── runs/                   (to restore) VIP-Seg training/evaluation reference code
+├── tests/                  see 05
+├── train.py, eval.py
+└── requirements.txt
 ```
 
 ---
 
-## 6. Sequential Verification Protocol
+## 6. Verification protocol
 
-Agents must run and pass tests in this exact sequential order before initiating training or evaluation:
+Run the gates of [05 §2](docs/spec/05_VERIFICATION_PLAN.md) in order:
 
-### Phase 1: Isolated Module Unit Tests
 ```bash
-pytest tests/test_lma.py -v
-pytest tests/test_eppm.py -v
-pytest tests/test_adrm.py -v
+pytest tests/test_environment.py -v                 # G0 environment
+pytest -m "not cuda and not clip and not data" -v   # G1 unit, CPU
+pytest -m cuda -v                                   # G2 encoder on GPU
+pytest -m clip -v                                   # G3 episode with real CLIP
+pytest -m data -v                                   # G4 real data
+python train.py --dataset s3dis --cvfold 0 --n_way 2 --k_shot 1 --modality text --dry_run true
 ```
 
-### Phase 2: End-to-End Synthetic Smoke Test (1 batch, forward + backward)
-```bash
-pytest tests/test_smoke_episode.py -v
-```
+Before any reproduction run, evaluate VIP-Seg's released S0 2-way 1-shot checkpoint with this repository's data and metric; the result must be close to VIP-Seg's logged 0.722; a gap of several points means the pipeline differs (05 §4).
 
-### Phase 3: Dry-Run Episode Execution on Real S3DIS Dataloader
-```bash
-python train.py --dataset s3dis --cvfold 0 --n_way 2 --k_shot 1 --modality text --dry_run True
-```
+The test files and markers named above are the target of 05; until the tests are rewritten, the existing suite passing says nothing about paper fidelity.
 
 ---
 
-## 7. Failure Modes & Troubleshooting Playbook
+## 7. Troubleshooting
 
-* **Numerical Instability in Entropy Gating:** If negative log computations cause `NaN`, enforce clamping on probability vectors: $p = \text{clamp}(\sigma(x), 10^{-7}, 1 - 10^{-7})$ before calculating $-p \log(p + \epsilon) - (1-p) \log(1-p + \epsilon)$. Consult [02_TENSOR_MATH_SPEC.md](docs/spec/02_TENSOR_MATH_SPEC.md#41-sub-module-1-entropy-aware-information-gating) for formal bounds.
-* **CUDA Out of Memory (OOM) in Kernel Distance:** The multi-scale Gaussian kernel in GMMN creates pairwise distance matrices of size $|P| \times |Q|$. In episodic training, prototype sets are small ($(N+1)$ prototypes), but if intermediate point clouds are passed accidentally, assert $|P| \le 16$ before kernel evaluation to avoid memory blow-ups. Consult [03_MULTIMODAL_SPEC.md](docs/spec/03_MULTIMODAL_SPEC.md#32-decoupled-gmmn-loss-specification).
-* **Routing Collapse in ADRM:** If ADRM gate weights $w_{gate}$ concentrate exclusively on stage 1 ($w_{gate}^{(1)} \to 1.0$), inspect learning rates for $W_g$; the linear projection must remain synchronized with the backbone optimizer schedule. Consult [01_ARCHITECTURE_SPEC.md](docs/spec/01_ARCHITECTURE_SPEC.md#4-attention-based-dynamic-routing-module-adrm).
+| Symptom | Likely cause | Where to look |
+| :--- | :--- | :--- |
+| `ModuleNotFoundError: mamba_ssm` | Mamba not built for this GPU/CUDA | VIP-Seg installs it from its vendored `mamba/` directory [VIPSEG README.md]; the RTX 5090 needs a PyTorch/CUDA build that supports it |
+| `FileNotFoundError: …/meta/s3dis_classnames.txt` | `--data_path` not inside the documented layout | 04 §2.2 |
+| Class-2 prototype is all zeros | masks compared with `== k` instead of per way | 02 §3 |
+| Entropy is NaN | missing probability clamp | 02 §9 |
+| Different logits for the same input in `eval()` | noise z sampled at evaluation | 02 §4.2, D-06 |
+| mIoU not comparable with the paper | per-episode averaging or random test episodes | 04 §6 |
+| Out of memory in EPPM | point–point attention instead of channel correlation | 02 §5.2 |
