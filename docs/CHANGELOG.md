@@ -211,3 +211,20 @@ generator input `[E_fused; z]` of width 2D. `eval_noise=mean_of_M` raises until 
 * **Incident.** During the mutation check a `git checkout -- models/cascadeproto.py` restored the
   committed phase-10 file over the uncommitted 11d version; the file was rewritten from the session
   and the full CPU gate re-run before this commit.
+
+### 11e — VM run of the "+ LMA" row on the GCP L4
+
+* **Gates.** `pytest -m "not clip"`: 172 passed; `pytest -m clip`: 3 passed (real `ViT-B/16` on the GPU).
+* **Dry run.** One step on 4 real episodes: loss 4.8252, of which `L_GMMN` 2.4429 (baseline dry run
+  1.5253). The higher start is expected: the untrained generator adds a random `P_modal` to
+  `P_point`, whose rows have norm ≤ 1 because point features are L2-normalised.
+* **Short training.** S3DIS S0 2-way 1-shot, 2 epochs × 480 episodes, 93 s per epoch (baseline 85 s):
+  loss 1.4242 → 0.6941, `L_GMMN` 0.5022 → 0.1536, so `L_seg` ≈ 0.922 → 0.541 (baseline 0.830 → 0.481).
+  Valid mIoU 0.4345 on the independent valid set of 10d-fix.
+* **Test.** `eval.py` on `last.pt`, 1,500 episodes: 0.429550 (baseline row after 2 epochs: 0.460089).
+* **Reading.** The integration works: CLIP loads once on the GPU, `L_GMMN` falls, the checkpoint
+  rebuilds its configuration. The −3.1 points against the baseline come from one seed after 2 of 50
+  epochs and are not a comparison with Table 4 (+1.21 for LMA after full training). The adapter has
+  seen the text of the 6 training classes only; at test time `P_modal` comes from 6 unseen class names,
+  so an early, undertrained adapter can hurt. Whether LMA helps is decided by the full-schedule runs of
+  phase 14, not here.
