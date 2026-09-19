@@ -221,10 +221,10 @@ $$\mathcal{L}_{seg} = -\frac{1}{B_q N_q}\sum_{b=1}^{B_q}\sum_{i=1}^{N_q} \log \f
 p = torch.sigmoid(x).clamp(1e-7, 1.0 - 1e-7)                      # [B_q, N+1, D]
 H = -p * torch.log(p + 1e-8) - (1.0 - p) * torch.log(1.0 - p + 1e-8)  # [B_q, N+1, D], in [0, ln 2]
 
-# Squared distances for the RBF kernel (§4.3)
+# Squared distances for the RBF kernel (§4.3): from the differences, never ||x||^2 + ||y||^2 - 2x.y,
+# whose rounding makes k(x, x) differ from 6 at large norms; the sets hold at most N+1 rows
 def pairwise_sq_dist(x, y):                                       # x [M, D], y [L, D]
-    d2 = (x * x).sum(-1, keepdim=True) + (y * y).sum(-1) - 2.0 * x @ y.T  # [M, L]
-    return d2.clamp_min(0.0)
+    return ((x[:, None, :] - y[None, :, :]) ** 2).sum(-1)         # [M, L], >= 0, diagonal exactly 0
 
 # MMD (§4.3): squared form, never sqrt [PAPER Eq.7]
 mmd = k(X, X).mean() + k(Y, Y).mean() - 2.0 * k(X, Y).mean()      # scalar, >= 0 up to rounding

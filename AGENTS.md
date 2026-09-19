@@ -32,7 +32,7 @@ Read [docs/spec/00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.
 | Modality front-ends, LMA, generator | `models/lma.py` | [03](docs/spec/03_MULTIMODAL_SPEC.md), [02 §4](docs/spec/02_TENSOR_MATH_SPEC.md) |
 | GMMN / MMD loss | `loss/gmmn_loss.py` | [03 §4](docs/spec/03_MULTIMODAL_SPEC.md), [02 §4.3–4.4](docs/spec/02_TENSOR_MATH_SPEC.md) |
 | EPPM (gate, cross-attention, diffusion, fusion) | `models/eppm.py` | [02 §5](docs/spec/02_TENSOR_MATH_SPEC.md), [01 §2.4](docs/spec/01_ARCHITECTURE_SPEC.md), decisions D-01, D-02, D-11, D-14, D-16 |
-| ADRM, segmentation loss | `models/adrm.py`, `loss/segmentation_loss.py` | [02 §6–7](docs/spec/02_TENSOR_MATH_SPEC.md) |
+| ADRM, total loss | `models/adrm.py`, `pipeline/model_api.py` (`episode_loss`) | [02 §6–7](docs/spec/02_TENSOR_MATH_SPEC.md) |
 | Ablation switches | `models/cascadeproto.py`, CLI | [01 §3](docs/spec/01_ARCHITECTURE_SPEC.md), D-17 |
 | Data, splits, episodes, schedule, evaluation | `pipeline/`, `train.py`, `eval.py`, `preprocess/prepare_s3dis.py`, `dataloaders/` (read-only) | [04](docs/spec/04_DATA_AND_EPISODES.md) |
 | Tests | `tests/` | [05](docs/spec/05_VERIFICATION_PLAN.md) |
@@ -103,7 +103,7 @@ CascadeProto/
 │   ├── eppm.py             EPPM stage and cascade
 │   ├── adrm.py             dynamic routing
 │   └── cascadeproto.py     end-to-end model
-├── loss/                   gmmn_loss.py, segmentation_loss.py
+├── loss/                   gmmn_loss.py
 ├── pointnet2_ops_lib/      vendored CUDA ops
 ├── runs/, main.py, scripts/  VIP-Seg reference code (inherited, read-only)
 ├── tests/                  see 05

@@ -90,7 +90,7 @@ Formula: 02 §4.3–4.4 [PAPER Eq.7–8].
 1. **Squared MMD, no square root, no epsilon inside a root** [PAPER Eq.7].
 2. **Sets:** background = row 0 of `P_modal` vs row 0 of `P_point` (1 vs 1 sample); foreground = rows 1…N of each, compared as two sets of N samples [DECISION D-04].
 3. **Weights:** `0.1 · MMD_bg + 1.0 · MMD_fg` [PAPER Eq.8].
-4. **Kernel:** sum of six Gaussians, `exp(−‖x − y‖² / (2σ²))`, σ ∈ {2, 5, 10, 20, 40, 80}; pairwise squared distances clamped at ≥ 0 before the exponent (02 §9) [PAPER Eq.7].
+4. **Kernel:** sum of six Gaussians, `exp(−‖x − y‖² / (2σ²))`, σ ∈ {2, 5, 10, 20, 40, 80}; pairwise squared distances computed from the differences `x − y`, so they are never negative (02 §9) [PAPER Eq.7].
 5. **Gradients** flow into both `P_modal` and `P_point` [DECISION D-04].
 6. **Batch:** computed per episode, averaged over the 4 episodes of a batch together with `L_seg` [PAPER Eq.26] [DECISION D-12].
 7. **Size guard:** inputs are prototype rows only; assert set sizes are 1 and N (never point features) [PAPER Eq.8].

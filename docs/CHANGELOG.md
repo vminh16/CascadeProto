@@ -123,3 +123,31 @@ Find the commit of an entry with `git log --oneline --grep "<step id>"`.
 * **Reading.** Loss falls and the test mIoU is well above chance after 2 of 50 epochs; the full
   schedule would take about 71 min of training plus validations. Paper numbers are not expected from
   this row: Table 4's baseline reaches 81.28 (average of S0 and S1) after full training.
+
+---
+
+## Phase 11 — LMA and GMMN (Table 4 "+ LMA" row)
+
+D-05 locked by the maintainer before this phase: one modality per run, `E_fused := E_adapted^(m)`,
+generator input `[E_fused; z]` of width 2D. `eval_noise=mean_of_M` raises until M is chosen (D-06).
+
+### 11a — decoupled GMMN loss (Eq.7–8)
+
+* **What.** `loss/gmmn_loss.py` rewritten: `pairwise_sq_dist`, `rbf_kernel`, `mmd`,
+  `gmmn_loss(p_modal [N+1,D], p_point [N+1,D], fg_mode, detach_point)`. `tests/test_lma_gmmn.py`
+  (MMD-1…7) replaces `tests/test_lma.py`. `loss/segmentation_loss.py` deleted: its class-weighted CE
+  (audit H-series) was dead code since phase 9, when `pipeline/model_api.py::episode_loss` became the
+  objective of Eq.26–27.
+* **Why.** Audit H5/M3: the old loss took `sqrt(mmd² + eps) − sqrt(eps)` by default, averaged N
+  per-class 1-vs-1 MMDs for the foreground, and clamped the result at 0 (no gradient near a perfect
+  match). Eq.7 is the squared MMD; D-04 compares the N foreground rows as one set.
+* **Sources.** Squared MMD with the six bandwidths [PAPER Eq.7]; weights 0.1 / 1.0 [PAPER Eq.8];
+  joint foreground set, no detach, flags `gmmn_fg_mode`, `gmmn_detach_point` [DECISION D-04].
+* **Deviation from the old spec text.** 02 §9 wrote the squared distance as
+  `‖x‖² + ‖y‖² − 2x·y` with a clamp. At norm 50 this gives `k(x, x) = 6 − 2.6e-11` in float64 (worse
+  in float32). The sets hold at most N+1 = 4 rows, so the distance is now computed from the
+  differences: never negative, exactly 0 on the diagonal. 02 §9 and 03 §4 updated.
+* **Verification.** 26 CPU tests, float64, 1e-12, against Python-scalar references (kernel, distances,
+  triple-sum MMD, `2(6 − k)`, joint vs per-class, 0.1/1.0 split, analytic background gradient,
+  `gradcheck`, detach flag, input validation). Mutation check: 14/14 wrong variants killed
+  (list in 05 §3.3).

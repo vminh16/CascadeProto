@@ -93,7 +93,9 @@ Mutation check (2026-09-18): twelve wrong variants (no or wrong-axis L2 norm, in
 | MMD-4 | Result equals the explicit triple-mean formula of 02 §4.3 (no square root) | 02 §4.3 |
 | MMD-5 | Foreground term uses rows 1..N as one set: equals `MMD(P_modal[1:], P_point[1:])`, not the mean of per-row MMDs (for N ≥ 2 the two differ on the fixture) | 02 §4.4, [DECISION D-04] |
 | MMD-6 | `L_GMMN = 0.1·bg + 1.0·fg` | 02 §4.4 |
-| MMD-7 | Gradients of `L_GMMN` are non-zero for adapter, generator **and** `P_point` | [DECISION D-04] |
+| MMD-7 | Gradients of `L_GMMN` are non-zero for adapter, generator **and** `P_point`; the background gradient equals `0.2·Σ_σ exp(−‖x−y‖²/2σ²)(x−y)/σ²`; `gradcheck` passes; `gmmn_detach_point` stops the gradient to `P_point` only | [DECISION D-04] |
+
+All MMD checks run in float64 against references written with Python scalars and explicit loops, to 1e-12. Mutation check (2026-09-19): fourteen wrong variants (square root, clamped result, unbiased estimator, σ instead of σ², missing factor 2, unsquared distance, kernel averaged over bandwidths, a bandwidth dropped, bg weight 1.0, per-class foreground in joint mode, last way dropped, detach always or never, no input check) each fail at least one test. LMA-1…3 arrive with phase 11b.
 
 ### 3.4 `tests/test_eppm.py` (G1)
 
