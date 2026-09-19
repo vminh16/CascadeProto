@@ -84,9 +84,9 @@ Mutation check (2026-09-18): twelve wrong variants (no or wrong-axis L2 norm, in
 
 | ID | Check | Source |
 | :--- | :--- | :--- |
-| LMA-1 | Adapter `[N+1, 512] → [N+1, 128]`; generator input width 256; parameter counts 82,432 and 65,920 | 02 §4.1–4.2, 01 §2.3 |
+| LMA-1 | Adapter `[N+1, 512] → [N+1, 128]`; generator input width 256; parameter counts 82,432 and 65,920; output equals Eq.5–6 written out with explicit tensor operations (LayerNorm with biased variance, eps 1e-5) | 02 §4.1–4.2, 01 §2.3 |
 | LMA-2 | `model.eval()`: two forwards give identical `P_modal` (z = 0) | 02 §4.2, [DECISION D-06] |
-| LMA-3 | `model.train()`: two forwards differ (fresh z) | 02 §4.2 |
+| LMA-3 | `model.train()`: two forwards differ (fresh z); an exact replay of the random stream (dropout mask p = 0.1 after the ReLU, then `z ~ N(0, I)` `[N+1, 128]`) reproduces the output; z has mean 0 and standard deviation 1 | 02 §4.2, [DECISION D-16] |
 | MMD-1 | `k(x, x) = 6` | 03 §4.1 |
 | MMD-2 | `MMD({x}, {y}) = 2·(6 − k(x, y))` to 1e-5 | 03 §4.1 |
 | MMD-3 | `MMD(X, X) = 0`; `MMD ≥ −1e-6` on random sets | 03 §4.1 |
@@ -95,7 +95,7 @@ Mutation check (2026-09-18): twelve wrong variants (no or wrong-axis L2 norm, in
 | MMD-6 | `L_GMMN = 0.1·bg + 1.0·fg` | 02 §4.4 |
 | MMD-7 | Gradients of `L_GMMN` are non-zero for adapter, generator **and** `P_point`; the background gradient equals `0.2·Σ_σ exp(−‖x−y‖²/2σ²)(x−y)/σ²`; `gradcheck` passes; `gmmn_detach_point` stops the gradient to `P_point` only | [DECISION D-04] |
 
-All MMD checks run in float64 against references written with Python scalars and explicit loops, to 1e-12. Mutation check (2026-09-19): fourteen wrong variants (square root, clamped result, unbiased estimator, σ instead of σ², missing factor 2, unsquared distance, kernel averaged over bandwidths, a bandwidth dropped, bg weight 1.0, per-class foreground in joint mode, last way dropped, detach always or never, no input check) each fail at least one test. LMA-1…3 arrive with phase 11b.
+All MMD checks run in float64 against references written with Python scalars and explicit loops, to 1e-12. Mutation check (2026-09-19): fourteen wrong variants (square root, clamped result, unbiased estimator, σ instead of σ², missing factor 2, unsquared distance, kernel averaged over bandwidths, a bandwidth dropped, bg weight 1.0, per-class foreground in joint mode, last way dropped, detach always or never, no input check) each fail at least one test. Mutation check for LMA (2026-09-19): fourteen wrong variants (no LayerNorm, LayerNorm after ReLU, no dropout, dropout 0.5, two-layer G, final ReLU in G, z first in the concatenation, z added instead of concatenated, noise in evaluation, no noise in training, uniform or scaled noise, `mean_of_M` accepted, no input check) each fail at least one test. Moving the dropout before the ReLU is an equivalent mutant (a non-negative mask commutes with ReLU) and is not a defect.
 
 ### 3.4 `tests/test_eppm.py` (G1)
 

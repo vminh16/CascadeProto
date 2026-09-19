@@ -1,15 +1,17 @@
-"""MMD-1..7 (05 §3.3, gate G1): the decoupled GMMN loss of Eq.7-8 / spec 02 §4.3-4.4.
+"""LMA-1..3 and MMD-1..7 (05 §3.3, gate G1): adapter and generator of Eq.4-6, GMMN loss of Eq.7-8.
 
-float64 throughout; references are written with Python scalars and explicit loops, independent of
-the vectorised code, and compared to 1e-12.
+float64 throughout; references are written with explicit tensor operations or Python scalars and
+explicit loops, independent of the modules under test, and compared to 1e-12.
 """
 
 import math
 
 import pytest
 import torch
+import torch.nn.functional as F
 
 from loss.gmmn_loss import RBF_BANDWIDTHS, gmmn_loss, mmd, pairwise_sq_dist, rbf_kernel
+from models.lma import LearnableModalityAdapter
 
 ATOL = 1e-12
 D = 128
@@ -160,3 +162,110 @@ def test_mmd7_detach_point_flag():
 def test_invalid_inputs_raise(a, b, kwargs):
     with pytest.raises(ValueError):
         gmmn_loss(torch.zeros(a, dtype=torch.float64), torch.zeros(b, dtype=torch.float64), **kwargs)
+
+
+# ---------------------------------------------------------------- LMA-1..3 (02 §4.1-4.2, 03 §3)
+
+def lma(seed=0, **kwargs):
+    torch.manual_seed(seed)
+    return LearnableModalityAdapter(**kwargs).double()
+
+
+def clip_rows(n, seed=90):
+    """Stand-in for E_CLIP: fixed random L2-normalised rows (05 §1 principle 3)."""
+    g = torch.Generator().manual_seed(seed)
+    return F.normalize(torch.randn(n + 1, 512, generator=g, dtype=torch.float64), dim=-1)  # [N+1, 512]
+
+
+def reference(m, e, z, dropout_mask=None):
+    """Eq.5-6 written out with the module's weights: fc1, LayerNorm (biased variance, eps 1e-5),
+    ReLU, Dropout (identity in eval), fc2; then [E; z] through Linear-ReLU-Linear-ReLU-Linear."""
+    a = m.adapter
+    h = e @ a.fc1.weight.T + a.fc1.bias  # [N+1, 128]
+    mu = h.mean(-1, keepdim=True)
+    var = ((h - mu) ** 2).mean(-1, keepdim=True)
+    h = (h - mu) / torch.sqrt(var + 1e-5) * a.norm.weight + a.norm.bias
+    h = torch.clamp(h, min=0.0)
+    if dropout_mask is not None:
+        h = h * dropout_mask
+    e_adapted = h @ a.fc2.weight.T + a.fc2.bias  # [N+1, 128]
+    g = m.generator.net
+    x = torch.cat([e_adapted, z], dim=-1)  # [N+1, 256]
+    x = torch.clamp(x @ g[0].weight.T + g[0].bias, min=0.0)
+    x = torch.clamp(x @ g[2].weight.T + g[2].bias, min=0.0)
+    return x @ g[4].weight.T + g[4].bias  # [N+1, 128]
+
+
+def test_lma1_shapes_and_parameter_counts():
+    m = lma()
+    count = lambda mod: sum(p.numel() for p in mod.parameters())
+    assert count(m.adapter) == 82_432 and count(m.generator) == 65_920 and count(m) == 148_352
+    assert m.generator.net[0].in_features == 256 and m.adapter.norm.eps == 1e-5
+    for n in (1, 2, 3):
+        assert m.eval()(clip_rows(n)).shape == (n + 1, 128)
+    assert m.adapter.dropout.p == 0.1
+
+
+@pytest.mark.parametrize("n", [2, 3])
+def test_lma1_forward_matches_written_out_eq5_eq6(n):
+    m, e = lma().eval(), clip_rows(n)
+    z = torch.randn(n + 1, 128, generator=torch.Generator().manual_seed(1), dtype=torch.float64)
+    assert torch.allclose(m(e, z=z), reference(m, e, z), atol=ATOL, rtol=0)
+
+
+def test_lma2_eval_uses_zero_noise():
+    m, e = lma().eval(), clip_rows(2)
+    first, second = m(e), m(e)
+    assert torch.equal(first, second)
+    assert torch.allclose(first, reference(m, e, torch.zeros(3, 128, dtype=torch.float64)), atol=ATOL, rtol=0)
+
+
+def test_lma3_training_draws_dropout_then_fresh_standard_normal_noise():
+    """Exact replay of the RNG stream: dropout mask on the adapter's hidden layer (p = 0.1, after the
+    ReLU), then z ~ N(0, I) of shape [N+1, 128]."""
+    m, e = lma().train(), clip_rows(2)
+    torch.manual_seed(5)
+    out = m(e)
+    torch.manual_seed(5)
+    mask = F.dropout(torch.ones(3, 128, dtype=torch.float64), p=0.1, training=True)  # values 0 or 1/0.9
+    z = torch.randn(3, 128, dtype=torch.float64)
+    assert torch.allclose(out, reference(m, e, z, dropout_mask=mask), atol=ATOL, rtol=0)
+    assert not torch.equal(m(e), m(e))
+
+
+def test_lma3_noise_is_standard_normal():
+    m = lma().train()
+    m.adapter.dropout.p = 0.0
+    seen = []
+    m.generator.register_forward_pre_hook(lambda mod, args: seen.append(args[0][:, 128:].clone()))
+    for _ in range(200):
+        m(clip_rows(3))
+    z = torch.stack(seen)  # [200, 4, 128]
+    assert abs(z.mean().item()) < 0.02 and abs(z.std().item() - 1.0) < 0.02
+    assert not torch.equal(z[0], z[1])
+
+
+def test_lma_eval_noise_flag():
+    e = clip_rows(2)
+    sample = lma(eval_noise="sample").eval()
+    assert not torch.equal(sample(e), sample(e))
+    with pytest.raises(NotImplementedError, match="mean_of_M"):
+        lma(eval_noise="mean_of_M")
+    with pytest.raises(ValueError):
+        lma(eval_noise="mean")
+
+
+def test_lma_gradients_reach_every_parameter_through_gmmn():
+    m, e = lma().train(), clip_rows(2)
+    p_point = rows(3, 95).requires_grad_(True)
+    gmmn_loss(m(e), p_point).backward()
+    for name, p in m.named_parameters():
+        assert p.grad is not None and torch.isfinite(p.grad).all() and p.grad.abs().sum() > 0, name
+    assert p_point.grad.abs().sum() > 0
+
+
+@pytest.mark.parametrize("e,z", [((3, 256), None), ((2, 3, 512), None), ((3, 512), (3, 256))])
+def test_lma_invalid_inputs_raise(e, z):
+    m = lma().eval()
+    with pytest.raises(ValueError):
+        m(torch.zeros(e, dtype=torch.float64), z=None if z is None else torch.zeros(z, dtype=torch.float64))

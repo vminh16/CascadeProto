@@ -151,3 +151,22 @@ generator input `[E_fused; z]` of width 2D. `eval_noise=mean_of_M` raises until 
   triple-sum MMD, `2(6 − k)`, joint vs per-class, 0.1/1.0 split, analytic background gradient,
   `gradcheck`, detach flag, input validation). Mutation check: 14/14 wrong variants killed
   (list in 05 §3.3).
+
+### 11b — modality adapter and prototype generator (Eq.4–6)
+
+* **What.** `models/lma.py` rewritten: `ModalityAdapter` (Eq.5), `PrototypeGenerator` (G of Eq.6),
+  `LearnableModalityAdapter(eval_noise)` with `forward(E_CLIP [N+1,512]) -> P_modal [N+1,128]`. The CLIP
+  helpers of the old file move to phase 11c. LMA-1…3 and three further tests added to
+  `tests/test_lma_gmmn.py`.
+* **Why.** Audit M-series: the old module always drew `z`, so two evaluation passes differed by up to
+  0.249 in the logits (D-06 requires `z = 0`); it carried a batch axis the episode contract does not
+  have, and used in-place ReLUs.
+* **Sources.** Adapter `Linear(512→128) → LN → ReLU → Dropout(0.1) → Linear(128→128)` [PAPER Eq.5]
+  [PAPER §4.1] [DECISION D-16]; G = three-layer MLP on `[E_fused; z]`, `E_fused := E_adapted^(m)`
+  [PAPER Eq.6] [DECISION D-05] [DECISION D-16]; `z ~ N(0, I)` per forward in training, `z = 0` in
+  evaluation, `eval_noise=sample` as ablation, `mean_of_M` raises [DECISION D-06].
+* **Verification.** 11 CPU tests, float64, 1e-12: parameter counts 82,432 / 65,920 (sum 148,352 = 01 §4),
+  forward equal to Eq.5–6 written out with explicit operations, deterministic evaluation with `z = 0`,
+  exact replay of the training random stream (dropout mask, then z), z statistics, gradients to every
+  parameter through `L_GMMN`. Mutation check: 14/14 wrong variants killed; one equivalent mutant noted
+  in 05 §3.3.
