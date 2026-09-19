@@ -1,0 +1,70 @@
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{
+  "parameters": {
+    "encoder": 2374959,
+    "feature_head": 204260,
+    "lma": 0,
+    "eppm_stages": 0,
+    "adrm": 0,
+    "added_modules": 0,
+    "total": 2579219
+  },
+  "gflops": 19.4108438,
+  "unsupported_ops": {
+    "prim::PythonOp.FurthestPointSampling": 6,
+    "aten::repeat": 52,
+    "aten::mul": 126,
+    "aten::pow": 54,
+    "aten::sum": 44,
+    "aten::add_": 24,
+    "aten::topk": 6,
+    "aten::sub": 72,
+    "aten::std": 30,
+    "aten::add": 90,
+    "aten::div": 112,
+    "aten::sin": 24,
+    "aten::cos": 36,
+    "aten::numpy_T": 12,
+    "aten::mean": 24,
+    "aten::leaky_relu": 6,
+    "aten::linalg_vector_norm": 8,
+    "aten::softmax": 6,
+    "aten::abs": 18,
+    "aten::max_pool2d": 18,
+    "aten::mul_": 6,
+    "aten::exp": 6,
+    "aten::neg": 6,
+    "prim::PythonOp.MambaInnerFn": 6,
+    "aten::sort": 6,
+    "aten::reciprocal": 6,
+    "aten::unflatten": 1,
+    "aten::rsub": 1
+  },
+  "ms_per_episode": 64.20280450038263,
+  "device": "cuda",
+  "config": {
+    "use_lma": false,
+    "num_stages": 0,
+    "use_gate": true,
+    "use_adrm": true,
+    "modality": "text",
+    "logit_scale": "none",
+    "l2norm_point_proto": false,
+    "clip_variant": "ViT-B/16",
+    "eval_noise": "zero",
+    "gmmn_fg_mode": "joint",
+    "gmmn_detach_point": false,
+    "cross_attn": "channel",
+    "cross_attn_scale": "sqrt_d",
+    "gate_target": "prototype",
+    "fusion_weight": "per_query",
+    "diffusion_input": "post_relu"
+  }
+}

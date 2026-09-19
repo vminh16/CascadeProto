@@ -1,0 +1,1 @@
+{"miou": 0.5714517919539779, "protocol": "fixed100", "episodes": 1500, "checkpoint": "/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_text_T4/best.pt", "epoch": 20, "dry_run": false}

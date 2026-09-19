@@ -1,0 +1,1 @@
+{"miou": 0.48568955360680244, "protocol": "random600", "episodes": 600, "checkpoint": "/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_point_T0/last.pt", "epoch": 50, "dry_run": false}

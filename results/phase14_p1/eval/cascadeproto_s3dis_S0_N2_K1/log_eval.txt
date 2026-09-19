@@ -1,0 +1,58 @@
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_cascadeproto/s3dis_S0_N2_K1_point_T0/last.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': True}
+fixed100: 5 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.526657
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_cascadeproto/s3dis_S0_N2_K1_point_T0/last.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False}
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.460089
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_cascadeproto/s3dis_S0_N2_K1_text_T0/last.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False}
+model config (from checkpoint): {'use_lma': True, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False}
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.429550
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_cascadeproto/s3dis_S0_N2_K1_text_T0/last.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': True, 'result_json': '/tmp/r.json'}
+model config (from checkpoint): {'use_lma': True, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'gate_target': 'prototype', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+fixed100: 5 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.513068
+args: {'dataset': 's3dis', 'data_path': '/home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_text_T4/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_text_T4/eval_best_fixed100.json'}
+model config (from checkpoint): {'use_lma': True, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'gate_target': 'prototype', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.571452
+args: {'dataset': 's3dis', 'data_path': '/home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_text_T4/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'random600', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_text_T4/eval_best_random600.json'}
+model config (from checkpoint): {'use_lma': True, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'gate_target': 'prototype', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+random600: 600 of 600 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.580095
+args: {'dataset': 's3dis', 'data_path': '/home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_text_T4/last.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_text_T4/eval_last_fixed100.json'}
+model config (from checkpoint): {'use_lma': True, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'gate_target': 'prototype', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.566974
+args: {'dataset': 's3dis', 'data_path': '/home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_text_T4/last.pt', 'model': 'cascadeproto', 'eval_protocol': 'random600', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_text_T4/eval_last_random600.json'}
+model config (from checkpoint): {'use_lma': True, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'gate_target': 'prototype', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+random600: 600 of 600 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.575593
+args: {'dataset': 's3dis', 'data_path': '/home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_point_T0/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_point_T0/eval_best_fixed100.json'}
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'gate_target': 'prototype', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.490827
+args: {'dataset': 's3dis', 'data_path': '/home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_point_T0/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'random600', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_point_T0/eval_best_random600.json'}
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'gate_target': 'prototype', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+random600: 600 of 600 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.479827
+args: {'dataset': 's3dis', 'data_path': '/home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_point_T0/last.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_point_T0/eval_last_fixed100.json'}
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'gate_target': 'prototype', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.490720
+args: {'dataset': 's3dis', 'data_path': '/home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_point_T0/last.pt', 'model': 'cascadeproto', 'eval_protocol': 'random600', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': '/home/nguyenvanminh16082k5/CascadeProto/log_phase14/s3dis_S0_N2_K1_point_T0/eval_last_random600.json'}
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'gate_target': 'prototype', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+random600: 600 of 600 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.485690
