@@ -189,3 +189,25 @@ generator input `[E_fused; z]` of width 2D. `eval_noise=mean_of_M` raises until 
 * **Verification.** 5 CPU tests with a recording float16 stand-in; 3 `clip` tests with the real
   `ViT-B/16`, run locally on the CPU (8 passed): load count, frozen parameters, bit-exact equality with a
   direct CLIP call, no fallback variant. Mutation check: 12/12 wrong variants killed.
+
+### 11d — "+ LMA" row wired into CascadeProto, train.py and eval.py
+
+* **What.** `CascadeProtoConfig` gains `clip_variant`, `eval_noise`, `gmmn_fg_mode`,
+  `gmmn_detach_point` (defaults = D-13, D-06, D-04). `CascadeProto(config, feature_extractor,
+  text_embedding)` builds the LMA when `use_lma` and returns `F^q (P_point + P_modal)ᵀ` and `L_GMMN`.
+  The modality check moved from `train.build_model` into the configuration. `train.py` exposes the four
+  switches and logs `L_GMMN` per step (dry run) and per epoch; `eval.py` logs the configuration read
+  from the checkpoint. CP-9…13 added, CP-7/8 run for both rows, PIPE-7 now round-trips an LMA
+  checkpoint.
+* **Why.** Table 4 "+ LMA" row = `use_lma=true, num_stages=0` with prediction `F^q (P^0)ᵀ` [DECISION
+  D-17]; `L_total = L_seg + 1.0·L_GMMN` [PAPER Eq.26].
+* **Sources.** `P^0 = P_point + P_modal` [PAPER Eq.9]; GMMN between `P_modal` and `P_point`
+  [PAPER Eq.8] [DECISION D-04]; one modality, text only [DECISION D-05] [DECISION D-13]; z = 0 at
+  evaluation [DECISION D-06].
+* **Compatibility.** Checkpoints of phase 10 lack the new fields; their defaults rebuild the same
+  baseline (CP-13), so `last.pt` of 10e still evaluates.
+* **Verification.** CPU gate 146 passed. Mutation check: 12/12 wrong variants killed after CP-11 was
+  strengthened (its fixture classes were already sorted, so a sorting bug survived the first run).
+* **Incident.** During the mutation check a `git checkout -- models/cascadeproto.py` restored the
+  committed phase-10 file over the uncommitted 11d version; the file was rewritten from the session
+  and the full CPU gate re-run before this commit.

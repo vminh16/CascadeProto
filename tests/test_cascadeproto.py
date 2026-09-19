@@ -1,7 +1,8 @@
-"""CP-1..8 (05 §3.6b, gate G1): the phase-10 CascadeProto (Table 4 "Baseline" row of D-17).
+"""CP-1..13 (05 §3.6b, gate G1): CascadeProto as the Table 4 "Baseline" and "+ LMA" rows of D-17.
 
-The VIP-Seg encoder is replaced by the per-point stand-in of test_feature_extractor.py; everything
-after the encoder (feature head, prototypes, logits, loss) is the real code. float64, 1e-12.
+The VIP-Seg encoder is replaced by the per-point stand-in of test_feature_extractor.py and CLIP by the
+recording stand-in of test_clip_text.py; everything else (feature head, prototypes, adapter,
+generator, GMMN, logits, loss) is the real code. float64, 1e-12.
 """
 
 import math
@@ -10,29 +11,37 @@ import numpy as np
 import pytest
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
+from loss.gmmn_loss import gmmn_loss
 from models.cascadeproto import CascadeProto, CascadeProtoConfig
+from models.clip_text import ClipTextEmbedding, episode_prompts
 from models.prototypes import point_prototypes
 from models.vipseg_backbone import PointFeatureExtractor
 from pipeline.episodes import make_episode
 from pipeline.model_api import episode_loss, predict
+from tests.test_clip_text import RecordingEncoder
 from tests.test_feature_extractor import StandInEncoder
+from tests.test_lma_gmmn import mmd_ref, reference
 
 ATOL = 1e-12
 BASELINE = CascadeProtoConfig(use_lma=False, num_stages=0)
+LMA = CascadeProtoConfig(use_lma=True, num_stages=0)
 CLASS_NAMES = ["ceiling", "floor", "wall", "beam", "column", "window", "door",
                "table", "chair", "sofa", "bookcase", "board", "clutter"]
 
 
-def model(config=BASELINE, seed=0):
+def model(config=BASELINE, seed=0, encoder=None):
     torch.manual_seed(seed)
-    return CascadeProto(config, PointFeatureExtractor(encoder=StandInEncoder())).double()
+    text = ClipTextEmbedding(encode=encoder or RecordingEncoder())
+    return CascadeProto(config, PointFeatureExtractor(encoder=StandInEncoder()), text_embedding=text).double()
 
 
-def episode(n=2, k=2, bq=2, seed=0):
+def episode(n=2, k=2, bq=2, seed=0, classes=None):
     rng = np.random.default_rng(seed)
     item = (rng.random((n, k, 2048, 9)), rng.integers(0, 2, (n, k, 2048)).astype(np.int32),
-            rng.random((bq, 2048, 9)), rng.integers(0, n + 1, (bq, 2048)), np.arange(3, 3 + n))
+            rng.random((bq, 2048, 9)), rng.integers(0, n + 1, (bq, 2048)),
+            np.arange(3, 3 + n) if classes is None else np.array(classes))
     ep = make_episode(item, CLASS_NAMES)  # the pipeline's own validation of the 02 §1 layout
     ep.support_x, ep.query_x = ep.support_x.double(), ep.query_x.double()
     return ep
@@ -86,23 +95,27 @@ def test_cp5_d10_ablation_flags():
     assert torch.allclose(normed(ep).logits, expected, atol=ATOL, rtol=0)
 
 
-@pytest.mark.parametrize("config,phase", [(CascadeProtoConfig(), "phase 11"),
+@pytest.mark.parametrize("config,phase", [(CascadeProtoConfig(), "phase 12"),
                                           (CascadeProtoConfig(use_lma=False, num_stages=1), "phase 12"),
-                                          (CascadeProtoConfig(use_lma=True, num_stages=0), "phase 11")])
+                                          (CascadeProtoConfig(num_stages=0, modality="audio"), "modality 'audio'"),
+                                          (CascadeProtoConfig(num_stages=0, modality="image"), "modality 'image'"),
+                                          (CascadeProtoConfig(num_stages=0, eval_noise="mean_of_M"), "mean_of_M")])
 def test_cp6_unimplemented_configurations_raise(config, phase):
     with pytest.raises(NotImplementedError, match=phase):
         model(config)
 
 
 @pytest.mark.parametrize("kwargs", [dict(num_stages=7), dict(num_stages=-1), dict(modality="video"),
-                                    dict(logit_scale="sqrt_d")])
+                                    dict(logit_scale="sqrt_d"), dict(eval_noise="mean"),
+                                    dict(gmmn_fg_mode="per_way")])
 def test_cp6_invalid_configurations_raise(kwargs):
     with pytest.raises(ValueError):
         CascadeProtoConfig(use_lma=False, **{"num_stages": 0, **kwargs})
 
 
-def test_cp7_loss_backward_reaches_every_parameter():
-    m, ep = model().train(), episode()
+@pytest.mark.parametrize("config", [BASELINE, LMA])
+def test_cp7_loss_backward_reaches_every_parameter(config):
+    m, ep = model(config).train(), episode()
     episode_loss(m(ep), ep).backward()
     for name, p in m.named_parameters():
         assert p.grad is not None and torch.isfinite(p.grad).all() and p.grad.abs().sum() > 0, name
@@ -127,9 +140,10 @@ def learnable_episode(n=2, k=2, bq=2, seed=3):
     return ep
 
 
-def test_cp8_baseline_learns_a_fixed_episode():
+@pytest.mark.parametrize("config", [BASELINE, LMA])
+def test_cp8_model_learns_a_fixed_episode(config):
     """A few AdamW steps (the paper's optimiser settings) lower the loss and raise query accuracy."""
-    m, ep = model().train(), learnable_episode()
+    m, ep = model(config).train(), learnable_episode()
     opt = torch.optim.AdamW(m.parameters(), lr=1e-3, weight_decay=0.1)
     losses = []
     for _ in range(30):
@@ -143,9 +157,92 @@ def test_cp8_baseline_learns_a_fixed_episode():
     assert (predict(m(ep)) == ep.query_y).double().mean() > 1.0 / 3.0  # better than chance for N=2
 
 
-def test_cp8_state_dict_round_trip():
-    trained, ep = model(seed=0).eval(), episode()
-    fresh = model(seed=1).eval()
+@pytest.mark.parametrize("config", [BASELINE, LMA])
+def test_cp8_state_dict_round_trip(config):
+    trained, ep = model(config, seed=0).eval(), episode()
+    fresh = model(config, seed=1).eval()
     assert not torch.allclose(fresh(ep).logits, trained(ep).logits)
     fresh.load_state_dict(trained.state_dict(), strict=True)
     assert torch.equal(fresh(ep).logits, trained(ep).logits)
+
+
+# ------------------------------------------------------------ "+ LMA" row (02 §4, D-17)
+
+def lma_terms(m, ep):
+    """F^q, P_point and P_modal (z = 0), the last written out from the module's weights."""
+    f_s, f_q = m.features.encode_episode(ep.support_x, ep.query_x)
+    p_point = point_prototypes(f_s, ep.support_y)  # [N+1, D]
+    e_clip = m.text(ep.class_names, torch.device("cpu")).double()  # [N+1, 512]
+    p_modal = reference(m.lma, e_clip, torch.zeros_like(p_point))  # Eq.5-6 with z = 0
+    return f_q, p_point, p_modal
+
+
+@pytest.mark.parametrize("n", [2, 3])
+def test_cp9_lma_logits_are_query_features_times_p0(n):
+    m, ep = model(LMA).eval(), episode(n=n, bq=n)
+    f_q, p_point, p_modal = lma_terms(m, ep)
+    expected = torch.stack([f_q[b] @ (p_point + p_modal).T for b in range(n)])  # Eq.9, Eq.23
+    out = m(ep)
+    assert torch.allclose(out.logits, expected, atol=ATOL, rtol=0)
+    assert torch.abs(p_modal).max() > 1e-3  # P_modal really contributes
+    assert not torch.allclose(out.logits, model(BASELINE).eval()(ep).logits)
+
+
+def test_cp10_lma_gmmn_term_is_eq8_on_point_and_modal_prototypes():
+    m, ep = model(LMA).eval(), episode(n=3, bq=3)
+    _, p_point, p_modal = lma_terms(m, ep)
+    expected = 0.1 * mmd_ref(p_modal[:1], p_point[:1]) + 1.0 * mmd_ref(p_modal[1:], p_point[1:])
+    out = m(ep)
+    assert math.isclose(out.loss_gmmn.item(), expected, rel_tol=0, abs_tol=ATOL)
+    ce = F.cross_entropy(out.logits.reshape(-1, 4), ep.query_y.reshape(-1)).item()
+    assert math.isclose(episode_loss(out, ep).item(), ce + expected, rel_tol=0, abs_tol=ATOL)
+    per_class = model(CascadeProtoConfig(use_lma=True, num_stages=0, gmmn_fg_mode="per_class")).eval()
+    assert math.isclose(per_class(ep).loss_gmmn.item(),
+                        gmmn_loss(p_modal, p_point, fg_mode="per_class").item(), rel_tol=0, abs_tol=ATOL)
+
+
+def test_cp11_prompts_follow_the_episode_ways():
+    enc = RecordingEncoder()
+    m, ep = model(LMA, encoder=enc).eval(), episode(n=3, classes=[9, 3, 6])  # not in sorted order
+    m(ep)
+    assert ep.class_names == ["sofa", "beam", "door"]
+    assert enc.calls == [["This point cloud represents the background.", "This point cloud represents the sofa.",
+                          "This point cloud represents the beam.", "This point cloud represents the door."]]
+
+
+def test_cp12_lma_evaluation_is_deterministic_and_training_draws_noise():
+    m, ep = model(LMA), episode()
+    m.eval()
+    assert torch.equal(m(ep).logits, m(ep).logits)
+    sample = model(CascadeProtoConfig(use_lma=True, num_stages=0, eval_noise="sample")).eval()
+    assert not torch.equal(sample(ep).logits, sample(ep).logits)
+    m.train()
+    assert not torch.equal(m(ep).logits, m(ep).logits)
+
+
+@pytest.mark.parametrize("detach", [False, True])
+def test_cp12_gmmn_gradient_reaches_the_backbone_unless_detached(detach):
+    m, ep = model(CascadeProtoConfig(use_lma=True, num_stages=0, gmmn_detach_point=detach)).train(), episode()
+    m(ep).loss_gmmn.backward()
+    head = [p.grad for name, p in m.named_parameters() if name.startswith("features.")]
+    reached = any(g is not None and g.abs().sum() > 0 for g in head)
+    assert reached is not detach
+    assert all(p.grad.abs().sum() > 0 for p in m.lma.parameters())
+
+
+def test_cp13_clip_is_outside_the_state_dict():
+    m = model(LMA)
+    keys = list(m.state_dict())
+    assert all(k.startswith(("features.", "lma.")) for k in keys) and any(k.startswith("lma.") for k in keys)
+    assert sum(p.numel() for p in m.lma.parameters()) == 148_352  # 01 §4
+    base = sum(p.numel() for p in model(BASELINE).parameters())
+    assert sum(p.numel() for p in m.parameters()) == base + 148_352
+    m(episode())
+    assert all(v.dtype == torch.float32 for v in m.text.cache.values())  # .double() left CLIP alone
+
+
+def test_cp13_phase10_checkpoint_configuration_still_loads():
+    phase10 = {"use_lma": False, "num_stages": 0, "use_gate": True, "use_adrm": True, "modality": "text",
+               "logit_scale": "none", "l2norm_point_proto": False}
+    config = CascadeProtoConfig(**phase10)
+    assert config == BASELINE and config.clip_variant == "ViT-B/16" and config.eval_noise == "zero"

@@ -66,6 +66,8 @@ def main(argv=None):
     logger.cprint(f"args: {vars(args)}")
 
     model = load_model(args, device)
+    if hasattr(model, "config"):
+        logger.cprint(f"model config (from checkpoint): {model.config.to_dict()}")
     class_names = read_class_names(args.data_path, args.dataset)
     if args.eval_protocol == "fixed100":
         dataset = build_eval_dataset(args.data_path, args.dataset, args.cvfold, args.n_way, args.k_shot,

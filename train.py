@@ -48,6 +48,10 @@ def parse_args(argv=None):
     p.add_argument("--use_adrm", type=str2bool, default=True)
     p.add_argument("--logit_scale", default="none", choices=["none", "sqrt_D"])
     p.add_argument("--l2norm_point_proto", type=str2bool, default=False)
+    p.add_argument("--clip_variant", default="ViT-B/16", help="frozen CLIP for the text prompts [D-13]")
+    p.add_argument("--eval_noise", default="zero", choices=["zero", "sample", "mean_of_M"], help="[D-06]")
+    p.add_argument("--gmmn_fg_mode", default="joint", choices=["joint", "per_class"], help="[D-04]")
+    p.add_argument("--gmmn_detach_point", type=str2bool, default=False, help="[D-04]")
     p.add_argument("--epochs", type=int, default=None, help="default: 50 (S3DIS) / 30 (ScanNet) [D-12]")
     p.add_argument("--episodes_per_epoch", type=int, default=None, help="default: 480 / 800 [D-12]")
     p.add_argument("--lr", type=float, default=1e-3)
@@ -86,12 +90,13 @@ def model_config(args):
 
     return CascadeProtoConfig(use_lma=args.use_lma, num_stages=args.num_stages, use_gate=args.use_gate,
                               use_adrm=args.use_adrm, modality=args.modality, logit_scale=args.logit_scale,
-                              l2norm_point_proto=args.l2norm_point_proto)
+                              l2norm_point_proto=args.l2norm_point_proto, clip_variant=args.clip_variant,
+                              eval_noise=args.eval_noise, gmmn_fg_mode=args.gmmn_fg_mode,
+                              gmmn_detach_point=args.gmmn_detach_point)
 
 
 def build_model(config, feature_extractor=None) -> torch.nn.Module:
-    if config.use_lma and config.modality != "text":
-        raise NotImplementedError(f"modality {config.modality!r} is not implemented yet (03 §2.2)")
+    """CascadeProto with the switches of `config`; unimplemented switches raise (01 §3)."""
     from models.cascadeproto import CascadeProto
 
     return CascadeProto(config, feature_extractor)
@@ -104,15 +109,19 @@ def run_dir(args) -> str:
 
 
 def train_steps(model, optimizer, batches, device):
-    """One optimiser step per batch of episodes; the loss is the mean over the batch (02 §7, D-12)."""
+    """One optimiser step per batch of episodes; the loss is the mean over the batch (02 §7, D-12).
+
+    Yields (L_total, L_GMMN) of the batch, both averaged over its episodes.
+    """
     model.train()
     for episodes in batches:
         episodes = [ep.to(device) for ep in episodes]
-        loss = torch.stack([episode_loss(model(ep), ep) for ep in episodes]).mean()  # scalar
+        outputs = [model(ep) for ep in episodes]
+        loss = torch.stack([episode_loss(out, ep) for out, ep in zip(outputs, episodes)]).mean()  # scalar
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        yield loss.item()
+        yield loss.item(), torch.stack([out.loss_gmmn.detach() for out in outputs]).mean().item()
 
 
 def main(argv=None):
@@ -145,12 +154,14 @@ def main(argv=None):
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_step_epochs, gamma=args.lr_gamma)
 
-    best_miou, step, epoch, epoch_losses, t0 = -math.inf, 0, 0, [], time.time()
-    for loss in train_steps(model, optimizer, train_loader, device):
+    best_miou, step, epoch, epoch_losses, epoch_gmmn, t0 = -math.inf, 0, 0, [], [], time.time()
+    for loss, gmmn in train_steps(model, optimizer, train_loader, device):
         step += 1
         epoch_losses.append(loss)
+        epoch_gmmn.append(gmmn)
         if args.dry_run:
-            logger.cprint(f"[dry run] one step on {EPISODES_PER_BATCH} real episodes, loss {loss:.4f}")
+            logger.cprint(f"[dry run] one step on {EPISODES_PER_BATCH} real episodes, loss {loss:.4f} "
+                          f"(L_GMMN {gmmn:.4f})")
             miou = evaluate(model, valid_set, class_names, logger, device, max_episodes=DRY_RUN_VALID_EPISODES)
             logger.cprint(f"[dry run] valid mIoU on {DRY_RUN_VALID_EPISODES} episodes: {miou:.4f}")
             return 0
@@ -159,8 +170,9 @@ def main(argv=None):
         epoch += 1
         scheduler.step()
         logger.cprint(f"epoch {epoch}/{args.epochs} | loss {np.mean(epoch_losses):.4f} | "
-                      f"lr {scheduler.get_last_lr()[0]:.2e} | {time.time() - t0:.0f}s")
-        epoch_losses = []
+                      f"L_GMMN {np.mean(epoch_gmmn):.4f} | lr {scheduler.get_last_lr()[0]:.2e} | "
+                      f"{time.time() - t0:.0f}s")
+        epoch_losses, epoch_gmmn = [], []
         if epoch % args.valid_every == 0 or epoch == args.epochs:
             miou = evaluate(model, valid_set, class_names, logger, device)
             logger.cprint(f"epoch {epoch} | valid mIoU {miou:.4f}")

@@ -107,7 +107,7 @@ $$k(x, y) = \sum_{\sigma \in \{2,5,10,20,40,80\}} \exp\left(-\frac{\|x - y\|_2^2
 $$\mathcal{L}_{GMMN} = 0.1 \cdot \text{MMD}(P_{modal}^{bg}, P_{point}^{bg}) + 1.0 \cdot \text{MMD}(P_{modal}^{fg}, P_{point}^{fg})$$
 
 * `P^bg` = row 0 (a set of 1 sample); `P^fg` = rows 1…N taken jointly (a set of N samples) [PAPER Eq.8] [DECISION D-04].
-* `P_point` is not detached [DECISION D-04].
+* `P_point` is not detached [DECISION D-04]. It is the same `P_point` that enters Eq.9, i.e. after the `l2norm_point_proto` ablation when that flag is on [DECISION D-10].
 
 ### 4.5 Initial prototype (Eq.9)
 

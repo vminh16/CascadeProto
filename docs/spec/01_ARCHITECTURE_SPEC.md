@@ -144,7 +144,7 @@ flowchart TD
 
 ## 3. Ablation switches
 
-Required configuration options. Defaults reproduce the full model. They live in `models/cascadeproto.py::CascadeProtoConfig` and on the `train.py` command line; every checkpoint stores its configuration and `eval.py` rebuilds the model from it. Until phases 11–13 land, only the Table 4 "Baseline" row (`use_lma=false, num_stages=0`, prediction `F^q P_pointᵀ`) is implemented; other combinations raise `NotImplementedError` naming the phase [DECISION D-17].
+Required configuration options. Defaults reproduce the full model. They live in `models/cascadeproto.py::CascadeProtoConfig` and on the `train.py` command line; every checkpoint stores its configuration and `eval.py` rebuilds the model from it. Until phases 12–13 land, only `num_stages=0` is implemented: the Table 4 "Baseline" row (`use_lma=false`, prediction `F^q P_pointᵀ`) and the "+ LMA" row (`use_lma=true`, prediction `F^q (P^0)ᵀ` plus `L_GMMN`); other combinations raise `NotImplementedError` naming the phase [DECISION D-17].
 
 | Option | Default | Values | Source |
 | :--- | :--- | :--- | :--- |
@@ -159,6 +159,7 @@ Required configuration options. Defaults reproduce the full model. They live in 
 | `gmmn_fg_mode` | joint | joint / per_class | [DECISION D-04] |
 | `gmmn_detach_point` | false | true / false | [DECISION D-04] |
 | `eval_noise` | zero | zero / sample (mean_of_M raises until M is chosen) | [DECISION D-06] |
+| `clip_variant` | ViT-B/16 | any `clip.available_models()` name; no fallback | [DECISION D-13] |
 | `logit_scale` | none | none / sqrt_D | [DECISION D-10] |
 | `l2norm_point_proto` | false | true / false | [DECISION D-10] |
 | `fusion_weight` | per_query | per_query / per_class | [DECISION D-11] |

@@ -93,8 +93,8 @@ def test_pipe4_one_step_uses_the_batch_mean_loss():
     expected = torch.stack([episode_loss(model(ep), ep) for ep in episodes]).mean().item()
     before = model.head.weight.detach().clone()
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
-    (loss,) = list(train_steps(model, optimizer, [episodes], torch.device("cpu")))
-    assert loss == pytest.approx(expected, rel=1e-6)
+    ((loss, gmmn),) = list(train_steps(model, optimizer, [episodes], torch.device("cpu")))
+    assert loss == pytest.approx(expected, rel=1e-6) and gmmn == 0.0
     assert not torch.equal(before, model.head.weight)
 
 
@@ -151,11 +151,15 @@ def test_pipe7_eval_rebuilds_the_checkpoint_configuration(tmp_path, monkeypatch)
     from models.vipseg_backbone import PointFeatureExtractor
     from tests.test_feature_extractor import StandInEncoder
 
+    from models.clip_text import ClipTextEmbedding
+    from tests.test_clip_text import RecordingEncoder
+
     def stand_in_model(config):
-        return CascadeProto(config, PointFeatureExtractor(encoder=StandInEncoder()))
+        return CascadeProto(config, PointFeatureExtractor(encoder=StandInEncoder()),
+                            text_embedding=ClipTextEmbedding(encode=RecordingEncoder()))
 
     monkeypatch.setattr(eval_script, "build_model", stand_in_model)
-    config = CascadeProtoConfig(use_lma=False, num_stages=0, logit_scale="sqrt_D")
+    config = CascadeProtoConfig(use_lma=True, num_stages=0, logit_scale="sqrt_D", gmmn_fg_mode="per_class")
     torch.manual_seed(0)
     trained = stand_in_model(config).eval()
     path = tmp_path / "best.pt"
