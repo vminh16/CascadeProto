@@ -4,7 +4,8 @@ Re-implementation of **CascadeProto: Cascaded Cross-Modal Prototype Purification
 
 > **Status: work in progress, not usable for results.**
 > * This is **not** the authors' code. Their repository `github.com/changshuowang/CascadeProto` says "We will release it soon." (checked 2026-09-17).
-> * The specifications in [`docs/spec/`](docs/spec/) were rewritten against the paper on 2026-09-17. The code in `models/`, `loss/`, `train.py`, `eval.py` and `tests/` predates that rewrite and does not follow it yet. Phase 9 (2026-09-18) moved `train.py` and `eval.py` onto real episodes; the model in `models/` is still the pre-rewrite one. See [the audit](docs/research/paper_vs_repo_audit.md).
+> * The specifications in [`docs/spec/`](docs/spec/) were rewritten against the paper on 2026-09-17, and the code was rewritten to follow them in phases 8–13 (2026-09-18/19). Every row of Table 4 and every depth of Table 5 is implemented (text modality only; image and audio raise). Each step, its sources and its verification are listed in [docs/CHANGELOG.md](docs/CHANGELOG.md).
+> * Phases 12 and 13 are verified on the CPU only (unit tests with float64 references and mutation checks); their GPU check on the real VIP-Seg encoder is still pending. No full training run has been made yet.
 > * All numbers in §6 are **reported by the paper**; none have been reproduced here.
 
 ---

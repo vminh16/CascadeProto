@@ -3,7 +3,7 @@
 * **Ground truth:** [00_SOURCES_AND_DECISIONS.md](00_SOURCES_AND_DECISIONS.md). Every normative line carries a source tag.
 * **Scope:** which modules exist, how they are wired, their parameters and runtime requirements. All formulas and shapes are defined once in [02_TENSOR_MATH_SPEC.md](02_TENSOR_MATH_SPEC.md) and only referenced here (`02 §n`), so the two files cannot drift apart.
 * **Rewritten:** 2026-09-17 (Phase 2).
-* **Code status:** the code in `models/` and `loss/` predates this rewrite and does not yet follow it; see [the audit](../research/paper_vs_repo_audit.md).
+* **Code status:** `models/` and `loss/` follow this spec since phases 10–13 (2026-09-18/19); see [the change log](../CHANGELOG.md). [The audit](../research/paper_vs_repo_audit.md) describes the pre-rewrite code.
 
 ---
 

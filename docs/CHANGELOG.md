@@ -372,3 +372,13 @@ none.
 * **Verification.** 4 passed locally on the CPU: output contract, finite loss with a gradient on
   every parameter, one AdamW step (lr 1e-3, wd 0.1) changes every parameter and keeps it finite,
   deterministic evaluation.
+
+### 13d — status and layout docs brought up to date
+
+* **What.** README status block, AGENTS status line and repository tree (new files `prototypes.py`,
+  `clip_text.py`, `prepare_s3dis.py`, `verify_s3dis.py`; the removed `download_and_prepare_s3dis.py`),
+  01 "Code status", and a history note on the audit. No code change: the old `models/adrm.py`,
+  `tests/test_adrm.py`, `tests/test_lma.py`, `loss/segmentation_loss.py` were already replaced or
+  removed in 11a–13a, and no tracked file still uses the pre-rewrite APIs.
+* **Remaining open items.** GPU checks of phases 12–13 (12f, 13e); full training runs and the
+  comparison with Tables 2–5 (phase 14); image and audio modalities; `eval_noise=mean_of_M`.

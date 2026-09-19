@@ -10,7 +10,7 @@ Rules for autonomous coding agents (Claude Code, Cursor, Copilot, Devin, Aider, 
 * **Base code:** the official VIP-Seg repository `changshuowang/VIP-Seg_NeurIPS2025`, pinned at commit `28aedc5093c0d386d526864c49505ae6921b1600`.
 * **Target hardware:** one NVIDIA GPU; the paper used an RTX 5090.
 * **Modality priority:** text first; image and audio are deferred and must raise until implemented.
-* **Status (2026-09-18):** the docs in `docs/spec/` were rewritten against the paper. Phase 8 restored the inherited VIP-Seg files, removed the encoder fallbacks and added gate G0. Phase 9 put `train.py` and `eval.py` on real episodes through `pipeline/`. Phase 10 rewrote the feature extractor, point prototypes and `CascadeProto` (Table 4 baseline only; see docs/CHANGELOG.md). The rest of `models/`, `loss/` and `tests/` predates the rewrite and does **not** follow it yet; [docs/research/paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) lists the known gaps.
+* **Status (2026-09-19):** the docs in `docs/spec/` were rewritten against the paper, and the code follows them: phase 8 (environment, inherited files), 9 (data, episodes, metric), 10 (feature extractor, point prototypes), 11 (LMA, GMMN, CLIP), 12 (EPPM cascade), 13 (ADRM, full model). docs/CHANGELOG.md records every step. The GPU checks of phases 12–13 are pending; no full training run yet. [docs/research/paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) describes the pre-rewrite code and is kept as history.
 
 ---
 
@@ -94,13 +94,16 @@ CascadeProto/
 │   ├── spec/05_VERIFICATION_PLAN.md       tests, gates, acceptance
 │   └── research/paper_vs_repo_audit.md    audit of the pre-rewrite code (2026-09-17)
 ├── dataloaders/            inherited, read-only
-├── preprocess/             inherited scripts (read-only) + download_and_prepare_s3dis.py (local)
+├── preprocess/             inherited scripts (read-only) + prepare_s3dis.py, verify_s3dis.py (local)
 ├── utils/                  inherited, read-only
 ├── models/
 │   ├── encoder.py, mamba_block.py, model_utils.py   inherited VIP-Seg encoder
-│   ├── vipseg_backbone.py  encoder + feature head + point prototypes
-│   ├── lma.py              modality adapters and generator
-│   ├── eppm.py             EPPM stage and cascade
+│   ├── vipseg.py, vipseg_learner.py                 inherited VIP-Seg model (sanity run only)
+│   ├── vipseg_backbone.py  encoder + feature head (shared point feature extractor)
+│   ├── prototypes.py       point prototypes (Eq.3)
+│   ├── clip_text.py        frozen CLIP text front-end
+│   ├── lma.py              modality adapter and generator
+│   ├── eppm.py             entropy gate, cross-attention, diffusion, fusion: one EPPM stage
 │   ├── adrm.py             dynamic routing
 │   └── cascadeproto.py     end-to-end model
 ├── loss/                   gmmn_loss.py

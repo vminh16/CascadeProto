@@ -1,5 +1,7 @@
 # Audit: CascadeProto paper vs. repo (HEAD `f78d049`)
 
+> **Lịch sử (2026-09-19):** audit này mô tả code trước khi viết lại. Các lỗi đã được sửa ở phase 8–13; xem [docs/CHANGELOG.md](../CHANGELOG.md) để biết lỗi nào được sửa ở bước nào.
+
 > **Errata (kiểm chứng lại 2026-09-17, chạy loader/metric VIP-Seg gốc và bản tham chiếu toán học):**
 > * L6: `room2blocks.py` với tham số mặc định tạo thư mục `blocks_bs1_s1`, không phải `blocks_bs1.0_s1.0`; tên có `.0` chỉ xuất hiện khi truyền `--block_size`/`--stride` tường minh.
 > * M2: `P_diffuse` giống nhau giữa các class là do chính Eq.(15)–(18) không có chỉ số class, không phải do ReLU; ReLU chỉ làm `c_unique = 0` khi mọi channel có mean dương ở cả hai nhánh.
