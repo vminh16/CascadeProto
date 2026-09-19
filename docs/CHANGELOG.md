@@ -253,3 +253,21 @@ shot, as in VIP-Seg) and scoped the flags: `cross_attn=two_hop`, `gate_target=fe
   bounds `[0, ln 2]`, gate range [0.4046, 0.7311] at θ = 0.5, entry-wise formula, locality,
   analytic θ gradient `Σ 2·P·g(1 − g)`, `gradcheck`. `H(x) = H(−x)` holds to 2e-15, not bit for bit
   (`σ(−x)` and `1 − σ(x)` round differently). Mutation check: 13/13 killed.
+
+### 12b — cross-attention refinement (Eq.13–14, D-01)
+
+* **What.** `pool_tokens` and `CrossAttention(scale)` in `models/eppm.py`: `attention(F^s, F^q) ->
+  A [B_q, N+1, K, D, D]`, `forward(P_gated, F^s, F^q) -> P_cross [B_q, N+1, D]`. XATT-1…6 plus pooling,
+  `gradcheck` and flag tests.
+* **Why.** The old module implemented the two-hop point attention that D-01 rejected.
+* **Sources.** φ = 1×1 convolution shared by query and support, d = 72 [PAPER Eq.13] [VIPSEG
+  models/vipseg.py:219]; softmax scaled by √d [PAPER Eq.14]; `P_cross = A·ψ(P)` with ψ linear
+  [PAPER Eq.14] [VIPSEG models/vipseg.py:222,296]; MaxPool 32 → 64 tokens and way-mean background slot
+  [VIPSEG models/vipseg.py:213,244,248-249]; one A per (query, class slot, shot), average over shots
+  taken on `P_cross` [DECISION D-01].
+* **Cross-check with VIP-Seg.** VIP-Seg's `crosscor` has the same `[128, 128]` channel correlation,
+  softmax over the last axis and `crosscor @ ψ(P)`; the two deliberate differences are the scale
+  (√72 as printed, VIP-Seg √128, available as `cross_attn_scale=sqrt_D`) and the per-(query, class)
+  product instead of VIP-Seg's `reshape(proj_dim, -1)`, which interleaves classes (D-01).
+* **Verification.** 12 new CPU tests, float64, 1e-12, against an explicit loop that uses VIP-Seg's
+  own pooling call. Mutation check: 18/18 killed.

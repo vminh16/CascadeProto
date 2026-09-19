@@ -124,15 +124,16 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 | GATE-2 | At θ = 0.5: gate values lie in [0.4046, 0.7311], the lower end reached at x = 0; the output equals `x·σ(2(θ − H(x)))` entry by entry; changing one entry changes only its own gate | 02 §5.1, [DECISION D-02] |
 | GATE-3 | θ is a scalar `nn.Parameter` per stage, initial value 0.5; its gradient equals `Σ 2·P·g(1 − g)` for the loss `Σ P_gated`; `gradcheck` passes; `use_gate=false` is the identity with no θ | 02 §5.1, 01 §2.4, D-17 |
 | XATT-1 | `A` has shape `[B_q, N+1, K, 128, 128]`; every row sums to 1 | 02 §5.2 |
-| XATT-2 | `A[b, c, k]` equals `softmax(Q'[b]ᵀ S'[c, k] / √72)` computed with an explicit loop | 02 §5.2, [DECISION D-01] |
+| XATT-2 | `A[b, c, k]` equals `softmax(Q'[b]ᵀ S'[c, k] / √72)` computed with an explicit loop, VIP-Seg's `MaxPool1d(32)` on the transposed tensor, φ as a matrix and a hand-written softmax (also with `cross_attn_scale=sqrt_D`) | 02 §5.2, [DECISION D-01] |
 | XATT-3 | Query and support use the **same** φ module (`id` equal); φ is `Conv1d(64, 72, 1, bias=False)` | 02 §5.2, [PAPER Eq.13] |
-| XATT-4 | Background slot of `S'` is built from the way-mean of support features | 02 §5.2 |
-| XATT-5 | `P_cross` equals the mean over K of `A · ψ(P_gated)`; with K = 1 the mean is the single term | 02 §5.2 |
-| XATT-6 | Permuting queries in the batch permutes outputs identically (no cross-query mixing) | 02 §5.2, [DECISION D-01] |
+| XATT-4 | Background slot of `S'` is built from the way-mean of support features, taken before pooling; permuting the ways keeps slot 0 and permutes slots 1..N | 02 §5.2 |
+| XATT-5 | `P_cross` equals the mean over K of `A · ψ(P_gated)` for K = 1, 2, 3 (ψ written out); reordering the shots changes nothing | 02 §5.2 |
+| XATT-6 | Permuting queries in the batch permutes outputs identically; one query's output does not depend on the others | 02 §5.2, [DECISION D-01] |
 | DIFF-1 | Mixed-sign features: `P_diffuse` matches Eq.15–18 computed by hand, including a non-zero `c_unique` | 02 §5.3 |
 | DIFF-2 | Non-negative features with strictly positive channel means in both branches: `c_unique = 0`, `P_diffuse = (q_ch + s_ch)/4` | 02 §5.3, [DECISION D-14] |
 | DIFF-3 | A channel that is zero on all support points but positive in the query gives a non-zero `c_unique` for that channel | 02 §5.3, [DECISION D-14] |
 | DIFF-4 | For any input, `P_diffuse` is identical across class rows | 02 §5.3 |
+| (mutation) | 12b (2026-09-19): eighteen wrong variants of the cross-attention (background slot as way sum, way max, last slot, or mean of pooled ways; average or strided pooling; softmax over the wrong axis; A transposed; a garbled correlation; √D by default; no scale; separate φ for support; φ with bias; shot sum; first shot only; ψ after the attention; no ψ; no point-count check) each fail at least one test | |
 | (mutation) | 12a (2026-09-19): thirteen wrong variants of the gate (log₂, one entropy term, no sigmoid, no clamp, ε = 1e-6, θ₀ = 0, no factor 2, `H − θ`, gate replacing P, θ not learnable, θ per channel, gate averaged over channels, disabled gate still gating) each fail at least one test | |
 | FUSE-1 | Fusion weight shape `[B_q, 2]`, rows sum to 1 | 02 §5.4, [DECISION D-11] |
 | FUSE-2 | SE vector shape `[B_q, 128]` in (0, 1) | 02 §5.4 |
