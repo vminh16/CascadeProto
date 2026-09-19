@@ -91,3 +91,27 @@ class CrossAttention(nn.Module):
         a = self.attention(f_s, f_q)  # [B_q, N+1, K, D, D]
         v = self.psi(p_gated)  # [B_q, N+1, D]
         return torch.einsum("bckij,bcj->bci", a, v) / a.shape[2]  # mean over the K shots
+
+
+# ------------------------------------------------------------------- diffusion (02 §5.3, D-14)
+
+DIFFUSION_TAU = 0.5  # τ [PAPER Eq.18]
+DIFFUSION_ALPHA = 0.5  # α [PAPER Eq.18]
+
+
+def prototype_diffusion(f_s: torch.Tensor, f_q: torch.Tensor) -> torch.Tensor:
+    """Eq.15-18 -> P_diffuse [B_q, D]; no parameters and no class index.
+
+    q_ch = σ(mean over the query's points), s_ch = σ(mean over all support points of all ways and
+    shots) [DECISION D-16]. Masks use a strict `> τ`. With ReLU features a channel is active exactly
+    when its mean is positive, which usually makes c_unique = 0 [DECISION D-14]. The caller broadcasts
+    the result to the N+1 class rows [DECISION D-16].
+    """
+    q_ch = torch.sigmoid(f_q.mean(dim=1))  # [B_q, D] (Eq.15)
+    s_ch = torch.sigmoid(f_s.mean(dim=(0, 1, 2)))  # [D] (Eq.15)
+    m_q = (q_ch > DIFFUSION_TAU).to(q_ch.dtype)  # [B_q, D]
+    m_s = (s_ch > DIFFUSION_TAU).to(s_ch.dtype)  # [D]
+    m_common = m_q * m_s  # [B_q, D]
+    c_common = (q_ch + s_ch) / 2.0 * m_common  # (Eq.16)
+    c_unique = (q_ch * (m_q - m_common) + s_ch * (m_s - m_common)) / 2.0  # (Eq.17)
+    return DIFFUSION_ALPHA * c_common + (1.0 - DIFFUSION_ALPHA) * c_unique  # [B_q, D] (Eq.18)

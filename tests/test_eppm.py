@@ -9,7 +9,7 @@ import math
 import pytest
 import torch
 
-from models.eppm import CrossAttention, EntropyGate, channel_entropy, pool_tokens
+from models.eppm import CrossAttention, EntropyGate, channel_entropy, pool_tokens, prototype_diffusion
 
 ATOL = 1e-12
 LN2 = math.log(2.0)
@@ -229,3 +229,85 @@ def test_xatt_gradcheck_in_the_prototype():
 def test_xatt_invalid_scale_raises():
     with pytest.raises(ValueError):
         CrossAttention(scale="sqrt_72")
+
+
+# ------------------------------------------------------------------ DIFF (02 §5.3, Eq.15-18, D-14)
+
+def sig(x):
+    return 1.0 / (1.0 + math.exp(-x))
+
+
+def diffusion_ref(f_s, f_q, b, i):
+    """Eq.15-18 for query b and channel i, from Python floats."""
+    q = sig(f_q[b, :, i].mean().item())
+    s = sig(f_s[..., i].mean().item())
+    mq, ms = float(q > 0.5), float(s > 0.5)
+    mc = mq * ms
+    common = (q + s) / 2 * mc
+    unique = (q * (mq - mc) + s * (ms - mc)) / 2
+    return 0.5 * common + 0.5 * unique
+
+
+def test_diff1_mixed_sign_features_match_eq15_18():
+    f_s, f_q = rand(N, K, P, D, seed=40), rand(BQ, P, D, seed=41)
+    f_s[..., 0] += 0.5   # support active, query inactive -> unique from s
+    f_q[..., 0] -= 0.5
+    f_s[..., 1] -= 0.5   # query active, support inactive -> unique from q
+    f_q[..., 1] += 0.5
+    f_s[..., 2] -= 0.5   # neither active -> 0
+    f_q[..., 2] -= 0.5
+    out = prototype_diffusion(f_s, f_q)
+    assert out.shape == (BQ, D)
+    for b in range(BQ):
+        for i in range(D):
+            assert math.isclose(out[b, i].item(), diffusion_ref(f_s, f_q, b, i), rel_tol=0, abs_tol=ATOL)
+    assert out[:, 0].min() > 0 and out[:, 1].min() > 0 and (out[:, 2] == 0).all()
+    s0 = sig(f_s[..., 0].mean().item())
+    assert math.isclose(out[0, 0].item(), s0 / 4, rel_tol=0, abs_tol=ATOL)  # (1 - α) · s/2
+
+
+def test_diff2_relu_features_with_positive_means_give_q_plus_s_over_four():
+    f_s, f_q = features()
+    out = prototype_diffusion(f_s, f_q)
+    q = torch.sigmoid(f_q.mean(1))
+    s = torch.sigmoid(f_s.reshape(-1, D).mean(0))
+    assert torch.allclose(out, (q + s) / 4, atol=ATOL, rtol=0)
+    assert out.min() >= 0.25 and out.max() <= 0.5
+
+
+def test_diff3_channel_zero_on_all_support_points_gives_non_zero_unique():
+    f_s, f_q = features()
+    f_s[..., 7] = 0.0   # ReLU output zero on every support point: s_ch = 0.5, not > τ
+    out = prototype_diffusion(f_s, f_q)
+    q7 = torch.sigmoid(f_q[..., 7].mean(1))
+    assert torch.allclose(out[:, 7], q7 / 4, atol=ATOL, rtol=0)  # c_common = 0, c_unique = q/2
+    f_q[1, :, 9] = 0.0  # zero in query 1 only: that query gets s/4 on channel 9
+    out = prototype_diffusion(f_s, f_q)
+    s9 = torch.sigmoid(f_s[..., 9].mean())
+    assert math.isclose(out[1, 9].item(), (s9 / 4).item(), rel_tol=0, abs_tol=ATOL)
+
+
+def test_diff4_no_class_index_and_support_mean_over_every_block():
+    f_s, f_q = features(n=3)
+    ways = torch.tensor([2, 0, 1])
+    assert torch.allclose(prototype_diffusion(f_s[ways], f_q), prototype_diffusion(f_s, f_q), atol=ATOL, rtol=0)
+    one_way = f_s.reshape(1, -1, P, D)  # the same blocks as one way with N·K shots
+    assert torch.allclose(prototype_diffusion(one_way, f_q), prototype_diffusion(f_s, f_q), atol=ATOL, rtol=0)
+    other = f_q.clone()
+    other[1:] = rand(1, P, D, seed=42).abs()
+    assert torch.equal(prototype_diffusion(f_s, other)[0], prototype_diffusion(f_s, f_q)[0])
+
+
+def test_diff_threshold_is_strict():
+    f_s, f_q = features()
+    f_q[0, :, 3] = 0.0  # q_ch = σ(0) = 0.5 exactly: not active
+    f_s[..., 3] = 0.0
+    assert prototype_diffusion(f_s, f_q)[0, 3] == 0.0
+
+
+def test_diff_gradient_flows_to_features_through_the_values():
+    f_s, f_q = features()
+    f_s.requires_grad_(True)
+    f_q.requires_grad_(True)
+    prototype_diffusion(f_s, f_q).sum().backward()
+    assert f_s.grad.abs().sum() > 0 and f_q.grad.abs().sum() > 0

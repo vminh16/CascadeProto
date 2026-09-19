@@ -271,3 +271,16 @@ shot, as in VIP-Seg) and scoped the flags: `cross_attn=two_hop`, `gate_target=fe
   product instead of VIP-Seg's `reshape(proj_dim, -1)`, which interleaves classes (D-01).
 * **Verification.** 12 new CPU tests, float64, 1e-12, against an explicit loop that uses VIP-Seg's
   own pooling call. Mutation check: 18/18 killed.
+
+### 12c — prototype diffusion (Eq.15–18)
+
+* **What.** `prototype_diffusion(F^s, F^q) -> P_diffuse [B_q, D]` in `models/eppm.py`, no
+  parameters. DIFF-1…5 added.
+* **Sources.** Eq.15–18 with τ = α = 0.5 [PAPER Eq.15–18]; `mean(F, dim=1)` read as the mean over
+  points, support mean over all ways and shots, one vector broadcast to all class rows
+  [DECISION D-16]; degeneracy with ReLU features documented, not changed [DECISION D-14].
+* **Verification.** 6 CPU tests, float64, 1e-12: every (query, channel) against Python floats on
+  mixed-sign features with all four mask cases, the degenerate `(q_ch + s_ch)/4` case, the
+  non-degenerate `q/4` and `s/4` channels of D-14, strict threshold, invariance to way order and
+  grouping, query independence, gradient flow. Mutation check: 13/14 killed; the survivor (union
+  instead of intersection for `m_common`) is an equivalent mutant at α = 0.5, shown in 05 §3.4.
