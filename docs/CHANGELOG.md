@@ -503,3 +503,13 @@ B (training) after the pending VM check 13e.
     very low training loss.
 * **Decision.** P2–P4 are on hold. Control run in progress: VIP-Seg trained with its own code
   (`main.py`, `scripts/vipseg_s3dis.sh` settings) on our data.
+
+### 14e-diag — short differential harness for the P1 gap (debugging aid)
+
+* **What.** `experiments/diag_short.py` (marked DEBUG): trains a variant from scratch for 2,400
+  seeded episodes (VIP-Seg's own run reached 68.9 valid after 2,000), AdamW lr 1e-3 wd 0.1, no LR
+  decay, then scores 300 valid episodes spread over all class combinations. Variants: VIP-Seg's own
+  model through our loop, baseline, baseline with L2-normalised point prototypes, full model, full
+  model with L2 prototypes; batch 1 or 4.
+* **Why.** The full-schedule loop takes 1.5 h per run; this gives a comparable signal in about 8 min,
+  on the same valid cache that VIP-Seg's control run used (`vipseg_S_0_N_2_K_1_episodes_100_pts_2048`).
