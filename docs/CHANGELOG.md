@@ -382,3 +382,14 @@ none.
   removed in 11a–13a, and no tracked file still uses the pre-rewrite APIs.
 * **Remaining open items.** GPU checks of phases 12–13 (12f, 13e); full training runs and the
   comparison with Tables 2–5 (phase 14); image and audio modalities; `eval_noise=mean_of_M`.
+
+### 13e — VM check of phases 12 and 13 · PENDING
+
+* **Status.** Not run; the VM is unreachable (2026-09-19). Phases 12 and 13 are verified on the CPU
+  only (240 G1 tests, 11 `clip` tests locally, mutation checks) and are **not yet closed**. This
+  check replaces 12f.
+* **To run when the VM is back.**
+  1. `git pull && pytest -m "not clip" -q && pytest -m clip -q`
+  2. Dry run of the "+ Cascade" row: `python train.py --dataset s3dis --data_path datasets/S3DIS/blocks_bs1_s1 --cvfold 0 --n_way 2 --k_shot 1 --use_lma true --num_stages 4 --use_adrm false --dry_run true`
+  3. Dry run of the full model (defaults): same command without `--use_lma/--num_stages/--use_adrm`.
+  4. Optional: 2 epochs of the full model (`--epochs 2 --valid_every 2`) and `eval.py` on `last.pt`.
