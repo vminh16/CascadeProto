@@ -158,7 +158,7 @@ Required configuration options. Defaults reproduce the full model. They live in 
 | `gate_target` | prototype | prototype / features | [DECISION D-02] |
 | `gmmn_fg_mode` | joint | joint / per_class | [DECISION D-04] |
 | `gmmn_detach_point` | false | true / false | [DECISION D-04] |
-| `eval_noise` | zero | zero / sample / mean_of_M | [DECISION D-06] |
+| `eval_noise` | zero | zero / sample (mean_of_M raises until M is chosen) | [DECISION D-06] |
 | `logit_scale` | none | none / sqrt_D | [DECISION D-10] |
 | `l2norm_point_proto` | false | true / false | [DECISION D-10] |
 | `fusion_weight` | per_query | per_query / per_class | [DECISION D-11] |

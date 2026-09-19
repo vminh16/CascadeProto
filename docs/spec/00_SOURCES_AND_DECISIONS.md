@@ -116,7 +116,7 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 * **Known limitation.** For N = 2 or 3 the MMD estimate is very noisy; a 1-vs-1 MMD reduces to `2·(6 − k(x, y))`.
 * **Ablation flags.** `gmmn_fg_mode = {joint (default), per_class}`; `gmmn_detach_point = {false (default), true}`.
 
-### D-05 — "Fuses both sources" in §3.2 · `PROPOSED`
+### D-05 — "Fuses both sources" in §3.2 · `LOCKED`
 
 * **Conflict inside L1.** §3.2: "Learnable Modality Adapters (LMA) project CLIP text and image embeddings into the point cloud feature space. A GMMN-based distribution matching module then fuses both sources". Abstract: "enabling flexible single-modality semantic enrichment"; Tables 2–3 report separate Text / Image / Audio rows; Eq.4 defines one adapter per modality.
 * **Decision.** One modality per run. `E_fused := E_adapted^(m)` for the selected modality m [PAPER Eq.4, Eq.6]. "Both sources" is read as the point prototype and the modal prototype combined by Eq.9.
@@ -126,7 +126,7 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 
 * **Problem.** Eq.9 says "The fused initial prototype **used for training** is P^0 = P_point + P_modal"; §3 promises an "inference strategy" that is never described.
 * **Decision.** Training samples `z ~ N(0, I)` per forward pass. Evaluation uses `z = 0`, making predictions deterministic.
-* **Ablation flag.** `eval_noise = {zero (default), sample, mean_of_M}`.
+* **Ablation flag.** `eval_noise = {zero (default), sample, mean_of_M}`. `mean_of_M` needs a value of M that L1 does not give; it raises until one is chosen.
 
 ### D-07 — Train/test split · `LOCKED`
 
@@ -304,3 +304,4 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-18 | Phase 9: `pipeline/` (episodes, model contract, VIP-Seg metric), `train.py`/`eval.py` on real episodes, `preprocess/prepare_s3dis.py`; D-08 gains the shared episode-cache tags (04 §6.1); EVAL tests move to the GPU gate (05 §3.7). |
 | 2026-09-18 | S3DIS prepared with `preprocess/prepare_s3dis.py`: 272 rooms, 7,547 blocks (the AttMPTI/VIP-Seg count). DATA-0…4 pass on it, including the 1,500 cached S0 2-way 1-shot test episodes. |
 | 2026-09-18 | Pipeline sanity check (05 §4): VIP-Seg's released S0 2-way 1-shot checkpoint scores 0.719687 through `eval.py --model vipseg` on our data and metric (VIP-Seg log 0.722026, [PAPER Tab.6] 72.20). |
+| 2026-09-19 | D-05 locked by the maintainer (one modality per run, `E_fused := E_adapted^(m)`, generator input `[E_fused; z]` of width 2D). D-06: `eval_noise=mean_of_M` raises until M is chosen. |
