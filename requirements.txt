@@ -36,5 +36,6 @@ transformers==4.57.1     # mamba_ssm/__init__ imports GreedySearchDecoderOnlyOut
 tensorboard              # runs/training.py
 plyfile                  # preprocess/collect_scannet_data.py
 requests                 # preprocess/prepare_s3dis.py
+fvcore==0.1.5.post20221221  # experiments/complexity.py FLOPs [D-09]
 clip @ git+https://github.com/openai/CLIP.git@d05afc436d78f1c48dc0dbf8e5980a9d471f35f6
 pytest

@@ -259,6 +259,14 @@ Mutation check (2026-09-19): eleven wrong variants (cascade with ADRM, baseline 
 
 Mutation check (2026-09-19): eight wrong variants (no % scale, dry runs counted, Avg mixing best and last, flipped difference, seed runs mixed into the tables, two transcription errors, population standard deviation) all fail.
 
+### 3.8e `tests/test_complexity.py` (G1)
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| CPX-1 | Parameter groups add up to the total; feature head 204,260; added modules 0 (baseline), 227,747 (T = 1), 466,444 (full) | 01 §4, D-09 |
+| CPX-2 | fvcore counts FLOPs through the episode wrapper; the full model has more than the baseline; unsupported operators are reported | D-09 |
+| CPX-3 | The synthetic episode has the loader shapes and foreground in every support block; the timing returns a positive median | D-09 |
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

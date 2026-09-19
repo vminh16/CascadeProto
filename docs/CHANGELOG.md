@@ -445,3 +445,17 @@ B (training) after the pending VM check 13e.
 * **Sources.** Paper numbers transcribed from [PAPER Tab.2] (CascadeProto (Text) row), [PAPER Tab.4]
   and [PAPER Tab.5]; SUM-1 checks each printed Avg against the mean of its S0 and S1.
 * **Verification.** 3 CPU tests; mutation check 8/8.
+
+### 14d — complexity report (Table 6, D-09)
+
+* **What.** New `experiments/complexity.py`: parameters per part (encoder, feature head, LMA, EPPM
+  stages, ADRM), FLOPs with fvcore on one 2-way 1-shot episode, and the median time of an evaluation
+  forward, for any configuration (train.py switches). `fvcore==0.1.5.post20221221` added to
+  `requirements.txt` (the version already installed locally, published on PyPI).
+  `tests/test_complexity.py` (CPX-1…3).
+* **Caveat.** fvcore does not count custom CUDA kernels (pointnet2 sampling and grouping, the Mamba
+  selective scan) or element-wise operators; they are listed under `unsupported_ops`, so the GFLOPs
+  are a lower bound and not directly comparable with the paper's 8.86 G, whose tool is not named.
+  D-09 keeps Table 6 out of the acceptance criteria.
+* **Verification.** 5 CPU tests on the stand-in encoder. The real numbers need the CUDA encoder and
+  are measured on the VM with the P1 runs.
