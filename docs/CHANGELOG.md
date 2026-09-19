@@ -95,7 +95,7 @@ Find the commit of an entry with `git log --oneline --grep "<step id>"`.
   (`torch.equal`); ENC-7 compares an episode's features with VIP-Seg's own path, including its
   `permute`/`view` of the loader layout, to 1e-6. ENC-6 (same batch, VIP-Seg weights) had already passed.
 
-### 10d-fix — validation and test episodes were identical
+### 10d-fix — validation and test episodes were identical (defect introduced in phase 9a)
 
 * **What.** `pipeline/episodes.py::build_eval_dataset` seeds the valid set with a separate numpy seed
   stream `[seed, 1]`; the test set keeps the integer seed. PIPE-8 (CPU) and DATA-7 (real data) added;
