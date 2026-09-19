@@ -127,6 +127,7 @@ The loader's own defaults (`num_point=4096`, `pc_attribs='xyz'`) are wrong for t
 
 * Validation uses `MyTestDataset(mode='valid')`, test-time evaluation `MyTestDataset(mode='test')`; both are built from the **test classes** with different random episodes [VIPSEG dataloaders/loader.py:235-244] [VIPSEG runs/training.py:58-73]. Selecting the checkpoint on them leaks test-class information; this matches VIP-Seg and is logged next to the last-epoch result [DECISION D-15].
 * One run per (dataset, fold, N, K, modality).
+* Training episode i is drawn with its own seed `[seed, 2, i]` (numpy and `random`), so the episode sequence does not depend on the number of loader workers or on interruptions. `train.py` writes `resume.pt` (weights, optimiser, scheduler, counters, random states) after every epoch; `--resume true` continues a run and reproduces the uninterrupted one. Validation seeds stay as in §6.1.
 
 ---
 

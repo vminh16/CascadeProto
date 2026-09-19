@@ -6,6 +6,7 @@ loader arguments of 04 §4.1 instead of the loader's own defaults (4096 points, 
 
 import math
 import os
+import random
 from dataclasses import dataclass
 from typing import List, Sequence
 
@@ -158,3 +159,34 @@ def build_eval_dataset(data_path: str, dataset: str, cvfold: int, n_way: int, k_
         raise RuntimeError(f"{len(episodes)} cached {mode} episodes, expected {expected}; delete the "
                            f"'{tag}_S_{cvfold}_N_{n_way}_K_{k_shot}_*' folder in {data_path} and rerun")
     return episodes
+
+
+TRAIN_SEED_STREAM = 2  # second word of the per-episode training seed, see SeededEpisodes
+
+
+class SeededEpisodes(torch.utils.data.Dataset):
+    """Training episode i drawn with its own seed ([seed, 2, i] for numpy, the same words for `random`).
+
+    The inherited loader draws classes, blocks, points and augmentation from the global `np.random`
+    and `random` [VIPSEG dataloaders/loader.py:38-58,96-112,163-192]. Seeding per episode makes
+    episode i a function of (seed, i) only, independent of the number of DataLoader workers and of
+    where a run was interrupted, so a resumed run sees exactly the episodes of an uninterrupted one.
+    The caller's random state is restored after each draw.
+    """
+
+    def __init__(self, base, seed: int):
+        self.base, self.seed = base, seed
+        self.classes = base.classes
+
+    def __len__(self) -> int:
+        return len(self.base)
+
+    def __getitem__(self, i: int):
+        np_state, py_state = np.random.get_state(), random.getstate()
+        np.random.seed([self.seed, TRAIN_SEED_STREAM, i])
+        random.seed(f"{self.seed}-{TRAIN_SEED_STREAM}-{i}")
+        try:
+            return self.base[i]
+        finally:
+            np.random.set_state(np_state)
+            random.setstate(py_state)

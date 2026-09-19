@@ -223,6 +223,20 @@ The metric is VIP-Seg's `evaluate_metric`, called unchanged; its module imports 
 
 ENC-1 and ENC-6 need VIP-Seg's checkpoint at `$CASCADEPROTO_VIPSEG_CKPT` (default `<repo>/vipseg_S0_N2_K1.pt`); a missing file fails the test.
 
+### 3.8b `tests/test_resume.py` (G1)
+
+CPU, stand-in encoder and CLIP, a stand-in loader that draws from the global `np.random` and `random` like the inherited one.
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| RES-1 | Training episode i depends only on (seed, i): drawing in reverse order after reseeding the globals gives the same arrays; consecutive episodes differ in their numpy-only parts; the caller's random state is restored | 04 §5 |
+| RES-2 | "+ LMA" row (dropout and noise use the torch RNG): 3 epochs uninterrupted equal 1 epoch, stop, resume with differently initialised weights, 2 more epochs — bit for bit in `last.pt`, `best.pt` and the AdamW moments; the resumed part reads episodes 8…23 in order; the learning rate decays once, after epoch 2 | 04 §5, D-12 |
+| RES-3 | Resuming with a different training argument raises; `num_workers`, `save_dir`, `data_path` may differ | 04 §5 |
+| RES-4 | `--resume` without `resume.pt` starts from scratch and reads every episode once; resuming a finished run trains nothing and leaves `last.pt` unchanged | 04 §5 |
+| RES-5 | `resume.pt` holds weights, optimiser, scheduler, counters, all random states, configuration and arguments; no `.tmp` file remains | 04 §5 |
+
+Mutation check (2026-09-19): fourteen wrong variants (random states, optimiser or scheduler not restored, counters reset, every epoch restarting at episode 0, no argument check, resume ignored, `resume.pt` only at validation, non-atomic save, episodes not seeded, only numpy seeded, seed ignoring the index, caller state not restored) — thirteen fail. Restoring only the torch random state survives and is equivalent: training episodes are seeded by index and validation draws nothing, so the global numpy and `random` states do not influence a resumed run. Three survivors of a first version (scheduler, episode offset, seed index) exposed tests that compared two runs of the same faulty code; RES-1, RES-2 and RES-4 now also check absolute properties.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

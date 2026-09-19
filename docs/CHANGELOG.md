@@ -393,3 +393,29 @@ none.
   2. Dry run of the "+ Cascade" row: `python train.py --dataset s3dis --data_path datasets/S3DIS/blocks_bs1_s1 --cvfold 0 --n_way 2 --k_shot 1 --use_lma true --num_stages 4 --use_adrm false --dry_run true`
   3. Dry run of the full model (defaults): same command without `--use_lma/--num_stages/--use_adrm`.
   4. Optional: 2 epochs of the full model (`--epochs 2 --valid_every 2`) and `eval.py` on `last.pt`.
+
+---
+
+## Phase 14 — full training runs against the paper
+
+Maintainer decisions: S3DIS first (ScanNet later, it needs access to the dataset); one seed per
+configuration plus two extra seeds for the full model on S0 2-way 1-shot; `fixed100` (D-08) as the
+reported protocol, `random600` also for the P1 runs; group A (infrastructure) runs locally now, group
+B (training) after the pending VM check 13e.
+
+### 14a — seeded training episodes and exact resumption
+
+* **What.** `pipeline/episodes.py::SeededEpisodes` draws training episode i with the seed
+  `[seed, 2, i]`. `train.py` is restructured around `train_loop` (one DataLoader per epoch, atomic
+  `resume.pt` after every epoch with weights, optimiser, scheduler, counters and all random states,
+  `best.pt`/`last.pt` as before) and gains `--resume`. `seed_worker` removed (no longer needed).
+  `tests/test_resume.py` (RES-1…5).
+* **Why.** A 50-epoch run of the full model takes hours on the VM; before this step an interruption
+  lost the whole run (only `last.pt`, written at the end). With a global loader stream a resumed run
+  would also see different episodes than an uninterrupted one.
+* **Change of behaviour.** The training episode sequence differs from phases 9–13 (per-episode seeds
+  instead of the worker streams); results of those short runs are not comparable bit for bit with new
+  runs. Validation and test episodes are unchanged.
+* **Verification.** CPU gate 247 passed. RES-2 shows bit-identical weights and AdamW moments after
+  stop/resume. Mutation check: 13/14 killed; the survivor is equivalent (05 §3.8b). The first run had
+  3 more survivors, which led to the absolute checks now in RES-1/2/4.

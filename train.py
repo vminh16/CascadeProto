@@ -3,6 +3,10 @@
 Every episode comes from the inherited VIP-Seg loader through pipeline.episodes; there is no
 synthetic data here. `--dry_run true` means real data, one optimiser step.
 
+A resume checkpoint (`resume.pt`: weights, optimiser, scheduler, counters, random states) is written
+after every epoch; `--resume true` continues an interrupted run from it and gives the same episodes
+and random draws as an uninterrupted run (training episode i is seeded by (seed, i)).
+
     python train.py --dataset s3dis --data_path datasets/S3DIS/blocks_bs1_s1 --cvfold 0 --n_way 2 --k_shot 1
 """
 
@@ -14,15 +18,19 @@ import time
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from pipeline.episodes import (AUGMENT_CONFIG, EPISODES_PER_BATCH, NUM_POINT, PC_ATTRIBS, SCHEDULE,
-                               EpisodeCollate, build_eval_dataset, build_train_dataset, read_class_names)
+                               EpisodeCollate, SeededEpisodes, build_eval_dataset, build_train_dataset,
+                               read_class_names)
 from pipeline.evaluation import evaluate
 from pipeline.model_api import episode_loss
 from utils.logger import IOStream
 
 DRY_RUN_VALID_EPISODES = 5
+RESUME_FILE = "resume.pt"
+# Arguments that may differ between an interrupted run and its resumption; all others must match.
+RESUME_FREE_ARGS = ("resume", "num_workers", "save_dir", "data_path")
 
 
 def str2bool(v: str) -> bool:
@@ -68,6 +76,7 @@ def parse_args(argv=None):
     p.add_argument("--num_workers", type=int, default=4)
     p.add_argument("--save_dir", default="log_cascadeproto")
     p.add_argument("--dry_run", type=str2bool, default=False)
+    p.add_argument("--resume", type=str2bool, default=False, help="continue from <run dir>/resume.pt if present")
     args = p.parse_args(argv)
     schedule = SCHEDULE[args.dataset]
     args.epochs = args.epochs or schedule["epochs"]
@@ -82,12 +91,6 @@ def seed_everything(seed: int) -> None:
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-
-
-def seed_worker(worker_id: int) -> None:
-    seed = torch.initial_seed() % 2**32
-    random.seed(seed)
-    np.random.seed(seed)
 
 
 def model_config(args):
@@ -132,6 +135,78 @@ def train_steps(model, optimizer, batches, device):
         yield loss.item(), torch.stack([out.loss_gmmn.detach() for out in outputs]).mean().item()
 
 
+def random_states() -> dict:
+    return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": random.getstate(),
+            "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []}
+
+
+def set_random_states(states: dict) -> None:
+    torch.set_rng_state(states["torch"])
+    np.random.set_state(states["numpy"])
+    random.setstate(states["python"])
+    if states["cuda"]:
+        torch.cuda.set_rng_state_all(states["cuda"])
+
+
+def atomic_save(obj, path: str) -> None:
+    """Write to a temporary file and rename, so an interruption never leaves a truncated checkpoint."""
+    torch.save(obj, path + ".tmp")
+    os.replace(path + ".tmp", path)
+
+
+def comparable_args(args) -> dict:
+    return {k: v for k, v in vars(args).items() if k not in RESUME_FREE_ARGS}
+
+
+def train_loop(args, model, optimizer, scheduler, train_set, class_names, validate, config, out_dir, logger,
+               device, stop_after_epoch=None) -> dict:
+    """Epochs state["epoch"]+1 .. args.epochs; validation every args.valid_every epochs (D-15).
+
+    One DataLoader per epoch over the episodes of that epoch; `resume.pt` after every epoch.
+    `stop_after_epoch` simulates an interruption (tests only).
+    """
+    state = {"epoch": 0, "best_miou": -math.inf}
+    resume_path = os.path.join(out_dir, RESUME_FILE)
+    if args.resume and os.path.isfile(resume_path):
+        ckpt = torch.load(resume_path, map_location="cpu", weights_only=False)  # RNG states must stay on the CPU
+        if ckpt["args"] != comparable_args(args):
+            diff = {k for k in ckpt["args"] if ckpt["args"][k] != comparable_args(args).get(k)}
+            raise ValueError(f"cannot resume {resume_path}: arguments differ in {sorted(diff)}")
+        model.load_state_dict(ckpt["model"], strict=True)
+        optimizer.load_state_dict(ckpt["optimizer"])
+        scheduler.load_state_dict(ckpt["scheduler"])
+        state = ckpt["state"]
+        set_random_states(ckpt["random"])
+        logger.cprint(f"resumed from {resume_path} after epoch {state['epoch']}")
+    t0 = time.time()
+    while state["epoch"] < args.epochs:
+        first = state["epoch"] * args.episodes_per_epoch
+        loader = DataLoader(Subset(train_set, range(first, first + args.episodes_per_epoch)),
+                            batch_size=EPISODES_PER_BATCH, shuffle=False, num_workers=args.num_workers,
+                            collate_fn=EpisodeCollate(class_names), drop_last=True)
+        losses = list(train_steps(model, optimizer, loader, device))
+        state["epoch"] += 1
+        scheduler.step()
+        logger.cprint(f"epoch {state['epoch']}/{args.epochs} | loss {np.mean([l for l, _ in losses]):.4f} | "
+                      f"L_GMMN {np.mean([g for _, g in losses]):.4f} | lr {scheduler.get_last_lr()[0]:.2e} | "
+                      f"{time.time() - t0:.0f}s")
+        if state["epoch"] % args.valid_every == 0 or state["epoch"] == args.epochs:
+            miou = validate(model)
+            logger.cprint(f"epoch {state['epoch']} | valid mIoU {miou:.4f}")
+            if miou > state["best_miou"]:
+                state["best_miou"] = miou
+                atomic_save({"model": model.state_dict(), "config": config.to_dict(), "epoch": state["epoch"],
+                             "valid_miou": miou, "args": vars(args)}, os.path.join(out_dir, "best.pt"))
+        atomic_save({"model": model.state_dict(), "optimizer": optimizer.state_dict(),
+                     "scheduler": scheduler.state_dict(), "state": dict(state), "random": random_states(),
+                     "config": config.to_dict(), "args": comparable_args(args)}, resume_path)
+        if stop_after_epoch is not None and state["epoch"] >= stop_after_epoch:
+            return state
+    atomic_save({"model": model.state_dict(), "config": config.to_dict(), "epoch": state["epoch"],
+                 "args": vars(args)}, os.path.join(out_dir, "last.pt"))
+    return state
+
+
 def main(argv=None):
     args = parse_args(argv)
     seed_everything(args.seed)
@@ -146,11 +221,8 @@ def main(argv=None):
     class_names = read_class_names(args.data_path, args.dataset)
     steps_per_epoch = args.episodes_per_epoch // EPISODES_PER_BATCH
     total_episodes = EPISODES_PER_BATCH if args.dry_run else args.epochs * args.episodes_per_epoch
-    train_set = build_train_dataset(args.data_path, args.dataset, args.cvfold, args.n_way, args.k_shot,
-                                    num_episode=total_episodes)
-    train_loader = DataLoader(train_set, batch_size=EPISODES_PER_BATCH, shuffle=False,
-                              num_workers=args.num_workers, worker_init_fn=seed_worker,
-                              collate_fn=EpisodeCollate(class_names), drop_last=True)
+    train_set = SeededEpisodes(build_train_dataset(args.data_path, args.dataset, args.cvfold, args.n_way,
+                                                   args.k_shot, num_episode=total_episodes), args.seed)
     valid_set = build_eval_dataset(args.data_path, args.dataset, args.cvfold, args.n_way, args.k_shot,
                                    mode="valid", seed=args.seed)
     logger.cprint(f"train classes {list(train_set.classes)} | test classes {list(valid_set.classes)} | "
@@ -162,36 +234,19 @@ def main(argv=None):
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_step_epochs, gamma=args.lr_gamma)
 
-    best_miou, step, epoch, epoch_losses, epoch_gmmn, t0 = -math.inf, 0, 0, [], [], time.time()
-    for loss, gmmn in train_steps(model, optimizer, train_loader, device):
-        step += 1
-        epoch_losses.append(loss)
-        epoch_gmmn.append(gmmn)
-        if args.dry_run:
-            logger.cprint(f"[dry run] one step on {EPISODES_PER_BATCH} real episodes, loss {loss:.4f} "
-                          f"(L_GMMN {gmmn:.4f})")
-            miou = evaluate(model, valid_set, class_names, logger, device, max_episodes=DRY_RUN_VALID_EPISODES)
-            logger.cprint(f"[dry run] valid mIoU on {DRY_RUN_VALID_EPISODES} episodes: {miou:.4f}")
-            return 0
-        if step % steps_per_epoch:
-            continue
-        epoch += 1
-        scheduler.step()
-        logger.cprint(f"epoch {epoch}/{args.epochs} | loss {np.mean(epoch_losses):.4f} | "
-                      f"L_GMMN {np.mean(epoch_gmmn):.4f} | lr {scheduler.get_last_lr()[0]:.2e} | "
-                      f"{time.time() - t0:.0f}s")
-        epoch_losses, epoch_gmmn = [], []
-        if epoch % args.valid_every == 0 or epoch == args.epochs:
-            miou = evaluate(model, valid_set, class_names, logger, device)
-            logger.cprint(f"epoch {epoch} | valid mIoU {miou:.4f}")
-            if miou > best_miou:
-                best_miou = miou
-                torch.save({"model": model.state_dict(), "config": config.to_dict(), "epoch": epoch,
-                            "valid_miou": miou, "args": vars(args)},
-                           os.path.join(out_dir, "best.pt"))
-    torch.save({"model": model.state_dict(), "config": config.to_dict(), "epoch": epoch, "args": vars(args)},
-               os.path.join(out_dir, "last.pt"))
-    logger.cprint(f"done: best valid mIoU {best_miou:.4f}; evaluate best.pt and last.pt with eval.py [D-15]")
+    if args.dry_run:
+        loader = DataLoader(train_set, batch_size=EPISODES_PER_BATCH, shuffle=False, num_workers=args.num_workers,
+                            collate_fn=EpisodeCollate(class_names), drop_last=True)
+        loss, gmmn = next(train_steps(model, optimizer, loader, device))
+        logger.cprint(f"[dry run] one step on {EPISODES_PER_BATCH} real episodes, loss {loss:.4f} "
+                      f"(L_GMMN {gmmn:.4f})")
+        miou = evaluate(model, valid_set, class_names, logger, device, max_episodes=DRY_RUN_VALID_EPISODES)
+        logger.cprint(f"[dry run] valid mIoU on {DRY_RUN_VALID_EPISODES} episodes: {miou:.4f}")
+        return 0
+
+    state = train_loop(args, model, optimizer, scheduler, train_set, class_names,
+                       lambda m: evaluate(m, valid_set, class_names, logger, device), config, out_dir, logger, device)
+    logger.cprint(f"done: best valid mIoU {state['best_miou']:.4f}; evaluate best.pt and last.pt with eval.py [D-15]")
     return 0
 
 
