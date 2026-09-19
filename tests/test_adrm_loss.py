@@ -1,4 +1,4 @@
-"""ADRM-1..4 (05 §3.5, gate G1): the dynamic routing of Eq.24-25 / spec 02 §6.
+"""ADRM-1..4 and LOSS-1..3 (05 §3.5, gate G1): dynamic routing of Eq.24-25 and the objective of Eq.26-27.
 
 float64; references use explicit loops and a hand-written softmax, compared to 1e-12.
 """
@@ -7,8 +7,10 @@ import math
 
 import pytest
 import torch
+import torch.nn.functional as F
 
 from models.adrm import DynamicRouting
+from pipeline.model_api import GMMN_WEIGHT, EpisodeOutput, episode_loss
 
 ATOL = 1e-12
 BQ, P, C, D = 3, 2048, 3, 128
@@ -109,3 +111,38 @@ def test_adrm_rejects_single_stage_and_wrong_count():
     m, (logits, f_q) = routing(4), inputs(4)
     with pytest.raises(ValueError):
         m(logits[:3], f_q)
+
+
+# ------------------------------------------------------------------ LOSS (02 §7, Eq.26-27)
+
+class _Episode:
+    def __init__(self, query_y, n_way):
+        self.query_y, self.n_way = query_y, n_way
+
+
+def test_loss1_segmentation_loss_is_unweighted_ce_on_final_logits():
+    logits = rand(2, P, 3, seed=50)
+    y = torch.randint(0, 3, (2, P), generator=torch.Generator().manual_seed(51))
+    out = EpisodeOutput(logits=logits, loss_gmmn=torch.zeros((), dtype=torch.float64))
+    ref = -sum(math.log(math.exp(logits[b, i, y[b, i]].item()) / sum(math.exp(v) for v in logits[b, i].tolist()))
+               for b in range(2) for i in range(0, P, 97)) / len(range(0, P, 97)) / 2
+    sub = EpisodeOutput(logits=logits[:, ::97], loss_gmmn=torch.zeros((), dtype=torch.float64))
+    assert math.isclose(episode_loss(sub, _Episode(y[:, ::97], 2)).item(), ref, rel_tol=0, abs_tol=ATOL)
+    weighted = F.cross_entropy(logits.reshape(-1, 3), y.reshape(-1),
+                               weight=torch.tensor([0.8, 1.0, 1.0], dtype=torch.float64))
+    assert abs(episode_loss(out, _Episode(y, 2)).item() - weighted.item()) > 1e-4  # no w_cls in the loss
+
+
+def test_loss2_total_is_seg_plus_one_times_gmmn():
+    assert GMMN_WEIGHT == 1.0
+    logits = rand(2, P, 3, seed=52)
+    y = torch.randint(0, 3, (2, P), generator=torch.Generator().manual_seed(53))
+    gmmn = torch.tensor(0.731, dtype=torch.float64)
+    ce = F.cross_entropy(logits.reshape(-1, 3), y.reshape(-1))
+    total = episode_loss(EpisodeOutput(logits, gmmn), _Episode(y, 2))
+    assert math.isclose(total.item(), ce.item() + 0.731, rel_tol=0, abs_tol=ATOL)
+
+
+def test_loss3_the_objective_sees_only_final_logits_and_gmmn():
+    """No per-stage loss: the model contract carries L_final and L_GMMN only (Eq.27)."""
+    assert EpisodeOutput._fields == ("logits", "loss_gmmn")

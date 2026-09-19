@@ -1,13 +1,13 @@
 """CascadeProto end-to-end model behind the episode contract of pipeline/model_api.py.
 
-Built in phases. Implemented so far, as rows of Table 4 [DECISION D-17]:
+All rows of Table 4 [DECISION D-17]:
 * Baseline (`use_lma=false, num_stages=0`): `L = F^q P_pointᵀ` (Eq.23 with P = P_point).
 * + LMA (`use_lma=true, num_stages=0`): `L = F^q (P^0)ᵀ`, `P^0 = P_point + P_modal` (Eq.9), plus L_GMMN.
 * + Entropy Gate (`num_stages=1`) and + Cascade (`num_stages=T, use_adrm=false`): P^0 -> EPPM_1 -> ...
   -> P^T (Eq.22), prediction `L^T = F^q (P^T)ᵀ` (Eq.23). With T = 1, ADRM weighs a single stage by 1, so
-  `use_adrm` does not change the prediction.
-The switches of spec 01 §3 are all present; configurations that need ADRM with T >= 2 (phase 13) or an
-unimplemented ablation flag raise NotImplementedError.
+  `use_adrm` does not change the prediction and no W_g is built.
+* + ADRM, the full model (defaults): `L_final = Σ_t w_gate^(t) L^t` (Eq.24-25).
+The switches of spec 01 §3 are all present; unimplemented ablation flag values raise NotImplementedError.
 """
 
 import math
@@ -19,6 +19,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from loss.gmmn_loss import FG_MODES, gmmn_loss
+from models.adrm import DynamicRouting
 from models.clip_text import DEFAULT_CLIP_VARIANT, ClipTextEmbedding
 from models.eppm import CROSS_ATTN_SCALES, FUSION_WEIGHTS, EPPMStage, stage_logits
 from models.lma import EVAL_NOISE, LearnableModalityAdapter
@@ -76,8 +77,6 @@ class CascadeProtoConfig:
     def check_implemented(self) -> None:
         if self.use_lma and self.modality != "text":
             raise NotImplementedError(f"modality {self.modality!r} is not implemented yet (03 §2.2)")
-        if self.num_stages >= 2 and self.use_adrm:
-            raise NotImplementedError("use_adrm=true with num_stages >= 2 needs the ADRM of phase 13")
         for name, value, default in (("cross_attn", self.cross_attn, "channel"),
                                      ("gate_target", self.gate_target, "prototype"),
                                      ("diffusion_input", self.diffusion_input, "post_relu")):
@@ -107,6 +106,8 @@ class CascadeProto(nn.Module):
         self.stages = nn.ModuleList(
             EPPMStage(use_gate=config.use_gate, cross_attn_scale=config.cross_attn_scale,
                       fusion_weight=config.fusion_weight) for _ in range(config.num_stages))
+        # ADRM over T >= 2 stages; with T = 1 its weight is 1 and W_g could not learn [DECISION D-17]
+        self.routing = DynamicRouting(config.num_stages) if config.use_adrm and config.num_stages >= 2 else None
 
     def forward(self, episode: Episode) -> EpisodeOutput:
         f_s, f_q = self.features.encode_episode(episode.support_x, episode.query_x)  # [N,K,P,D], [B_q,P,D]
@@ -126,9 +127,14 @@ class CascadeProto(nn.Module):
             logits = torch.einsum("bpd,cd->bpc", f_q, prototypes)  # [B_q, P, N+1] (Eq.23, no temperature)
         else:
             p = prototypes.unsqueeze(0).expand(f_q.shape[0], -1, -1)  # P^0 per query [B_q, N+1, D] (02 §4.5)
+            all_logits = []
             for stage in self.stages:
                 p = stage(p, f_s, f_q)  # P^t (Eq.22)
-            logits = stage_logits(f_q, p)  # L^T [B_q, P, N+1] (Eq.23) [DECISION D-17]
+                all_logits.append(stage_logits(f_q, p))  # L^t [B_q, P, N+1] (Eq.23)
+            if self.routing is not None:
+                logits = self.routing(all_logits, f_q)  # L_final (Eq.24-25)
+            else:
+                logits = all_logits[-1]  # L^T without ADRM [DECISION D-17]
         if self.config.logit_scale == "sqrt_D":  # ablation only [DECISION D-10]
             logits = logits / math.sqrt(f_q.shape[-1])
         return EpisodeOutput(logits=logits, loss_gmmn=loss_gmmn)

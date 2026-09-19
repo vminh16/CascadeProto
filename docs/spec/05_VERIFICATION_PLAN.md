@@ -155,21 +155,21 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 | ADRM-2 | `W_g` weight shape `[T, 128]`, no bias | 02 §6 |
 | ADRM-3 | `L_final = Σ_t w_gate[t] · L^t` from an explicit loop, to 1e-12; identical stage logits pass through unchanged | 02 §6 |
 | ADRM-4 | `∂L_final/∂L^t = w_gate[t]` per query (checked with a random upstream gradient); `W_g` receives a gradient; `gradcheck` passes (on 16 points: ADRM does not depend on the point count); queries do not mix; T = 1 and a wrong stage count raise. Mutation check (2026-09-19): twelve wrong variants (bias, softmax over queries, sigmoid, max pooling, channel pooling, pooling over all queries, uniform weights, reversed stages, last stage only, detached weights, T = 1 allowed, no count check) all fail | 02 §6 |
-| LOSS-1 | `L_seg` equals `F.cross_entropy(L_final, Y_q)` **without** `weight` | 02 §7, [PAPER Eq.27] |
+| LOSS-1 | `L_seg` equals Eq.27 written with Python floats, i.e. `F.cross_entropy(L_final, Y_q)` **without** `weight` (differs from the `w_cls`-weighted CE) | 02 §7, [PAPER Eq.27] |
 | LOSS-2 | `L_total = L_seg + 1.0 · L_GMMN` | 02 §7 |
-| LOSS-3 | No loss term uses stage logits `L^1..L^{T−1}` directly | 02 §7 |
+| LOSS-3 | No loss term uses stage logits `L^1..L^{T−1}` directly: the model contract carries only `logits` and `loss_gmmn` | 02 §7 |
 
 ### 3.6 `tests/test_ablation_switches.py` (G1)
 
 | ID | Check | Source |
 | :--- | :--- | :--- |
-| ABL-1 | Each row of the D-17 table runs forward/backward and produces the prescribed prediction tensor | 01 §3, [DECISION D-17] |
-| ABL-2 | `num_stages` ∈ {1..6} gives `w_gate` of width `num_stages` | 01 §3, [PAPER Tab.5] |
+| ABL-1 | Each row of the D-17 table runs forward/backward and produces the prescribed prediction tensor (`F^q P_pointᵀ`, `F^q (P^0)ᵀ`, `L^1`, `L^4`, `L_final`), compared with the written-out references to 1e-11 | 01 §3, [DECISION D-17] |
+| ABL-2 | `num_stages` ∈ {1..6} gives `w_gate` of width `num_stages` (no ADRM at T = 1). Mutation check of the wiring (2026-09-19): 6/6 wrong variants killed (ADRM never built, `use_adrm` ignored, a stage dropped from the routing, weights from support features, first stage without ADRM, stage logits from P^0) | 01 §3, [PAPER Tab.5] |
 | ABL-3 | `modality=image` and `modality=audio` raise `NotImplementedError` | 03 §2.2 |
 
 ### 3.6b `tests/test_cascadeproto.py` (G1)
 
-Phase-12 model = Table 4 rows "Baseline", "+ LMA", "+ Entropy Gate" and "+ Cascade (T = 4)" of D-17 (CP-7 and CP-8 run for all four). The encoder is the per-point stand-in of 3.2b and CLIP the recording stand-in of 3.3b; feature head, prototypes, adapter, generator, GMMN, logits and loss are the real code. float64, 1e-12. CP-7 and CP-8 run for both rows.
+Phase-13 model = all Table 4 rows of D-17, including the full model (CP-7 and CP-8 run for all five). The encoder is the per-point stand-in of 3.2b and CLIP the recording stand-in of 3.3b; feature head, prototypes, adapter, generator, GMMN, logits and loss are the real code. float64, 1e-12. CP-7 and CP-8 run for both rows.
 
 | ID | Check | Source |
 | :--- | :--- | :--- |
@@ -188,6 +188,8 @@ Phase-12 model = Table 4 rows "Baseline", "+ LMA", "+ Entropy Gate" and "+ Casca
 | CP-14 | `num_stages = 1, 2, 4` with `use_adrm=false`: logits equal `F^q (P^T)ᵀ` after running P^0 (written out, one copy per query) through the stages in order; stages share no parameter; each adds 79,395 parameters; swapping two stages changes the output; `logit_scale=sqrt_D` scales the cascade output | [PAPER Eq.22–23], D-17 |
 | CP-15 | With one stage, `use_adrm` true or false gives identical logits; `use_gate`, `cross_attn_scale`, `fusion_weight` reach every stage | D-17, 01 §3 |
 | CP-16 | The cascade keeps way equivariance (row 0 fixed, rows 1..N permuted) and query independence, with and without LMA | 02 §5–6 |
+| CP-17 | Full model: logits equal `Σ_t w_gate^(t) L^t` with the stage logits recomputed and `w_gate` written out, for T = 2 and 4; ADRM really mixes the stages; the added modules total 466,444 parameters | [PAPER Eq.24–25], 01 §4 |
+| CP-18 | Table 5: T = 1…6 with every switch on train end to end, every parameter receives a gradient; T = 1 has no `W_g` | [PAPER Tab.5], D-17 |
 | CP-13 | `state_dict` holds only `features.*` and `lma.*` (CLIP excluded); LMA adds exactly 148,352 parameters; `.double()` leaves the CLIP cache in float32; a phase-10 checkpoint configuration still loads | 01 §4, 03 §2.1 |
 
 Mutation check (2026-09-18): eight wrong variants (cosine logits, scale always on, L2 flag ignored or always on, background prototype dropped, non-zero `L_GMMN`, no implementation check, reversed ways) each fail at least one test.

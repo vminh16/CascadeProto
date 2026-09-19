@@ -349,3 +349,17 @@ none.
 * **Verification.** 12 CPU tests, float64, 1e-12. The first `gradcheck` on a full 2048-point query
   crashed the process (numerical Jacobian over 262,144 inputs); it now runs on 16 points, which is
   equivalent because ADRM only averages over points. Mutation check: 12/12 killed.
+
+### 13b — full model: ADRM on the cascade; loss and ablation tests
+
+* **What.** `CascadeProto` keeps every stage's logits and routes them with `DynamicRouting` when
+  `use_adrm` and T ≥ 2; the "phase 13" error is gone, so the default configuration (full model)
+  trains. CP-17/18 added, CP-7/8 cover the full model; LOSS-1…3 in `tests/test_adrm_loss.py`;
+  new `tests/test_ablation_switches.py` (ABL-1…3).
+* **Sources.** `L_final = Σ_t w_gate^(t) L^t` [PAPER Eq.24–25]; `L_total = CE(L_final) + 1.0·L_GMMN`,
+  unweighted, no per-stage loss [PAPER Eq.26–27]; rows of Table 4 and depths of Table 5
+  [PAPER Tab.4–5] [DECISION D-17].
+* **Parameter budget.** Added modules = 148,352 (LMA) + 4 × 79,395 (EPPM) + 512 (`W_g`) = 466,444,
+  as 01 §4 predicts (CP-17).
+* **Verification.** 109 tests in the model, loss, ablation and pipeline files pass on the CPU.
+  Mutation check of the wiring: 6/6 killed.

@@ -1,4 +1,4 @@
-"""CP-1..16 (05 §3.6b, gate G1): CascadeProto as the Table 4 rows of D-17 up to "+ Cascade".
+"""CP-1..18 (05 §3.6b, gate G1): CascadeProto as every row of Table 4 (D-17) and Table 5.
 
 The VIP-Seg encoder is replaced by the per-point stand-in of test_feature_extractor.py and CLIP by the
 recording stand-in of test_clip_text.py; everything else (feature head, prototypes, adapter,
@@ -29,7 +29,8 @@ BASELINE = CascadeProtoConfig(use_lma=False, num_stages=0)
 LMA = CascadeProtoConfig(use_lma=True, num_stages=0)
 GATE = CascadeProtoConfig(use_lma=True, num_stages=1)  # "+ Entropy Gate" [DECISION D-17]
 CASCADE = CascadeProtoConfig(use_lma=True, num_stages=4, use_adrm=False)  # "+ Cascade (T = 4)"
-ROWS = [BASELINE, LMA, GATE, CASCADE]
+FULL = CascadeProtoConfig()  # "+ ADRM", the full model: LMA, T = 4, gate, ADRM
+ROWS = [BASELINE, LMA, GATE, CASCADE, FULL]
 CLASS_NAMES = ["ceiling", "floor", "wall", "beam", "column", "window", "door",
                "table", "chair", "sofa", "bookcase", "board", "clutter"]
 
@@ -98,9 +99,7 @@ def test_cp5_d10_ablation_flags():
     assert torch.allclose(normed(ep).logits, expected, atol=ATOL, rtol=0)
 
 
-@pytest.mark.parametrize("config,phase", [(CascadeProtoConfig(), "phase 13"),
-                                          (CascadeProtoConfig(num_stages=2), "phase 13"),
-                                          (CascadeProtoConfig(num_stages=2, use_adrm=False, cross_attn="two_hop"), "two_hop"),
+@pytest.mark.parametrize("config,phase", [(CascadeProtoConfig(num_stages=2, use_adrm=False, cross_attn="two_hop"), "two_hop"),
                                           (CascadeProtoConfig(num_stages=1, gate_target="features"), "features"),
                                           (CascadeProtoConfig(num_stages=1, diffusion_input="pre_relu"), "pre_relu"),
                                           (CascadeProtoConfig(num_stages=0, modality="audio"), "modality 'audio'"),
@@ -322,3 +321,48 @@ def test_cp16_cascade_keeps_way_equivariance_and_query_independence(config):
     other.query_x = ep.query_x.clone()
     other.query_x[1:] = torch.rand_like(other.query_x[1:])
     assert torch.allclose(m(other).logits[0], a[0], atol=1e-11, rtol=0)
+
+
+# ------------------------------------------------------------ "+ ADRM" row and Table 5 (02 §6)
+
+def full_ref(m, ep):
+    """Stage logits from the model's own stages in order, then Σ_t w_gate^(t) L^t with w_gate written out."""
+    from tests.test_adrm_loss import weights_ref
+
+    f_q, p_point, p_modal = lma_terms(m, ep)
+    f_s, _ = m.features.encode_episode(ep.support_x, ep.query_x)
+    p = (p_point + p_modal).unsqueeze(0).repeat(f_q.shape[0], 1, 1)
+    per_stage = []
+    for t in range(len(m.stages)):
+        p = m.stages[t](p, f_s, f_q)
+        per_stage.append(torch.einsum("bpd,bcd->bpc", f_q, p))
+    w = weights_ref(m.routing, f_q)  # [B_q, T]
+    return sum(w[:, t, None, None] * per_stage[t] for t in range(len(per_stage))), per_stage
+
+
+@pytest.mark.parametrize("t", [2, 4])
+def test_cp17_full_model_logits_are_the_routed_stage_logits(t):
+    m, ep = model(CascadeProtoConfig(num_stages=t)).eval(), episode(n=2, bq=2)
+    expected, per_stage = full_ref(m, ep)
+    out = m(ep).logits
+    assert torch.allclose(out, expected, atol=1e-11, rtol=0)
+    assert not torch.allclose(out, per_stage[-1])  # ADRM really mixes the stages
+    assert m.routing.w_g.weight.shape == (t, 128) and m.routing.w_g.bias is None
+
+
+def test_cp17_full_model_parameter_budget():
+    """Added modules = adapter + generator + 4 stages + W_g = 466,444 (01 §4)."""
+    full = sum(p.numel() for p in model(FULL).parameters())
+    base = sum(p.numel() for p in model(BASELINE).parameters())
+    assert full - base == 148_352 + 4 * 79_395 + 512 == 466_444
+
+
+@pytest.mark.parametrize("t", [1, 2, 3, 4, 5, 6])
+def test_cp18_table5_depths_with_adrm(t):
+    """Table 5 varies T with every other switch on; T = 1 has no W_g (D-17)."""
+    m, ep = model(CascadeProtoConfig(num_stages=t)).train(), episode()
+    assert len(m.stages) == t
+    assert (m.routing is None) if t == 1 else (m.routing.w_g.out_features == t)
+    episode_loss(m(ep), ep).backward()
+    for name, p in m.named_parameters():
+        assert p.grad is not None and torch.isfinite(p.grad).all() and p.grad.abs().sum() > 0, name
