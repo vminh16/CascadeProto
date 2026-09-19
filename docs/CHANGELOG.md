@@ -170,3 +170,22 @@ generator input `[E_fused; z]` of width 2D. `eval_noise=mean_of_M` raises until 
   exact replay of the training random stream (dropout mask, then z), z statistics, gradients to every
   parameter through `L_GMMN`. Mutation check: 14/14 wrong variants killed; one equivalent mutant noted
   in 05 §3.3.
+
+### 11c — CLIP text front-end (03 §2.1)
+
+* **What.** New `models/clip_text.py`: `episode_prompts`, `load_clip(variant, device)` (once per
+  process, frozen), `ClipTextEmbedding(variant, encode=None)` mapping class names to
+  `E_CLIP [N+1, 512]` with a per-prompt cache. `tests/test_clip_text.py` (TXT-1…6, EP-5, EP-6).
+* **Why.** Audit M-series and L3: the old helper used the background prompt "background clutter"
+  (D-13 says "background"), fell back to `ViT-B/32` without a message when the `ViT-B/16` file was
+  missing, and reloaded CLIP on every call (3.07 s and 2.37 s per call in the audit).
+* **Sources.** Foreground prompt [PAPER Fig.1]; background prompt, class names verbatim, default
+  `ViT-B/16`, float32 + L2 norm, frozen and cached CLIP [DECISION D-13]; row order of P_point
+  [PAPER Eq.3].
+* **Design.** CLIP is a plain attribute, not an `nn.Module` child: checkpoints stay free of its 150M
+  parameters and the model's `.double()` in tests cannot change it. On a GPU `clip.load` keeps the
+  released float16 weights; outputs are cast to float32 before the norm, so CPU and GPU embeddings can
+  differ in the last float16 bits (recorded in 03 §2.1).
+* **Verification.** 5 CPU tests with a recording float16 stand-in; 3 `clip` tests with the real
+  `ViT-B/16`, run locally on the CPU (8 passed): load count, frozen parameters, bit-exact equality with a
+  direct CLIP call, no fallback variant. Mutation check: 12/12 wrong variants killed.

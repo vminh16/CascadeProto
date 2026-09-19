@@ -97,6 +97,23 @@ Mutation check (2026-09-18): twelve wrong variants (no or wrong-axis L2 norm, in
 
 All MMD checks run in float64 against references written with Python scalars and explicit loops, to 1e-12. Mutation check (2026-09-19): fourteen wrong variants (square root, clamped result, unbiased estimator, σ instead of σ², missing factor 2, unsquared distance, kernel averaged over bandwidths, a bandwidth dropped, bg weight 1.0, per-class foreground in joint mode, last way dropped, detach always or never, no input check) each fail at least one test. Mutation check for LMA (2026-09-19): fourteen wrong variants (no LayerNorm, LayerNorm after ReLU, no dropout, dropout 0.5, two-layer G, final ReLU in G, z first in the concatenation, z added instead of concatenated, noise in evaluation, no noise in training, uniform or scaled noise, `mean_of_M` accepted, no input check) each fail at least one test. Moving the dropout before the ReLU is an equivalent mutant (a non-negative mask commutes with ReLU) and is not a defect.
 
+### 3.3b `tests/test_clip_text.py` (G1; TXT-6, EP-5, EP-6 in G3 with marker `clip`)
+
+CPU tests use a recording stand-in encoder that returns float16 features, like CLIP on a GPU.
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| TXT-1 | Prompt strings, background prompt, class names verbatim (`shower curtain`), default variant `ViT-B/16` | 03 §2.1, [DECISION D-13] |
+| TXT-2 | `E_CLIP` is `[N+1, 512]` float32, equal to `normalize(raw.float())` row by row, row 0 = background | 03 §2.1 |
+| TXT-3 | Reordering the ways reorders foreground rows only | 03 §2.1 |
+| TXT-4 | Each prompt string is encoded once per process; later episodes reuse the cache | 03 §2.1 |
+| TXT-5 | Features of the wrong width raise | 03 §3 |
+| TXT-6 | An unknown CLIP variant raises; there is no fallback variant (`clip`) | [DECISION D-13] |
+| EP-5 | Two embedders and two episodes load CLIP once; CLIP is in eval mode with no trainable parameter (`clip`) | 03 §2.1 |
+| EP-6 | Real embeddings equal a direct `clip.tokenize → encode_text → float → normalize` call bit for bit; distinct prompts give distinct unit vectors (`clip`) | 03 §2.1 |
+
+Mutation check (2026-09-19): twelve wrong variants (background prompt "background clutter", missing period, altered class name, background row last, normalisation in float16, no normalisation, no cache, default `ViT-B/32`, silent fallback variant, reload on every call, CLIP not frozen, no shape check) each fail at least one test.
+
 ### 3.4 `tests/test_eppm.py` (G1)
 
 Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU) unless stated.
@@ -195,8 +212,8 @@ Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real
 | EP-2 | `L_total` finite; every trainable parameter has a finite, non-`None` gradient | 02 §7 |
 | EP-3 | One AdamW step (lr 1e-3, wd 0.1) changes parameters and keeps them finite | [PAPER §4.1] |
 | EP-4 | `eval()` forward twice → identical logits | [DECISION D-06] |
-| EP-5 | CLIP is loaded once for two episodes (load counter = 1) | 03 §2.1 |
-| EP-6 | Prompt strings match 03 §2.1 for a known `sampled_classes` | 03 §2.1 |
+| EP-5 | CLIP is loaded once for two episodes (load counter = 1); implemented in `tests/test_clip_text.py` (§3.3b) | 03 §2.1 |
+| EP-6 | Prompt strings match 03 §2.1 for a known `sampled_classes`; implemented in `tests/test_clip_text.py` (§3.3b) | 03 §2.1 |
 
 ### 3.10 Data gate (G4, marker `data`)
 

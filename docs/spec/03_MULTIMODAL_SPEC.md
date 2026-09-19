@@ -60,6 +60,8 @@ Diagram sources: [PAPER Fig.1] [DECISION D-13].
 | CLIP variant from config, default `ViT-B/16`, written to the run log | [DECISION D-13] |
 | Embedding = `encode_text` output, cast to float32, L2-normalised | [DECISION D-13] |
 | CLIP is frozen, loaded **once** per process; embeddings cached per prompt string | [DECISION D-13] |
+| CLIP is not a submodule of the model: its weights are not in `state_dict` or checkpoints, and `model.to()` / `.double()` do not touch it; `clip.load` places it on the training device (float16 weights on a GPU, float32 on the CPU), and its output is cast to float32 before the norm | [DECISION D-13] |
+| No fallback: an unknown or unavailable variant raises instead of switching to another one | [DECISION D-13] |
 
 ### 2.2 Audio and image (deferred)
 
