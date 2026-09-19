@@ -249,6 +249,16 @@ Mutation check (2026-09-19): fourteen wrong variants (random states, optimiser o
 
 Mutation check (2026-09-19): eleven wrong variants (cascade with ADRM, baseline with LMA, gate with two stages, seed not passed, no resume, `random600` everywhere, training or evaluation never skipped, only `best.pt` evaluated, a Table 2 setting or Table 5 depth missing) all fail.
 
+### 3.8d `tests/test_summarize.py` (G1)
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| SUM-1 | The transcribed paper numbers are self-consistent: each Avg is the rounded mean of S0 and S1; Table 4 "full", Table 5 T = 4 and Table 2 2-way 1-shot are the same numbers | [PAPER Tab.2, Tab.4, Tab.5] |
+| SUM-2 | Results are shown in %, dry runs are ignored, Avg uses the best checkpoints of both folds, the difference is ours − paper, one run fills every table cell it belongs to, protocols stay separate | D-08, D-15 |
+| SUM-3 | Seed spread = sample mean and standard deviation of the finished seeds | phase-14 plan |
+
+Mutation check (2026-09-19): eight wrong variants (no % scale, dry runs counted, Avg mixing best and last, flipped difference, seed runs mixed into the tables, two transcription errors, population standard deviation) all fail.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

@@ -435,3 +435,13 @@ B (training) after the pending VM check 13e.
   separate runs there; phase 14 compares our single run with both.
 * **Verification.** 6 CPU tests; mutation check 11/11. `eval.py --result_json` needs CUDA and is
   checked by the first P1 evaluation on the VM.
+
+### 14c — summary tables against the paper
+
+* **What.** New `experiments/summarize.py`: reads the evaluation JSON files and prints Tables 4, 5
+  and 2 (Text) with S0/S1 for `best` and `last`, the average of the best checkpoints, the paper's
+  numbers and the difference, plus the seed spread of the full model; ASCII output (the Windows
+  console cannot print Δ). `tests/test_summarize.py` (SUM-1…3).
+* **Sources.** Paper numbers transcribed from [PAPER Tab.2] (CascadeProto (Text) row), [PAPER Tab.4]
+  and [PAPER Tab.5]; SUM-1 checks each printed Avg against the mean of its S0 and S1.
+* **Verification.** 3 CPU tests; mutation check 8/8.
