@@ -133,6 +133,7 @@ flowchart TD
 ### 2.6 ADRM
 
 * `W_g ∈ R^{T×D}`, no bias; gate from the mean query feature; softmax over stages; weighted sum of stage logits (02 §6) [PAPER Eq.24–25].
+* Built only for T ≥ 2; with T = 1 the prediction is `L^1` and there is no `W_g` [DECISION D-17].
 
 ### 2.7 Losses
 

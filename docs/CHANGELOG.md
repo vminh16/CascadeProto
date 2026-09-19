@@ -328,3 +328,24 @@ shot, as in VIP-Seg) and scoped the flags: `cross_attn=two_hop`, `gate_target=fe
   `python train.py --dataset s3dis --data_path datasets/S3DIS/blocks_bs1_s1 --cvfold 0 --n_way 2 --k_shot 1 --use_lma true --num_stages 4 --use_adrm false --dry_run true`.
 * **What only the VM can show.** The EPPM cascade on the real VIP-Seg encoder (CUDA-only
   `mamba_ssm`, `pointnet2_ops`), float32 on the GPU, memory and time per step.
+
+---
+
+## Phase 13 — ADRM and the full model
+
+Maintainer decisions before this phase: no `W_g` for T = 1 (the prediction is `L^1` either way and
+`W_g` could never be trained); the D-16 biases of `W_1`, `W_2`, `W_out` stay although Eq.20–21 print
+none.
+
+### 13a — dynamic routing (Eq.24–25)
+
+* **What.** `models/adrm.py` rewritten as `DynamicRouting(num_stages)` with `weights(F^q)` and
+  `forward(stage logits, F^q)`; `tests/test_adrm_loss.py` (ADRM-1…4 and extras) replaces
+  `tests/test_adrm.py`.
+* **Why.** The old module had the right formula (audit) but the pre-rewrite batch API.
+* **Sources.** `w_gate = softmax(W_g AvgPool(F^q))`, `W_g ∈ R^{T×D}` without bias, `L_final = Σ_t
+  w_gate^(t) L^t` [PAPER Eq.24–25]; VIP-Seg's gating layer has a bias [VIPSEG models/vipseg.py:190],
+  the paper does not print one and wins (02 §6); T = 1 handled without `W_g` [DECISION D-17].
+* **Verification.** 12 CPU tests, float64, 1e-12. The first `gradcheck` on a full 2048-point query
+  crashed the process (numerical Jacobian over 262,144 inputs); it now runs on 16 points, which is
+  equivalent because ADRM only averages over points. Mutation check: 12/12 killed.

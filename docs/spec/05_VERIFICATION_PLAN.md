@@ -151,10 +151,10 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 
 | ID | Check | Source |
 | :--- | :--- | :--- |
-| ADRM-1 | `w_gate` shape `[B_q, T]`, rows sum to 1 ± 1e-6 | 02 §6 |
+| ADRM-1 | `w_gate` shape `[B_q, T]` for T = 2, 3, 4, 6, rows sum to 1, equal to `softmax(W_g · mean_i F^q)` written out | 02 §6 |
 | ADRM-2 | `W_g` weight shape `[T, 128]`, no bias | 02 §6 |
-| ADRM-3 | `L_final = Σ_t w_gate[t] · L^t` to 1e-6 | 02 §6 |
-| ADRM-4 | Gradients reach every `L^t` and `W_g` | 02 §6 |
+| ADRM-3 | `L_final = Σ_t w_gate[t] · L^t` from an explicit loop, to 1e-12; identical stage logits pass through unchanged | 02 §6 |
+| ADRM-4 | `∂L_final/∂L^t = w_gate[t]` per query (checked with a random upstream gradient); `W_g` receives a gradient; `gradcheck` passes (on 16 points: ADRM does not depend on the point count); queries do not mix; T = 1 and a wrong stage count raise. Mutation check (2026-09-19): twelve wrong variants (bias, softmax over queries, sigmoid, max pooling, channel pooling, pooling over all queries, uniform weights, reversed stages, last stage only, detached weights, T = 1 allowed, no count check) all fail | 02 §6 |
 | LOSS-1 | `L_seg` equals `F.cross_entropy(L_final, Y_q)` **without** `weight` | 02 §7, [PAPER Eq.27] |
 | LOSS-2 | `L_total = L_seg + 1.0 · L_GMMN` | 02 §7 |
 | LOSS-3 | No loss term uses stage logits `L^1..L^{T−1}` directly | 02 §7 |
