@@ -225,11 +225,11 @@ ENC-1 and ENC-6 need VIP-Seg's checkpoint at `$CASCADEPROTO_VIPSEG_CKPT` (defaul
 
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
-Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names.
+Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.
 
 | ID | Check | Source |
 | :--- | :--- | :--- |
-| EP-1 | Forward returns `L_final [N, 2048, N+1]`, `P_point` and `P_modal` `[N+1, 128]`, `w_gate [N, 4]` | 02 §10 |
+| EP-1 | Forward returns `L_final [N, 2048, N+1]` and a positive, finite `L_GMMN`; the model has 4 stages and `W_g` of width 4; the real class embeddings differ between ways | 02 §10 |
 | EP-2 | `L_total` finite; every trainable parameter has a finite, non-`None` gradient | 02 §7 |
 | EP-3 | One AdamW step (lr 1e-3, wd 0.1) changes parameters and keeps them finite | [PAPER §4.1] |
 | EP-4 | `eval()` forward twice → identical logits | [DECISION D-06] |

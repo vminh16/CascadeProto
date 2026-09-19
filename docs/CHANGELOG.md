@@ -363,3 +363,12 @@ none.
   as 01 §4 predicts (CP-17).
 * **Verification.** 109 tests in the model, loss, ablation and pipeline files pass on the CPU.
   Mutation check of the wiring: 6/6 killed.
+
+### 13c — full model with the real CLIP (EP-1…4)
+
+* **What.** New `tests/test_episode.py` (marker `clip`): the default configuration on one episode
+  with the real frozen `ViT-B/16`, float32, stand-in encoder. EP-1 follows the model contract of
+  `pipeline/model_api.py` (logits and `L_GMMN`) instead of the pre-rewrite list of outputs.
+* **Verification.** 4 passed locally on the CPU: output contract, finite loss with a gradient on
+  every parameter, one AdamW step (lr 1e-3, wd 0.1) changes every parameter and keeps it finite,
+  deterministic evaluation.
