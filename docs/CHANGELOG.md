@@ -459,3 +459,15 @@ B (training) after the pending VM check 13e.
   D-09 keeps Table 6 out of the acceptance criteria.
 * **Verification.** 5 CPU tests on the stand-in encoder. The real numbers need the CUDA encoder and
   are measured on the VM with the P1 runs.
+
+### 14e — training runs on the VM · PENDING
+
+* **Status.** Group A (14a–14d) done on the CPU (261 G1 tests). Group B needs the VM, which is
+  unreachable (2026-09-19); it starts after the pending 13e check passes.
+* **Commands** (inside `tmux`, from the repository root, after `git pull` and
+  `pip install -r requirements.txt` for fvcore):
+  1. 13e first (see above).
+  2. `python experiments/complexity.py --dataset s3dis --data_path datasets/S3DIS/blocks_bs1_s1 --cvfold 0 --n_way 2 --k_shot 1`
+  3. `python experiments/phase14.py --data_path datasets/S3DIS/blocks_bs1_s1 --priority P1` — rerun the
+     same command after any interruption; then P2, P2s, P3, P4.
+  4. `python experiments/summarize.py` (and `--protocol random600` for P1).
