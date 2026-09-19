@@ -66,7 +66,7 @@ Sources for the diagram: [PAPER Fig.1] [PAPER Eq.2–9] [PAPER Eq.22–27] [DECI
 | Feature head | L2 norm → `BN(900)+ReLU` → `Conv1d(900→196)+BN+ReLU` → `Conv1d(196→128)+BN+ReLU` | [VIPSEG models/vipseg.py:45-53,85-97] |
 | Input | 9 channels `xyz, rgb, XYZ`; the encoder uses `XYZ` (columns 6–8) as positions and `rgb` (3–5) as colour, and ignores columns 0–2 | [VIPSEG models/encoder.py:645] [VIPSEG scripts/vipseg_s3dis.sh] |
 | Weight sharing | One instance for support and query | [PAPER §3.3 "The encoder is shared between support and query branches"] |
-| Batching | Every block is its own sample: support `[N·K, 2048, 9]`, query `[B_q, 2048, 9]` | [PAPER Eq.2] [VIPSEG models/vipseg.py:79-81] |
+| Batching | Every block is its own sample: support `[N·K, 2048, 9]`, query `[B_q, 2048, 9]`, one encoder call each per episode. The encoder standardises with batch-wide statistics, so the batch composition must be exactly this (02 §2) | [PAPER Eq.2] [VIPSEG models/vipseg.py:79-81] [VIPSEG models/encoder.py:281-283,413-415,582-584] |
 | Initialisation | From scratch; no pre-trained point-cloud weights | [PAPER Tab.1] [PAPER §1 "requires no pre-training"] [VIPSEG README.md] |
 | Mamba | `mamba_ssm` is **required**. Import failure must stop the program; no fallback block | [VIPSEG models/encoder.py:22-23] [PAPER §4.1] |
 | FPS | `pointnet2_ops` CUDA furthest-point sampling | [VIPSEG models/encoder.py:81] |

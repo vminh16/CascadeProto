@@ -150,7 +150,7 @@ Phase-10 model = Table 4 "Baseline" row of D-17. The encoder is the per-point st
 | CP-1 | Logits `[B_q, 2048, N+1]`; `L_GMMN = 0` when `use_lma=false` | 02 §10, D-17 |
 | CP-2 | Logits equal `F^q P_pointᵀ` computed from the extractor and `point_prototypes`, element-wise | [PAPER Eq.23], D-10 |
 | CP-3 | Permuting the ways permutes logit channels 1..N and keeps channel 0 | 02 §3, §5.5 |
-| CP-4 | In eval mode one query's logits do not depend on the other queries | 02 §2 |
+| CP-4 | Everything after the encoder is per query: with a per-point stand-in encoder, one query's logits do not depend on the other queries (the real encoder couples them through batch statistics, ENC-3) | 02 §2, §5.5 |
 | CP-5 | `logit_scale=sqrt_D` divides by √128; `l2norm_point_proto=true` normalises the prototype rows | D-10 |
 | CP-6 | Unimplemented switch combinations raise naming their phase; out-of-range switches raise `ValueError` | 01 §3, D-17 |
 | CP-7 | The loss reaches every parameter with a non-zero, finite gradient | 02 §7 |
@@ -174,11 +174,11 @@ The metric is VIP-Seg's `evaluate_metric`, called unchanged; its module imports 
 | :--- | :--- | :--- |
 | ENC-1 | Encoder parameter count 2.37M ± 0.01M; feature head 204,260 | 01 §4 |
 | ENC-2 | Output `[B, 2048, 128]`, all entries ≥ 0 | 02 §2 |
-| ENC-3 | **Block independence:** in `eval()` mode, features of support block 0 do not change when other blocks in the batch change | 02 §2 |
-| ENC-4 | **Query independence:** same property across queries | 02 §2 |
+| ENC-3 | **Batch coupling is VIP-Seg's:** in `eval()` mode, changing the other blocks of one encoder call changes block 0's features (batch-wide mean/std) | 02 §2, [VIPSEG models/encoder.py:281-283,413-415,582-584] |
+| ENC-4 | `encode_episode` uses VIP-Seg's composition exactly: support features equal one call on the N·K support blocks, query features one call on the queries, and the queries never change the support features | 02 §2, [VIPSEG models/vipseg.py:79-89] |
 | ENC-5 | Input uses 9 channels; passing 3 channels raises | 01 §2.1 |
 | ENC-6 | With VIP-Seg's released weights (`load_vipseg_weights`), features equal VIP-Seg's own encoder → L2 norm → `bn` → `fc` path to 1e-6 | [VIPSEG models/vipseg.py:85-97] |
-| ENC-7 | `encode_episode` equals per-block calls (support to 1e-5, queries exactly) | 02 §2 |
+| ENC-7 | On an episode, `encode_episode` equals VIP-Seg's own support and query feature path, including its `permute`/`view` of the loader layout, to 1e-6 | [VIPSEG models/vipseg.py:77-97] |
 | ENC-8 | A `state_dict` holds the 6 fixed projections; a fresh model differs until it loads them, then matches exactly | 01 §2.1 |
 
 ENC-1 and ENC-6 need VIP-Seg's checkpoint at `$CASCADEPROTO_VIPSEG_CKPT` (default `<repo>/vipseg_S0_N2_K1.pt`); a missing file fails the test.
@@ -255,7 +255,7 @@ No numeric tolerance is defined: the paper reports single runs without variance,
 | Environment | real Mamba encoder, CUDA ops, pinned inherited files | ENV-1..4, ENC-1 | C4, C5, L4 |
 | Data | real loader, documented layout, 9 channels, binary masks | DATA-1..6 | C1, C5, M5 |
 | Prototypes | per-way MAP on binary masks | PROTO-1..4 | C2, L8 |
-| Encoder batching | blocks and queries independent | ENC-3..4, XATT-6 | C3, C4, M1 |
+| Encoder batching | blocks are separate samples; VIP-Seg's per-episode batch composition reproduced | ENC-3,4,7, XATT-6 | C3, C4, M1 |
 | LMA / GMMN | squared MMD, joint fg set, deterministic eval | LMA-1..3, MMD-1..7 | H5, M3 |
 | EPPM | gate, channel attention, diffusion, fusion as in 02 §5 | GATE-*, XATT-*, DIFF-*, FUSE-*, STAGE-* | H3, H4, M2 |
 | Routing and loss | simplex routing, unweighted CE | ADRM-1..4, LOSS-1..3 | H2 |

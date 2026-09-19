@@ -74,3 +74,23 @@ Find the commit of an entry with `git log --oneline --grep "<step id>"`.
   eval.py restores the stored configuration. Mutation check: eight wrong variants all fail. A first
   version of CP-8 used random labels, which no model can learn; it was replaced by an episode whose
   colours depend on the class, as real data does.
+
+### 10b-fix — the VIP-Seg encoder couples the blocks of one call
+
+* **What.** ENC-3, ENC-4 and ENC-7 rewritten; spec 02 §2, 01 §2.1 and 05 §3.6b/§3.8 corrected; CP-4
+  renamed. No model code changed.
+* **Why.** On the GCP L4, ENC-3/4/7 failed with differences up to 0.064: a block's features changed
+  when other blocks of the same encoder call changed. The encoder standardises three intermediate
+  tensors with a single mean and standard deviation over the whole batch tensor (all blocks, points and
+  channels), in training and evaluation [VIPSEG models/encoder.py:281-283,413-415,582-584]. The spec's
+  claim that blocks are encoded "independently" was therefore wrong; they are separate samples for
+  FPS/kNN, but coupled through these statistics. This is VIP-Seg's own behaviour and produced its
+  72.20, so the inherited encoder stays unchanged.
+* **Consequence.** Features equal VIP-Seg's only with VIP-Seg's batch composition: one encoder call
+  for the N·K support blocks of an episode and one for its queries [VIPSEG models/vipseg.py:79-89].
+  `encode_episode` does exactly this and `train.py` / `eval.py` forward one episode at a time, so no
+  code change is needed; the rule is now written in 02 §2 so later phases never batch several
+  episodes into one encoder call.
+* **Verification.** ENC-3 documents the coupling; ENC-4 checks the composition exactly
+  (`torch.equal`); ENC-7 compares an episode's features with VIP-Seg's own path, including its
+  `permute`/`view` of the loader layout, to 1e-6. ENC-6 (same batch, VIP-Seg weights) had already passed.

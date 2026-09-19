@@ -45,13 +45,15 @@ A training batch holds 4 independent episodes; every formula below is applied pe
 
 ## 2. Feature extraction (Eq.2)
 
-Each support block and each query block is encoded **independently** by the shared VIP-Seg encoder [PAPER Eq.2] [VIPSEG models/vipseg.py:79-97]:
+Each support block and each query block is its own sample of the shared VIP-Seg encoder [PAPER Eq.2] [VIPSEG models/vipseg.py:79-97]:
 
 $$F^s = f_{enc}(X^s) \in \mathbb{R}^{N \times K \times 2048 \times D}, \qquad F^q = f_{enc}(X^q) \in \mathbb{R}^{B_q \times 2048 \times D}$$
 
 `f_enc` = VIP-Seg encoder → channel-wise L2 normalisation → `BN(900) → ReLU → Conv1d(900→196) → BN → ReLU → Conv1d(196→128) → BN → ReLU` [VIPSEG models/vipseg.py:34-53,85-97]. Consequence: `F ≥ 0` element-wise (see §5.3 and [DECISION D-14]).
 
 Support blocks must never be concatenated into one point set before the encoder: FPS/kNN would mix blocks whose normalised coordinates overlap [VIPSEG models/vipseg.py:79].
+
+**Batch coupling.** Being separate samples does not make blocks independent. The encoder standardises three intermediate tensors with one mean and one standard deviation taken over the **whole batch tensor** (all blocks, points and channels), in training and evaluation alike [VIPSEG models/encoder.py:281-283,413-415,582-584]. A block's features therefore depend on the other blocks of the same encoder call. The features equal VIP-Seg's only for VIP-Seg's batch composition: one call with the N·K support blocks of one episode and one call with that episode's queries [VIPSEG models/vipseg.py:79-89]. Never encode blocks of different episodes, or supports together with queries, in one call; `encode_episode` enforces this, and `train.py` / `eval.py` forward one episode at a time.
 
 ---
 

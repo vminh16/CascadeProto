@@ -15,7 +15,6 @@ pytestmark = pytest.mark.cuda
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CKPT = os.environ.get("CASCADEPROTO_VIPSEG_CKPT", os.path.join(REPO, "vipseg_S0_N2_K1.pt"))
-BLOCK_TOL = 1e-5  # different batch compositions may pick different CUDA kernels
 
 
 @pytest.fixture(scope="module")
@@ -55,22 +54,28 @@ def test_enc2_output_shape_and_range(extractor):
     assert torch.isfinite(out).all() and (out >= 0).all()
 
 
-@pytest.mark.parametrize("first", [0, 2])
-def test_enc3_support_blocks_are_independent(extractor, first):
+def test_enc3_encoder_couples_blocks_of_one_call(extractor):
+    """VIP-Seg's encoder normalises with one mean/std over the whole batch tensor
+    [VIPSEG models/encoder.py:281-283,413-415,582-584], so a block's features depend on the other
+    blocks of the same call. This documents the property; ENC-4 and ENC-7 check that we reproduce
+    VIP-Seg's batch composition exactly."""
     x = blocks(4, seed=1)
     y = x.clone()
-    y[[i for i in range(4) if i != first]] = blocks(3, seed=2)
+    y[1:] = blocks(3, seed=2)
     with torch.no_grad():
-        diff = (extractor(x)[first] - extractor(y)[first]).abs().max().item()
-    assert diff <= BLOCK_TOL, diff
+        diff = (extractor(x)[0] - extractor(y)[0]).abs().max().item()
+    assert diff > 1e-4, diff
 
 
-def test_enc4_queries_are_independent_and_match_single_block(extractor):
-    q = blocks(3, seed=3)
+def test_enc4_encode_episode_uses_vipseg_batch_composition(extractor):
+    """One call for the N*K support blocks, another for the queries [VIPSEG models/vipseg.py:79-89]."""
+    sx, qx = blocks(6, seed=3).unflatten(0, (3, 2)), blocks(3, seed=4)  # [3, 2, 2048, 9], [3, 2048, 9]
     with torch.no_grad():
-        batched = extractor(q)
-        single = torch.stack([extractor(q[i:i + 1])[0] for i in range(3)])
-    assert (batched - single).abs().max().item() <= BLOCK_TOL
+        f_s, f_q = extractor.encode_episode(sx, qx)
+        assert torch.equal(f_s, extractor(sx.flatten(0, 1)).unflatten(0, (3, 2)))
+        assert torch.equal(f_q, extractor(qx))
+        f_s_other, _ = extractor.encode_episode(sx, blocks(3, seed=5))  # queries never enter the support call
+        assert torch.equal(f_s, f_s_other)
 
 
 def test_enc5_rejects_non_9_channel_input(extractor):
@@ -92,14 +97,21 @@ def test_enc6_features_equal_vipseg_model(extractor, vipseg_model):
     assert (ours - ref).abs().max().item() <= 1e-6
 
 
-def test_enc7_encode_episode_matches_per_block_calls(extractor):
-    sx, qx = blocks(6, seed=6).unflatten(0, (3, 2)), blocks(3, seed=7)  # [3, 2, 2048, 9], [3, 2048, 9]
+def test_enc7_episode_features_equal_vipseg_forward_path(extractor, vipseg_model):
+    """encode_episode on an episode equals VIP-Seg's own support/query feature path, including its
+    permute/view of the support tensor [VIPSEG models/vipseg.py:77-97]."""
+    n, k = 3, 2
+    sx, qx = blocks(n * k, seed=6).unflatten(0, (n, k)), blocks(n, seed=7)  # our layout (02 §1)
     with torch.no_grad():
         f_s, f_q = extractor.encode_episode(sx, qx)
-        for i in range(3):
-            for j in range(2):
-                assert (f_s[i, j] - extractor(sx[i, j][None])[0]).abs().max().item() <= BLOCK_TOL
-        assert (f_q - extractor(qx)).abs().max().item() == 0.0
+        loader_layout = sx.permute(0, 1, 3, 2)  # [N, K, 9, 2048], what batch_task_collate hands VIP-Seg
+        s_in = loader_layout.permute(0, 1, 3, 2).reshape(-1, NUM_POINT, IN_CHANNELS)  # VIP-Seg's own op, [N*K, 2048, 9]
+        ref_s = vipseg_model.encoder(s_in)
+        ref_s = vipseg_model.fc(vipseg_model.bn(ref_s / ref_s.norm(dim=1, keepdim=True))).permute(0, 2, 1)
+        ref_q = vipseg_model.encoder(qx)
+        ref_q = vipseg_model.fc(vipseg_model.bn(ref_q / ref_q.norm(dim=1, keepdim=True))).permute(0, 2, 1)
+    assert (f_s - ref_s.view(n, k, NUM_POINT, FEATURE_DIM)).abs().max().item() <= 1e-6
+    assert (f_q - ref_q).abs().max().item() <= 1e-6
 
 
 def test_enc8_checkpoint_round_trip_restores_fixed_projections(extractor):

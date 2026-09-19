@@ -64,7 +64,9 @@ def test_cp3_way_permutation_permutes_foreground_logits():
     assert torch.allclose(b[..., 1:], a[..., 1:][..., ways], atol=ATOL, rtol=0)
 
 
-def test_cp4_queries_do_not_influence_each_other_in_eval():
+def test_cp4_post_encoder_computation_is_per_query():
+    """With a per-point stand-in encoder nothing after the encoder mixes queries. The real VIP-Seg encoder
+    does couple the blocks of one call through batch-wide statistics (02 §2, test ENC-3)."""
     m, ep = model().eval(), episode(bq=3)
     other = episode(bq=3)
     other.query_x = ep.query_x.clone()
