@@ -471,3 +471,11 @@ B (training) after the pending VM check 13e.
   3. `python experiments/phase14.py --data_path datasets/S3DIS/blocks_bs1_s1 --priority P1` — rerun the
      same command after any interruption; then P2, P2s, P3, P4.
   4. `python experiments/summarize.py` (and `--protocol random600` for P1).
+
+### 13e — VM check of phases 12 and 13 · PASSED (2026-09-19)
+
+* **Result.** On the GCP L4 the maintainer ran the isolation sequence (steps 1–7): environment,
+  data and metric, encoder and baseline, LMA/CLIP, EPPM cascade, ADRM and full model, phase-14
+  infrastructure. Every pytest gate and every dry run (baseline, + LMA, + Entropy Gate, + Cascade,
+  full model) passed. Phases 12 and 13 are closed; 12f is covered by this check.
+* **Not yet shown.** Reproduction of the paper's numbers: that needs the full-schedule runs of 14e.
