@@ -144,7 +144,7 @@ flowchart TD
 
 ## 3. Ablation switches
 
-Required configuration options. Defaults reproduce the full model. They live in `models/cascadeproto.py::CascadeProtoConfig` and on the `train.py` command line; every checkpoint stores its configuration and `eval.py` rebuilds the model from it. Until phases 12–13 land, only `num_stages=0` is implemented: the Table 4 "Baseline" row (`use_lma=false`, prediction `F^q P_pointᵀ`) and the "+ LMA" row (`use_lma=true`, prediction `F^q (P^0)ᵀ` plus `L_GMMN`); other combinations raise `NotImplementedError` naming the phase [DECISION D-17].
+Required configuration options. Defaults reproduce the full model. They live in `models/cascadeproto.py::CascadeProtoConfig` and on the `train.py` command line; every checkpoint stores its configuration and `eval.py` rebuilds the model from it. Until phase 13 lands, ADRM with `num_stages ≥ 2` raises `NotImplementedError`. Implemented: "Baseline" (`use_lma=false, num_stages=0`, `F^q P_pointᵀ`), "+ LMA" (`num_stages=0`, `F^q (P^0)ᵀ` plus `L_GMMN`), "+ Entropy Gate" (`num_stages=1`, `L^1`) and "+ Cascade" (`num_stages=T, use_adrm=false`, `L^T`) [DECISION D-17]. Non-default values of `cross_attn`, `gate_target` and `diffusion_input` raise.
 
 | Option | Default | Values | Source |
 | :--- | :--- | :--- | :--- |

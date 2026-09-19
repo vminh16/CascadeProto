@@ -169,7 +169,7 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 
 ### 3.6b `tests/test_cascadeproto.py` (G1)
 
-Phase-11 model = Table 4 "Baseline" and "+ LMA" rows of D-17. The encoder is the per-point stand-in of 3.2b and CLIP the recording stand-in of 3.3b; feature head, prototypes, adapter, generator, GMMN, logits and loss are the real code. float64, 1e-12. CP-7 and CP-8 run for both rows.
+Phase-12 model = Table 4 rows "Baseline", "+ LMA", "+ Entropy Gate" and "+ Cascade (T = 4)" of D-17 (CP-7 and CP-8 run for all four). The encoder is the per-point stand-in of 3.2b and CLIP the recording stand-in of 3.3b; feature head, prototypes, adapter, generator, GMMN, logits and loss are the real code. float64, 1e-12. CP-7 and CP-8 run for both rows.
 
 | ID | Check | Source |
 | :--- | :--- | :--- |
@@ -185,11 +185,16 @@ Phase-11 model = Table 4 "Baseline" and "+ LMA" rows of D-17. The encoder is the
 | CP-10 | `L_GMMN` equals `0.1·MMD(bg) + 1.0·MMD(fg)` of `P_modal` and `P_point` from the explicit reference; `L_total = CE + L_GMMN`; `gmmn_fg_mode` reaches the loss | [PAPER Eq.8, Eq.26], D-04 |
 | CP-11 | The prompts follow the episode's ways in sampling order (checked with a non-sorted order) | 03 §2.1 |
 | CP-12 | Evaluation is deterministic (z = 0), training and `eval_noise=sample` are not; `L_GMMN` reaches the feature head unless `gmmn_detach_point` | D-06, D-04 |
+| CP-14 | `num_stages = 1, 2, 4` with `use_adrm=false`: logits equal `F^q (P^T)ᵀ` after running P^0 (written out, one copy per query) through the stages in order; stages share no parameter; each adds 79,395 parameters; swapping two stages changes the output; `logit_scale=sqrt_D` scales the cascade output | [PAPER Eq.22–23], D-17 |
+| CP-15 | With one stage, `use_adrm` true or false gives identical logits; `use_gate`, `cross_attn_scale`, `fusion_weight` reach every stage | D-17, 01 §3 |
+| CP-16 | The cascade keeps way equivariance (row 0 fixed, rows 1..N permuted) and query independence, with and without LMA | 02 §5–6 |
 | CP-13 | `state_dict` holds only `features.*` and `lma.*` (CLIP excluded); LMA adds exactly 148,352 parameters; `.double()` leaves the CLIP cache in float32; a phase-10 checkpoint configuration still loads | 01 §4, 03 §2.1 |
 
 Mutation check (2026-09-18): eight wrong variants (cosine logits, scale always on, L2 flag ignored or always on, background prototype dropped, non-zero `L_GMMN`, no implementation check, reversed ways) each fail at least one test.
 
 Mutation check for the "+ LMA" row (2026-09-19): twelve wrong variants (`P_modal` not added, used alone or subtracted, GMMN on `P^0`, GMMN dropped, `gmmn_fg_mode` or `gmmn_detach_point` ignored, always detached, `eval_noise` ignored, class names sorted, modality check removed, L2 flag ignored) each fail at least one test. The sorted-names variant first survived because the fixture's classes were already in alphabetical order; CP-11 now uses a non-sorted order.
+
+Mutation check for the cascade rows (2026-09-19): fourteen wrong variants (logits from P^0, mean of stage logits, every stage fed P^0, first stage only, one shared stage, one stage fewer, `use_gate` / scale / fusion flags ignored, cascade started without `P_modal`, ADRM check dropped or applied at T = 1, flag check dropped, `logit_scale` skipped for the cascade) each fail at least one test; the last one first survived and CP-14 now covers `sqrt_D` on the cascade.
 
 ### 3.7 `tests/test_eval_metric.py` (G2, marker `cuda`)
 

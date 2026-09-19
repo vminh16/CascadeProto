@@ -3,8 +3,11 @@
 Built in phases. Implemented so far, as rows of Table 4 [DECISION D-17]:
 * Baseline (`use_lma=false, num_stages=0`): `L = F^q P_pointᵀ` (Eq.23 with P = P_point).
 * + LMA (`use_lma=true, num_stages=0`): `L = F^q (P^0)ᵀ`, `P^0 = P_point + P_modal` (Eq.9), plus L_GMMN.
-The switches of spec 01 §3 are all present; configurations that need the EPPM cascade (phase 12) or
-ADRM (phase 13) raise NotImplementedError until those phases land.
+* + Entropy Gate (`num_stages=1`) and + Cascade (`num_stages=T, use_adrm=false`): P^0 -> EPPM_1 -> ...
+  -> P^T (Eq.22), prediction `L^T = F^q (P^T)ᵀ` (Eq.23). With T = 1, ADRM weighs a single stage by 1, so
+  `use_adrm` does not change the prediction.
+The switches of spec 01 §3 are all present; configurations that need ADRM with T >= 2 (phase 13) or an
+unimplemented ablation flag raise NotImplementedError.
 """
 
 import math
@@ -17,6 +20,7 @@ import torch.nn.functional as F
 
 from loss.gmmn_loss import FG_MODES, gmmn_loss
 from models.clip_text import DEFAULT_CLIP_VARIANT, ClipTextEmbedding
+from models.eppm import CROSS_ATTN_SCALES, FUSION_WEIGHTS, EPPMStage, stage_logits
 from models.lma import EVAL_NOISE, LearnableModalityAdapter
 from models.prototypes import point_prototypes
 from pipeline.episodes import Episode
@@ -24,6 +28,9 @@ from pipeline.model_api import EpisodeOutput
 
 MODALITIES = ("text", "image", "audio")  # 03 §2
 LOGIT_SCALES = ("none", "sqrt_D")  # [DECISION D-10]
+CROSS_ATTN = ("channel", "two_hop")  # [DECISION D-01]
+GATE_TARGETS = ("prototype", "features")  # [DECISION D-02]
+DIFFUSION_INPUTS = ("post_relu", "pre_relu")  # [DECISION D-14]
 
 
 @dataclass(frozen=True)
@@ -45,6 +52,11 @@ class CascadeProtoConfig:
     eval_noise: str = "zero"  # [DECISION D-06]
     gmmn_fg_mode: str = "joint"  # [DECISION D-04]
     gmmn_detach_point: bool = False  # [DECISION D-04]
+    cross_attn: str = "channel"  # [DECISION D-01]
+    cross_attn_scale: str = "sqrt_d"  # [DECISION D-01]
+    gate_target: str = "prototype"  # [DECISION D-02]
+    fusion_weight: str = "per_query"  # [DECISION D-11]
+    diffusion_input: str = "post_relu"  # [DECISION D-14]
 
     def __post_init__(self):
         if not 0 <= self.num_stages <= 6:
@@ -52,15 +64,25 @@ class CascadeProtoConfig:
         for name, value, allowed in (("modality", self.modality, MODALITIES),
                                      ("logit_scale", self.logit_scale, LOGIT_SCALES),
                                      ("eval_noise", self.eval_noise, EVAL_NOISE),
-                                     ("gmmn_fg_mode", self.gmmn_fg_mode, FG_MODES)):
+                                     ("gmmn_fg_mode", self.gmmn_fg_mode, FG_MODES),
+                                     ("cross_attn", self.cross_attn, CROSS_ATTN),
+                                     ("cross_attn_scale", self.cross_attn_scale, CROSS_ATTN_SCALES),
+                                     ("gate_target", self.gate_target, GATE_TARGETS),
+                                     ("fusion_weight", self.fusion_weight, FUSION_WEIGHTS),
+                                     ("diffusion_input", self.diffusion_input, DIFFUSION_INPUTS)):
             if value not in allowed:
                 raise ValueError(f"{name} must be one of {allowed}, got {value!r}")
 
     def check_implemented(self) -> None:
         if self.use_lma and self.modality != "text":
             raise NotImplementedError(f"modality {self.modality!r} is not implemented yet (03 §2.2)")
-        if self.num_stages > 0:
-            raise NotImplementedError("num_stages > 0 needs the EPPM cascade of phase 12 (and ADRM, phase 13)")
+        if self.num_stages >= 2 and self.use_adrm:
+            raise NotImplementedError("use_adrm=true with num_stages >= 2 needs the ADRM of phase 13")
+        for name, value, default in (("cross_attn", self.cross_attn, "channel"),
+                                     ("gate_target", self.gate_target, "prototype"),
+                                     ("diffusion_input", self.diffusion_input, "post_relu")):
+            if value != default:
+                raise NotImplementedError(f"{name}={value!r} is not implemented (00 D-01, D-02, D-14)")
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -81,6 +103,10 @@ class CascadeProto(nn.Module):
             self.lma = LearnableModalityAdapter(eval_noise=config.eval_noise)
             # Frozen CLIP stays outside the module tree: not in state_dict, untouched by .to()/.double() (03 §2.1)
             self.text = text_embedding if text_embedding is not None else ClipTextEmbedding(config.clip_variant)
+        # T stages with their own parameters [PAPER §3.5] [DECISION D-16]
+        self.stages = nn.ModuleList(
+            EPPMStage(use_gate=config.use_gate, cross_attn_scale=config.cross_attn_scale,
+                      fusion_weight=config.fusion_weight) for _ in range(config.num_stages))
 
     def forward(self, episode: Episode) -> EpisodeOutput:
         f_s, f_q = self.features.encode_episode(episode.support_x, episode.query_x)  # [N,K,P,D], [B_q,P,D]
@@ -96,7 +122,13 @@ class CascadeProto(nn.Module):
         else:
             loss_gmmn = f_q.new_zeros(())  # no LMA -> no L_GMMN [DECISION D-17]
             prototypes = p_point  # [N+1, D]
-        logits = torch.einsum("bpd,cd->bpc", f_q, prototypes)  # [B_q, P, N+1] (Eq.23, no temperature)
+        if len(self.stages) == 0:
+            logits = torch.einsum("bpd,cd->bpc", f_q, prototypes)  # [B_q, P, N+1] (Eq.23, no temperature)
+        else:
+            p = prototypes.unsqueeze(0).expand(f_q.shape[0], -1, -1)  # P^0 per query [B_q, N+1, D] (02 §4.5)
+            for stage in self.stages:
+                p = stage(p, f_s, f_q)  # P^t (Eq.22)
+            logits = stage_logits(f_q, p)  # L^T [B_q, P, N+1] (Eq.23) [DECISION D-17]
         if self.config.logit_scale == "sqrt_D":  # ablation only [DECISION D-10]
             logits = logits / math.sqrt(f_q.shape[-1])
         return EpisodeOutput(logits=logits, loss_gmmn=loss_gmmn)

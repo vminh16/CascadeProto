@@ -1,4 +1,4 @@
-"""CP-1..13 (05 §3.6b, gate G1): CascadeProto as the Table 4 "Baseline" and "+ LMA" rows of D-17.
+"""CP-1..16 (05 §3.6b, gate G1): CascadeProto as the Table 4 rows of D-17 up to "+ Cascade".
 
 The VIP-Seg encoder is replaced by the per-point stand-in of test_feature_extractor.py and CLIP by the
 recording stand-in of test_clip_text.py; everything else (feature head, prototypes, adapter,
@@ -27,6 +27,9 @@ from tests.test_lma_gmmn import mmd_ref, reference
 ATOL = 1e-12
 BASELINE = CascadeProtoConfig(use_lma=False, num_stages=0)
 LMA = CascadeProtoConfig(use_lma=True, num_stages=0)
+GATE = CascadeProtoConfig(use_lma=True, num_stages=1)  # "+ Entropy Gate" [DECISION D-17]
+CASCADE = CascadeProtoConfig(use_lma=True, num_stages=4, use_adrm=False)  # "+ Cascade (T = 4)"
+ROWS = [BASELINE, LMA, GATE, CASCADE]
 CLASS_NAMES = ["ceiling", "floor", "wall", "beam", "column", "window", "door",
                "table", "chair", "sofa", "bookcase", "board", "clutter"]
 
@@ -95,8 +98,11 @@ def test_cp5_d10_ablation_flags():
     assert torch.allclose(normed(ep).logits, expected, atol=ATOL, rtol=0)
 
 
-@pytest.mark.parametrize("config,phase", [(CascadeProtoConfig(), "phase 12"),
-                                          (CascadeProtoConfig(use_lma=False, num_stages=1), "phase 12"),
+@pytest.mark.parametrize("config,phase", [(CascadeProtoConfig(), "phase 13"),
+                                          (CascadeProtoConfig(num_stages=2), "phase 13"),
+                                          (CascadeProtoConfig(num_stages=2, use_adrm=False, cross_attn="two_hop"), "two_hop"),
+                                          (CascadeProtoConfig(num_stages=1, gate_target="features"), "features"),
+                                          (CascadeProtoConfig(num_stages=1, diffusion_input="pre_relu"), "pre_relu"),
                                           (CascadeProtoConfig(num_stages=0, modality="audio"), "modality 'audio'"),
                                           (CascadeProtoConfig(num_stages=0, modality="image"), "modality 'image'"),
                                           (CascadeProtoConfig(num_stages=0, eval_noise="mean_of_M"), "mean_of_M")])
@@ -107,13 +113,15 @@ def test_cp6_unimplemented_configurations_raise(config, phase):
 
 @pytest.mark.parametrize("kwargs", [dict(num_stages=7), dict(num_stages=-1), dict(modality="video"),
                                     dict(logit_scale="sqrt_d"), dict(eval_noise="mean"),
-                                    dict(gmmn_fg_mode="per_way")])
+                                    dict(gmmn_fg_mode="per_way"), dict(cross_attn="point"),
+                                    dict(cross_attn_scale="sqrt_72"), dict(gate_target="both"),
+                                    dict(fusion_weight="per_way"), dict(diffusion_input="raw")])
 def test_cp6_invalid_configurations_raise(kwargs):
     with pytest.raises(ValueError):
         CascadeProtoConfig(use_lma=False, **{"num_stages": 0, **kwargs})
 
 
-@pytest.mark.parametrize("config", [BASELINE, LMA])
+@pytest.mark.parametrize("config", ROWS)
 def test_cp7_loss_backward_reaches_every_parameter(config):
     m, ep = model(config).train(), episode()
     episode_loss(m(ep), ep).backward()
@@ -140,7 +148,7 @@ def learnable_episode(n=2, k=2, bq=2, seed=3):
     return ep
 
 
-@pytest.mark.parametrize("config", [BASELINE, LMA])
+@pytest.mark.parametrize("config", ROWS)
 def test_cp8_model_learns_a_fixed_episode(config):
     """A few AdamW steps (the paper's optimiser settings) lower the loss and raise query accuracy."""
     m, ep = model(config).train(), learnable_episode()
@@ -157,7 +165,7 @@ def test_cp8_model_learns_a_fixed_episode(config):
     assert (predict(m(ep)) == ep.query_y).double().mean() > 1.0 / 3.0  # better than chance for N=2
 
 
-@pytest.mark.parametrize("config", [BASELINE, LMA])
+@pytest.mark.parametrize("config", ROWS)
 def test_cp8_state_dict_round_trip(config):
     trained, ep = model(config, seed=0).eval(), episode()
     fresh = model(config, seed=1).eval()
@@ -246,3 +254,71 @@ def test_cp13_phase10_checkpoint_configuration_still_loads():
                "logit_scale": "none", "l2norm_point_proto": False}
     config = CascadeProtoConfig(**phase10)
     assert config == BASELINE and config.clip_variant == "ViT-B/16" and config.eval_noise == "zero"
+
+
+# ------------------------------------------------- "+ Entropy Gate" and "+ Cascade" rows (02 §6, D-17)
+
+def cascade_ref(m, ep):
+    """P^0 of Eq.9 (written out), copied per query, through the model's own stages in order; L^T of Eq.23."""
+    f_q, p_point, p_modal = lma_terms(m, ep)
+    f_s, _ = m.features.encode_episode(ep.support_x, ep.query_x)
+    p = (p_point + p_modal).unsqueeze(0).repeat(f_q.shape[0], 1, 1)  # [B_q, N+1, D]
+    for t in range(len(m.stages)):
+        p = m.stages[t](p, f_s, f_q)
+    return torch.einsum("bpd,bcd->bpc", f_q, p)
+
+
+@pytest.mark.parametrize("config", [GATE, CascadeProtoConfig(use_lma=True, num_stages=2, use_adrm=False), CASCADE])
+def test_cp14_logits_are_the_last_stage_of_the_cascade(config):
+    m, ep = model(config).eval(), episode(n=2, bq=2)
+    assert len(m.stages) == config.num_stages
+    assert torch.allclose(m(ep).logits, cascade_ref(m, ep), atol=1e-11, rtol=0)
+    stage_ids = [{id(p) for p in s.parameters()} for s in m.stages]
+    assert all(not a & b for i, a in enumerate(stage_ids) for b in stage_ids[i + 1:])  # no sharing
+    base = sum(p.numel() for p in model(LMA).parameters())
+    assert sum(p.numel() for p in m.parameters()) == base + 79_395 * config.num_stages  # 01 §4
+
+
+def test_cp14_stages_run_in_order():
+    config = CascadeProtoConfig(use_lma=True, num_stages=2, use_adrm=False)
+    m, ep = model(config).eval(), episode()
+    swapped = model(config).eval()
+    swapped.load_state_dict(m.state_dict())
+    swapped.stages = torch.nn.ModuleList([m.stages[1], m.stages[0]])
+    assert not torch.allclose(swapped(ep).logits, m(ep).logits)
+
+
+def test_cp14_logit_scale_flag_applies_to_the_cascade_output():
+    config = CascadeProtoConfig(use_lma=True, num_stages=2, use_adrm=False, logit_scale="sqrt_D")
+    m, ep = model(config).eval(), episode()
+    assert torch.allclose(m(ep).logits, cascade_ref(m, ep) / math.sqrt(128), atol=1e-11, rtol=0)
+
+
+def test_cp15_single_stage_prediction_does_not_depend_on_use_adrm():
+    ep = episode()
+    on = model(CascadeProtoConfig(use_lma=True, num_stages=1, use_adrm=True)).eval()
+    off = model(CascadeProtoConfig(use_lma=True, num_stages=1, use_adrm=False)).eval()
+    assert torch.equal(on(ep).logits, off(ep).logits)
+
+
+def test_cp15_gate_switch_and_flags_reach_every_stage():
+    m = model(CascadeProtoConfig(use_lma=True, num_stages=3, use_adrm=False, use_gate=False,
+                                 cross_attn_scale="sqrt_D", fusion_weight="per_class"))
+    for s in m.stages:
+        assert not s.gate.enabled and s.cross.scale == math.sqrt(128) and s.out.fusion_weight == "per_class"
+    assert m.eval()(episode()).logits.shape == (2, 2048, 3)
+
+
+@pytest.mark.parametrize("config", [GATE, CASCADE, CascadeProtoConfig(use_lma=False, num_stages=2, use_adrm=False)])
+def test_cp16_cascade_keeps_way_equivariance_and_query_independence(config):
+    m, ep = model(config).eval(), episode(n=3, bq=3)
+    ways = torch.tensor([2, 0, 1])
+    permuted = episode(n=3, bq=3, classes=[3 + int(w) for w in ways])
+    permuted.support_x, permuted.support_y = ep.support_x[ways], ep.support_y[ways]
+    a, b = m(ep).logits, m(permuted).logits
+    assert torch.allclose(b[..., 0], a[..., 0], atol=1e-11, rtol=0)
+    assert torch.allclose(b[..., 1:], a[..., 1:][..., ways], atol=1e-11, rtol=0)
+    other = episode(n=3, bq=3)
+    other.query_x = ep.query_x.clone()
+    other.query_x[1:] = torch.rand_like(other.query_x[1:])
+    assert torch.allclose(m(other).logits[0], a[0], atol=1e-11, rtol=0)

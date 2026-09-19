@@ -302,3 +302,19 @@ shot, as in VIP-Seg) and scoped the flags: `cross_attn=two_hop`, `gate_target=fe
   reference to 1e-11 (the composition of attention, LayerNorm and softmax accumulates a few ulps
   beyond 1e-12). Mutation check: 23/23 killed after FUSE-3b was added (the ReLU before `W_out` was
   untested while `P_weighted` stayed non-negative on the fixture).
+
+### 12e — cascade wired into CascadeProto and train.py (Table 4 "+ Entropy Gate", "+ Cascade")
+
+* **What.** `CascadeProtoConfig` gains `cross_attn`, `cross_attn_scale`, `gate_target`,
+  `fusion_weight`, `diffusion_input`; `CascadeProto` builds `num_stages` independent `EPPMStage`s,
+  copies `P^0` per query and returns `L^T`. `use_adrm=true` with T ≥ 2 raises "phase 13"; the three
+  unimplemented flag values raise. `train.py` exposes the five flags and tags run folders with
+  `_nogate`. CP-14…16 added; CP-6/7/8 extended to the new rows.
+* **Sources.** Cascade `P^0 → EPPM_1 → … → P^T` with independent stages [PAPER Eq.22] [PAPER §3.5];
+  `L^t = F^q (P^t)ᵀ` [PAPER Eq.23]; rows of Table 4 and "prediction `L^T` without ADRM"
+  [DECISION D-17]; `P^0` copied once per query [PAPER Eq.14–15] [VIPSEG models/vipseg.py:145].
+* **Note.** With T = 1 ADRM is a softmax over one stage, i.e. weight 1, so the "+ Entropy Gate" row is
+  exact with either value of `use_adrm` (CP-15). The default configuration (full model) still raises
+  until phase 13; the "+ Cascade" row needs `--use_adrm false`.
+* **Verification.** CPU gate 206 passed. Mutation check: 14/14 killed after CP-14 gained the
+  `logit_scale` case.

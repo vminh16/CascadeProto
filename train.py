@@ -52,6 +52,11 @@ def parse_args(argv=None):
     p.add_argument("--eval_noise", default="zero", choices=["zero", "sample", "mean_of_M"], help="[D-06]")
     p.add_argument("--gmmn_fg_mode", default="joint", choices=["joint", "per_class"], help="[D-04]")
     p.add_argument("--gmmn_detach_point", type=str2bool, default=False, help="[D-04]")
+    p.add_argument("--cross_attn", default="channel", choices=["channel", "two_hop"], help="[D-01]")
+    p.add_argument("--cross_attn_scale", default="sqrt_d", choices=["sqrt_d", "sqrt_D"], help="[D-01]")
+    p.add_argument("--gate_target", default="prototype", choices=["prototype", "features"], help="[D-02]")
+    p.add_argument("--fusion_weight", default="per_query", choices=["per_query", "per_class"], help="[D-11]")
+    p.add_argument("--diffusion_input", default="post_relu", choices=["post_relu", "pre_relu"], help="[D-14]")
     p.add_argument("--epochs", type=int, default=None, help="default: 50 (S3DIS) / 30 (ScanNet) [D-12]")
     p.add_argument("--episodes_per_epoch", type=int, default=None, help="default: 480 / 800 [D-12]")
     p.add_argument("--lr", type=float, default=1e-3)
@@ -92,7 +97,9 @@ def model_config(args):
                               use_adrm=args.use_adrm, modality=args.modality, logit_scale=args.logit_scale,
                               l2norm_point_proto=args.l2norm_point_proto, clip_variant=args.clip_variant,
                               eval_noise=args.eval_noise, gmmn_fg_mode=args.gmmn_fg_mode,
-                              gmmn_detach_point=args.gmmn_detach_point)
+                              gmmn_detach_point=args.gmmn_detach_point, cross_attn=args.cross_attn,
+                              cross_attn_scale=args.cross_attn_scale, gate_target=args.gate_target,
+                              fusion_weight=args.fusion_weight, diffusion_input=args.diffusion_input)
 
 
 def build_model(config, feature_extractor=None) -> torch.nn.Module:
@@ -105,6 +112,7 @@ def build_model(config, feature_extractor=None) -> torch.nn.Module:
 def run_dir(args) -> str:
     variant = args.modality if args.use_lma else "point"
     tag = f"_T{args.num_stages}" + ("" if args.use_adrm or args.num_stages == 0 else "_noadrm")
+    tag += "" if args.use_gate or args.num_stages == 0 else "_nogate"
     return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 
 
