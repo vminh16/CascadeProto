@@ -9,7 +9,8 @@ import math
 import pytest
 import torch
 
-from models.eppm import CrossAttention, EntropyGate, channel_entropy, pool_tokens, prototype_diffusion
+from models.eppm import (CrossAttention, EntropyGate, EPPMStage, FusionOutput, channel_entropy, class_weights,
+                         pool_tokens, prototype_diffusion, stage_logits)
 
 ATOL = 1e-12
 LN2 = math.log(2.0)
@@ -311,3 +312,165 @@ def test_diff_gradient_flows_to_features_through_the_values():
     f_q.requires_grad_(True)
     prototype_diffusion(f_s, f_q).sum().backward()
     assert f_s.grad.abs().sum() > 0 and f_q.grad.abs().sum() > 0
+
+
+# ------------------------------------------------ FUSE, STAGE (02 §5.4-5.5, Eq.19-21, Eq.23)
+
+def stage(seed=0, **kwargs):
+    torch.manual_seed(seed)
+    m = EPPMStage(**kwargs).double()
+    if m.gate.enabled:
+        with torch.no_grad():
+            m.gate.theta.fill_(0.37)  # away from the initial value, so θ matters
+    return m
+
+
+def linear(x, layer):
+    return x @ layer.weight.T + layer.bias
+
+
+def layer_norm(x, ln):
+    mu = x.mean(-1, keepdim=True)
+    var = ((x - mu) ** 2).mean(-1, keepdim=True)
+    return (x - mu) / torch.sqrt(var + ln.eps) * ln.weight + ln.bias
+
+
+def stage_ref(m, p_prev, f_s, f_q, trace=None):
+    """One EPPM stage written out from the module's weights (02 §5.1-5.4)."""
+    if m.gate.enabled:
+        pr = torch.sigmoid(p_prev).clamp(1e-7, 1 - 1e-7)
+        h = -pr * torch.log(pr + 1e-8) - (1 - pr) * torch.log(1 - pr + 1e-8)
+        p_gated = p_prev * torch.sigmoid(2 * (m.gate.theta - h))
+    else:
+        p_gated = p_prev
+    scale = 72 if m.cross.scale == math.sqrt(72) else 128
+    p_cross = p_cross_ref(m.cross, attention_ref(m.cross, f_s, f_q, scale), p_gated)  # [B_q, N+1, D]
+    bq, c1 = p_prev.shape[:2]
+    p_diff = torch.tensor([[diffusion_ref(f_s, f_q, b, i) for i in range(D)] for b in range(bq)], dtype=torch.float64)
+    p_diff = p_diff[:, None, :].expand(bq, c1, D)
+    f = m.out
+    both = torch.cat([p_cross, p_diff], -1)  # [B_q, N+1, 2D]
+    if f.fusion_weight == "per_query":
+        both = both.mean(1, keepdim=True)  # [B_q, 1, 2D]
+    z = linear(torch.clamp(linear(both, f.fusion[0]), min=0), f.fusion[2])
+    w = torch.exp(z) / torch.exp(z).sum(-1, keepdim=True)
+    combined = w[..., :1] * p_cross + w[..., 1:] * p_diff
+    se = torch.sigmoid(linear(torch.clamp(linear(combined.mean(1), f.se_down), min=0), f.se_up))  # [B_q, D]
+    attended = combined * se[:, None, :]
+    weighted = attended.clone()
+    weighted[:, 0] *= 0.8
+    if trace is not None:
+        trace.update(w=w, se=se, weighted=weighted)
+    return layer_norm(linear(torch.clamp(weighted, min=0), f.w_out) + p_prev, f.norm)
+
+
+@pytest.mark.parametrize("kwargs,k", [({}, 2), ({}, 1), ({"use_gate": False}, 2),
+                                      ({"fusion_weight": "per_class"}, 2), ({"cross_attn_scale": "sqrt_D"}, 1)])
+def test_stage0_forward_equals_the_written_out_stage(kwargs, k):
+    m, (f_s, f_q) = stage(**kwargs), features(k=k)
+    p_prev = rand(BQ, N + 1, D, seed=50)
+    assert torch.allclose(m(p_prev, f_s, f_q), stage_ref(m, p_prev, f_s, f_q), atol=1e-11, rtol=0)
+
+
+@pytest.mark.parametrize("mode,shape", [("per_query", (BQ, 2)), ("per_class", (BQ, N + 1, 2))])
+def test_fuse1_fusion_weights_shape_and_sum(mode, shape):
+    m, (f_s, f_q) = stage(fusion_weight=mode), features()
+    p = rand(BQ, N + 1, D, seed=51)
+    w = m.out.weights(m.cross(m.gate(p), f_s, f_q), prototype_diffusion(f_s, f_q)[:, None].expand(BQ, N + 1, D))
+    assert w.shape == shape and torch.allclose(w.sum(-1), torch.ones(shape[:-1], dtype=torch.float64), atol=ATOL)
+    assert (w > 0).all()
+
+
+def test_fuse2_excitation_shape_and_range():
+    m = stage()
+    a = m.out.excitation(rand(BQ, N + 1, D, seed=52))
+    assert a.shape == (BQ, D) and (a > 0).all() and (a < 1).all()
+
+
+def test_fuse3_background_row_is_scaled_by_point_eight():
+    assert torch.equal(class_weights(4, torch.zeros(1, dtype=torch.float64)),
+                       torch.tensor([0.8, 1.0, 1.0, 1.0], dtype=torch.float64))
+    m, (f_s, f_q) = stage(), features()
+    p_prev = rand(BQ, N + 1, D, seed=53)
+    seen, trace = [], {}
+    m.out.w_out.register_forward_pre_hook(lambda mod, args: seen.append(args[0].clone()))
+    m(p_prev, f_s, f_q)
+    stage_ref(m, p_prev, f_s, f_q, trace)
+    assert torch.allclose(seen[0], torch.clamp(trace["weighted"], min=0), atol=1e-11, rtol=0)
+    assert not any("w_cls" in n or "class" in n for n, _ in m.named_parameters())
+    assert not any("w_cls" in n or "class" in n for n, _ in m.named_buffers())
+
+
+def test_fuse3b_relu_before_w_out_acts_on_negative_entries():
+    """With ψ shifted negative, P_weighted has negative entries and the ReLU of Eq.21 matters."""
+    m, (f_s, f_q) = stage(), features()
+    with torch.no_grad():
+        m.cross.psi.bias.fill_(-3.0)
+    p_prev = rand(BQ, N + 1, D, seed=62)
+    trace = {}
+    expected = stage_ref(m, p_prev, f_s, f_q, trace)
+    assert (trace["weighted"] < 0).float().mean() > 0.2
+    assert torch.allclose(m(p_prev, f_s, f_q), expected, atol=1e-11, rtol=0)
+
+
+def test_fuse4_residual_uses_the_ungated_prototype():
+    m, (f_s, f_q) = stage(), features()
+    with torch.no_grad():
+        m.out.w_out.weight.zero_()
+        m.out.w_out.bias.zero_()
+        m.gate.theta.fill_(-5.0)  # a strong gate: P_gated is far from P^{t-1}
+    p_prev = rand(BQ, N + 1, D, seed=54)
+    assert torch.allclose(m(p_prev, f_s, f_q), layer_norm(p_prev, m.out.norm), atol=ATOL, rtol=0)
+
+
+def test_stage1_logits_are_plain_dot_products():
+    f_q, p = rand(BQ, P, D, seed=55), rand(BQ, N + 1, D, seed=56)
+    out = stage_logits(f_q, p)
+    assert out.shape == (BQ, P, N + 1)
+    for b, i, c in [(0, 0, 0), (1, 2047, 2), (1, 1000, 1)]:
+        assert math.isclose(out[b, i, c].item(), sum(x * y for x, y in zip(f_q[b, i].tolist(), p[b, c].tolist())),
+                            rel_tol=0, abs_tol=1e-11)
+
+
+def test_stage2_parameter_count_and_no_sharing():
+    a, b = stage(seed=0), stage(seed=0)
+    count = lambda mod: sum(p.numel() for p in mod.parameters())
+    assert count(a) == 79_395 and count(stage(use_gate=False)) == 79_394
+    parts = {"phi": a.cross.phi, "psi": a.cross.psi, "fusion": a.out.fusion, "se_down": a.out.se_down,
+             "se_up": a.out.se_up, "w_out": a.out.w_out, "norm": a.out.norm}
+    assert {k: count(v) for k, v in parts.items()} == {"phi": 4608, "psi": 16512, "fusion": 33154, "se_down": 4128,
+                                                       "se_up": 4224, "w_out": 16512, "norm": 256}
+    ids_a = {id(p) for p in a.parameters()}
+    assert not ids_a & {id(p) for p in b.parameters()}
+
+
+def test_stage_way_permutation_equivariance_and_query_independence():
+    m, (f_s, f_q) = stage(), features(n=3, bq=3)
+    p_prev = rand(3, 4, D, seed=57)
+    out = m(p_prev, f_s, f_q)
+    ways = torch.tensor([2, 0, 1])
+    perm = m(p_prev[:, torch.cat([torch.tensor([0]), ways + 1])], f_s[ways], f_q)
+    assert torch.allclose(perm[:, 0], out[:, 0], atol=1e-11, rtol=0)
+    assert torch.allclose(perm[:, 1:], out[:, 1:][:, ways], atol=1e-11, rtol=0)
+    other_q, other_p = f_q.clone(), p_prev.clone()
+    other_q[1:], other_p[1:] = rand(2, P, D, seed=58).abs(), rand(2, 4, D, seed=59)
+    assert torch.allclose(m(other_p, f_s, other_q)[0], out[0], atol=1e-11, rtol=0)
+
+
+def test_stage_gradients_reach_every_parameter_and_gradcheck():
+    m, (f_s, f_q) = stage(), features()
+    p_prev = rand(BQ, N + 1, D, seed=60)
+    stage_logits(f_q, m(p_prev, f_s, f_q)).pow(2).mean().backward()
+    for name, p in m.named_parameters():
+        assert p.grad is not None and torch.isfinite(p.grad).all() and p.grad.abs().sum() > 0, name
+    f_s1, f_q1 = features(k=1, bq=1)
+    x = rand(1, N + 1, D, seed=61).requires_grad_(True)
+    assert torch.autograd.gradcheck(lambda y: m(y, f_s1, f_q1), (x,), eps=1e-6, atol=1e-7)
+
+
+def test_stage_rejects_mismatched_prototypes():
+    m, (f_s, f_q) = stage(), features()
+    with pytest.raises(ValueError):
+        m(rand(BQ, N + 2, D), f_s, f_q)
+    with pytest.raises(ValueError):
+        FusionOutput(fusion_weight="per_way")

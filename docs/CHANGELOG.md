@@ -284,3 +284,21 @@ shot, as in VIP-Seg) and scoped the flags: `cross_attn=two_hop`, `gate_target=fe
   non-degenerate `q/4` and `s/4` channels of D-14, strict threshold, invariance to way order and
   grouping, query independence, gradient flow. Mutation check: 13/14 killed; the survivor (union
   instead of intersection for `m_common`) is an equivalent mutant at α = 0.5, shown in 05 §3.4.
+
+### 12d — adaptive fusion, SE, class weights, output; one EPPM stage (Eq.19–21, 23)
+
+* **What.** `FusionOutput(fusion_weight)`, `EPPMStage(use_gate, cross_attn_scale, fusion_weight)`,
+  `class_weights`, `stage_logits` in `models/eppm.py`. STAGE-0…3 and FUSE-1…4 (plus FUSE-3b) added.
+* **Sources.** `w = softmax(f_fusion([P_cross; P_diffuse]))`, one pair per query pooled over classes
+  [PAPER Eq.19] [DECISION D-11]; SE `σ(W_2 ReLU(W_1 AvgPool_c))` with r = 4 [PAPER Eq.20]
+  [DECISION D-16]; `w_cls = [0.8, 1, …, 1]` fixed [PAPER §3.4]; `P^t = LN(W_out ReLU(P_weighted) +
+  P^{t−1})` with the ungated `P^{t−1}` [PAPER Eq.21] [DECISION D-02]; `L^t = F^q (P^t)ᵀ` per query
+  without scale [PAPER Eq.23] [DECISION D-10]; `P_diffuse` broadcast to every row [DECISION D-16].
+* **Open point, not changed.** Eq.20 and Eq.21 print `W_1`, `W_2`, `W_out` without bias terms,
+  while Eq.5 prints its biases explicitly; D-16 (locked) uses `nn.Linear` with bias, which the
+  79,395-parameter count of 01 §4 includes. Table 6 cannot settle it (D-09: the described layers
+  already exceed the paper's +0.12M by far). The biases add 288 parameters per stage.
+* **Verification.** 42 EPPM tests in total, float64; the whole stage matches the written-out
+  reference to 1e-11 (the composition of attention, LayerNorm and softmax accumulates a few ulps
+  beyond 1e-12). Mutation check: 23/23 killed after FUSE-3b was added (the ReLU before `W_out` was
+  untested while `P_weighted` stayed non-negative on the fixture).

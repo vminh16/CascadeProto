@@ -115,3 +115,78 @@ def prototype_diffusion(f_s: torch.Tensor, f_q: torch.Tensor) -> torch.Tensor:
     c_common = (q_ch + s_ch) / 2.0 * m_common  # (Eq.16)
     c_unique = (q_ch * (m_q - m_common) + s_ch * (m_s - m_common)) / 2.0  # (Eq.17)
     return DIFFUSION_ALPHA * c_common + (1.0 - DIFFUSION_ALPHA) * c_unique  # [B_q, D] (Eq.18)
+
+
+# ------------------------------------------------ fusion, SE, class weights, output (02 §5.4)
+
+SE_REDUCTION = 4  # r [DECISION D-16]
+BACKGROUND_CLASS_WEIGHT = 0.8  # w_cls = [0.8, 1.0, ..., 1.0] [PAPER §3.4]
+FUSION_WEIGHTS = ("per_query", "per_class")  # [DECISION D-11]
+
+
+def class_weights(n_classes: int, like: torch.Tensor) -> torch.Tensor:
+    """w_cls [N+1] = [0.8, 1, ..., 1]; fixed, not a parameter [PAPER §3.4]."""
+    w = torch.ones(n_classes, dtype=like.dtype, device=like.device)
+    w[0] = BACKGROUND_CLASS_WEIGHT
+    return w
+
+
+class FusionOutput(nn.Module):
+    """Eq.19-21: fusion weights, SE recalibration, class weights, W_out, residual and LayerNorm."""
+
+    def __init__(self, dim: int = 128, fusion_weight: str = "per_query"):
+        super().__init__()
+        if fusion_weight not in FUSION_WEIGHTS:
+            raise ValueError(f"fusion_weight must be one of {FUSION_WEIGHTS}, got {fusion_weight!r}")
+        self.fusion_weight = fusion_weight
+        self.fusion = nn.Sequential(nn.Linear(2 * dim, dim), nn.ReLU(), nn.Linear(dim, 2))  # [DECISION D-16]
+        self.se_down = nn.Linear(dim, dim // SE_REDUCTION)  # W_1 [DECISION D-16]
+        self.se_up = nn.Linear(dim // SE_REDUCTION, dim)  # W_2
+        self.w_out = nn.Linear(dim, dim)  # [DECISION D-16]
+        self.norm = nn.LayerNorm(dim)
+
+    def weights(self, p_cross: torch.Tensor, p_diffuse: torch.Tensor) -> torch.Tensor:
+        """Eq.19 softmax weights: [B_q, 2] (per_query, pooled over classes) or [B_q, N+1, 2] (per_class)."""
+        both = torch.cat([p_cross, p_diffuse], dim=-1)  # [B_q, N+1, 2D]
+        if self.fusion_weight == "per_query":
+            both = both.mean(dim=1)  # [B_q, 2D] [DECISION D-11]
+        return torch.softmax(self.fusion(both), dim=-1)
+
+    def excitation(self, p_combined: torch.Tensor) -> torch.Tensor:
+        """Eq.20 a = σ(W_2 ReLU(W_1 AvgPool_c(P_combined))): [B_q, D]."""
+        return torch.sigmoid(self.se_up(torch.relu(self.se_down(p_combined.mean(dim=1)))))
+
+    def forward(self, p_cross: torch.Tensor, p_diffuse: torch.Tensor, p_prev: torch.Tensor) -> torch.Tensor:
+        """All inputs [B_q, N+1, D]; `p_prev` is the ungated P^{t-1} [DECISION D-02] -> P^t [B_q, N+1, D]."""
+        w = self.weights(p_cross, p_diffuse)  # [B_q, 2] or [B_q, N+1, 2]
+        if self.fusion_weight == "per_query":
+            w = w[:, None, :]  # [B_q, 1, 2]
+        p_combined = w[..., 0:1] * p_cross + w[..., 1:2] * p_diffuse  # (Eq.19)
+        p_attended = p_combined * self.excitation(p_combined)[:, None, :]  # (Eq.20)
+        p_weighted = p_attended * class_weights(p_prev.shape[1], p_prev)[None, :, None]  # [PAPER §3.4]
+        return self.norm(self.w_out(torch.relu(p_weighted)) + p_prev)  # (Eq.21)
+
+
+class EPPMStage(nn.Module):
+    """One EPPM stage (§3.4): P^t = Out(Fuse(CrossAttn(Gate(P^{t-1})), Diffuse(F^s, F^q)), P^{t-1})."""
+
+    def __init__(self, dim: int = 128, use_gate: bool = True, cross_attn_scale: str = "sqrt_d",
+                 fusion_weight: str = "per_query"):
+        super().__init__()
+        self.gate = EntropyGate(use_gate)
+        self.cross = CrossAttention(dim, cross_attn_scale)
+        self.out = FusionOutput(dim, fusion_weight)
+
+    def forward(self, p_prev: torch.Tensor, f_s: torch.Tensor, f_q: torch.Tensor) -> torch.Tensor:
+        """p_prev [B_q, N+1, D], f_s [N, K, 2048, D], f_q [B_q, 2048, D] -> P^t [B_q, N+1, D]."""
+        if p_prev.dim() != 3 or p_prev.shape[0] != f_q.shape[0] or p_prev.shape[1] != f_s.shape[0] + 1:
+            raise ValueError(f"P^(t-1) {tuple(p_prev.shape)} does not match F^s {tuple(f_s.shape)} and "
+                             f"F^q {tuple(f_q.shape)}")
+        p_cross = self.cross(self.gate(p_prev), f_s, f_q)  # [B_q, N+1, D] (Eq.10-14)
+        p_diffuse = prototype_diffusion(f_s, f_q)[:, None, :].expand_as(p_cross)  # (Eq.15-18) [DECISION D-16]
+        return self.out(p_cross, p_diffuse, p_prev)  # (Eq.19-21)
+
+
+def stage_logits(f_q: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
+    """Eq.23 L^t = F^q (P^t)ᵀ per query, no temperature [DECISION D-10]: [B_q, 2048, D] x [B_q, N+1, D] -> [B_q, 2048, N+1]."""
+    return torch.einsum("bpd,bcd->bpc", f_q, p)

@@ -134,15 +134,18 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 | DIFF-3 | A channel that is zero on all support points but positive in the query gives a non-zero `c_unique` for that channel | 02 §5.3, [DECISION D-14] |
 | DIFF-4 | For any input, `P_diffuse` is identical across class rows: it is computed once per query `[B_q, D]` and broadcast; permuting ways or regrouping the same support blocks into one way leaves it unchanged; one query's value does not depend on the others | 02 §5.3 |
 | DIFF-5 | The masks use a strict `> τ` (a channel with mean exactly 0 is inactive); gradients reach `F^s` and `F^q` through `q_ch`, `s_ch` | 02 §5.3 |
+| (mutation) | 12d (2026-09-19): twenty-three wrong variants of fusion and stage (residual to the gated P, no residual, LayerNorm before the residual, no ReLU before `W_out`, no gate, fusion weights swapped or fixed, max-pooled or one-branch fusion input, sigmoid instead of softmax, one-layer fusion MLP, no SE, SE pooled over channels or with max, SE without ReLU, r = 2, `w_bg` = 1.0, weight on the last row, `w_cls` after `W_out`, diffusion on row 0 only, scaled logits, one query's prototypes for all queries, no shape check) each fail at least one test. "No ReLU before `W_out`" first survived because `P_weighted` was non-negative on the fixture; FUSE-3 now forces negative entries | |
 | (mutation) | 12c (2026-09-19): fourteen wrong variants of the diffusion; thirteen fail (no sigmoid, channel mean, max pooling, first way only, query mean over all queries, `≥ τ`, τ = 0.6, α = 0.7, missing `/2` in either term, full masks in `c_unique`, α swapped, detached values). Replacing `m_common` by the union of the masks survives because it is equivalent at α = 0.5: for a channel active in one branch only both give `x/4` | |
 | (mutation) | 12b (2026-09-19): eighteen wrong variants of the cross-attention (background slot as way sum, way max, last slot, or mean of pooled ways; average or strided pooling; softmax over the wrong axis; A transposed; a garbled correlation; √D by default; no scale; separate φ for support; φ with bias; shot sum; first shot only; ψ after the attention; no ψ; no point-count check) each fail at least one test | |
 | (mutation) | 12a (2026-09-19): thirteen wrong variants of the gate (log₂, one entropy term, no sigmoid, no clamp, ε = 1e-6, θ₀ = 0, no factor 2, `H − θ`, gate replacing P, θ not learnable, θ per channel, gate averaged over channels, disabled gate still gating) each fail at least one test | |
-| FUSE-1 | Fusion weight shape `[B_q, 2]`, rows sum to 1 | 02 §5.4, [DECISION D-11] |
+| STAGE-0 | A whole stage equals Eq.10–21 written out from its weights (gate, explicit attention loop, Python-float diffusion, fusion MLP, SE, `w_cls`, `W_out`, LayerNorm by hand) to 1e-11, for K = 1 and 2, with the gate off, with `fusion_weight=per_class` and with `cross_attn_scale=sqrt_D` | 02 §5 |
+| FUSE-1 | Fusion weight shape `[B_q, 2]` (`[B_q, N+1, 2]` with `per_class`), rows sum to 1 | 02 §5.4, [DECISION D-11] |
 | FUSE-2 | SE vector shape `[B_q, 128]` in (0, 1) | 02 §5.4 |
-| FUSE-3 | Row 0 of `P_weighted` equals 0.8 × row 0 of `P_attended`; other rows × 1.0; `w_cls` is not a parameter | 02 §5.4 |
+| FUSE-3 | Row 0 of `P_weighted` equals 0.8 × row 0 of `P_attended`; other rows × 1.0 (checked on the input of `W_out`); `w_cls` is neither a parameter nor a buffer; with ψ shifted negative, `P_weighted` has negative entries and the ReLU of Eq.21 is exercised | 02 §5.4 |
 | FUSE-4 | Residual uses the **ungated** `P^{t−1}`: with the weight and bias of `W_out` set to 0, `P^t = LN(P^{t−1})` exactly, whatever the gate does | 02 §5.4, [DECISION D-02] |
 | STAGE-1 | `L^t = F^q (P^t)ᵀ` exactly (no scale) | 02 §5.5 |
-| STAGE-2 | One EPPM stage has 79,395 parameters; stages do not share parameter tensors | 01 §2.4, 01 §4 |
+| STAGE-2 | One EPPM stage has 79,395 parameters (79,394 without the gate), split as in 01 §4; stages do not share parameter tensors | 01 §2.4, 01 §4 |
+| STAGE-3 | Permuting the ways permutes rows 1..N of `P^t` and keeps row 0; one query's `P^t` does not depend on the others; every parameter receives a gradient; `gradcheck` in `P^{t−1}` passes | 02 §5 |
 
 ### 3.5 `tests/test_adrm_loss.py` (G1)
 
