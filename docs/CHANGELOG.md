@@ -94,3 +94,32 @@ Find the commit of an entry with `git log --oneline --grep "<step id>"`.
 * **Verification.** ENC-3 documents the coupling; ENC-4 checks the composition exactly
   (`torch.equal`); ENC-7 compares an episode's features with VIP-Seg's own path, including its
   `permute`/`view` of the loader layout, to 1e-6. ENC-6 (same batch, VIP-Seg weights) had already passed.
+
+### 10d-fix — validation and test episodes were identical
+
+* **What.** `pipeline/episodes.py::build_eval_dataset` seeds the valid set with a separate numpy seed
+  stream `[seed, 1]`; the test set keeps the integer seed. PIPE-8 (CPU) and DATA-7 (real data) added;
+  spec 04 §6.1 and 05 updated.
+* **Why.** The phase-10e run on the VM gave valid mIoU 0.4601 and test mIoU 0.460089 for the same
+  checkpoint. Both sets were built by `MyTestDataset` with `np.random.seed(0)` and the same code path,
+  so the 1,500 valid episodes were the 1,500 test episodes, and D-15's "best on valid" would have been
+  "best on test". VIP-Seg draws the two sets independently [VIPSEG runs/training.py:52-66].
+* **Compatibility.** The test set's seeding is unchanged, so the cached test episodes and the sanity
+  result 0.719687 stay valid. The valid cache built before this fix
+  (`<data>/vipseg_S_0_N_2_K_1_episodes_100_pts_2048`) holds test episodes and must be deleted.
+* **Verification.** PIPE-8 with a recording stand-in for `MyTestDataset`; mutation check: reusing the
+  test seed for the valid set, or changing the test seed, both fail PIPE-8. DATA-7 builds both real sets
+  and finds no shared episode.
+
+### 10e — end-to-end run of the baseline on the GCP L4
+
+* **Gates.** `pytest -m "not clip"`: 117 passed, including ENC-1…8 with VIP-Seg's released weights.
+* **DATA-5 (dry run).** One step on 4 real episodes, loss 1.5253; 5 valid episodes scored.
+* **Short training.** Table 4 baseline (`--use_lma false --num_stages 0`), S3DIS S0 2-way 1-shot,
+  2 epochs × 480 episodes, 85 s per epoch: loss 0.8304 → 0.4814; valid mIoU 0.4601 (valid = test
+  episodes at that time, see 10d-fix).
+* **DATA-6.** `eval.py` on `last.pt`: 5-episode dry run 0.5267; all 1,500 test episodes 0.460089.
+  The checkpoint reloads through its stored configuration and fixed projections (ENC-8, PIPE-7).
+* **Reading.** Loss falls and the test mIoU is well above chance after 2 of 50 epochs; the full
+  schedule would take about 71 min of training plus validations. Paper numbers are not expected from
+  this row: Table 4's baseline reaches 81.28 (average of S0 and S1) after full training.

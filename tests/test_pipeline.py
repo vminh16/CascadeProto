@@ -167,3 +167,29 @@ def test_pipe7_eval_rebuilds_the_checkpoint_configuration(tmp_path, monkeypatch)
     assert loaded.config == config
     ep = make_episode(loader_item(), CLASS_NAMES)
     assert torch.equal(loaded(ep).logits, trained(ep).logits)
+
+
+def test_pipe8_valid_and_test_episodes_use_different_seeds(monkeypatch):
+    """Same seed must not give the same valid and test episodes (D-15 selects on valid)."""
+    import pipeline.episodes as episodes
+
+    class RecordingDataset:
+        def __init__(self, tag, *args, mode, **kwargs):
+            self.draws = np.random.random(5)  # what the loader's first random calls would see
+            self.classes = np.arange(6)
+            self.tag = tag
+
+        def __len__(self):
+            return 15 * episodes.N_EPISODES_PER_COMBINATION
+
+    monkeypatch.setattr(episodes, "MyTestDataset", RecordingDataset)
+    np.random.seed(123)
+    outer = np.random.get_state()[1].copy()
+    test = episodes.build_eval_dataset("x", "s3dis", 0, 2, 1, mode="test", seed=0)
+    valid = episodes.build_eval_dataset("x", "s3dis", 0, 2, 1, mode="valid", seed=0)
+    assert (test.tag, valid.tag) == ("vipseg_eval", "vipseg")
+    assert not np.allclose(test.draws, valid.draws)
+    after = np.random.get_state()[1].copy()
+    assert np.array_equal(after, outer)  # the caller's random state is restored
+    np.random.seed(0)
+    assert np.array_equal(test.draws, np.random.random(5))  # test keeps the plain seed: old caches stay valid

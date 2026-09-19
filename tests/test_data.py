@@ -74,3 +74,17 @@ def test_data4_fixed_test_episodes(class_names):
     ep = make_episode(dataset[0], class_names)
     assert set(ep.class_names) <= set(S0_TEST)
     assert np.isin(ep.sampled_classes, dataset.classes).all()
+
+
+def test_data7_valid_and_test_episodes_are_different_draws(class_names):
+    """D-15 selects on the valid set; it must not be the test set (VIP-Seg draws them independently)."""
+    test = build_eval_dataset(DATA_PATH, "s3dis", cvfold=0, n_way=2, k_shot=1, mode="test", seed=0)
+    valid = build_eval_dataset(DATA_PATH, "s3dis", cvfold=0, n_way=2, k_shot=1, mode="valid", seed=0)
+    assert len(test) == len(valid) == 1500
+
+    def fingerprint(item):
+        support_x, _, query_x, _, classes = item
+        return (tuple(classes.tolist()), float(support_x.sum()), float(query_x.sum()))
+
+    shared = {fingerprint(test[i]) for i in range(len(test))} & {fingerprint(valid[i]) for i in range(len(valid))}
+    assert not shared, f"{len(shared)} episodes appear in both the valid and the test set"

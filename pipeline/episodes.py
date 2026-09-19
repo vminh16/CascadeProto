@@ -31,6 +31,7 @@ AUGMENT_CONFIG = {"scale": 0, "rot": 1, "mirror_prob": 0, "jitter": 1, "shift": 
 TEST_EPISODE_TAG = "vipseg_eval"
 VALID_EPISODE_TAG = "vipseg"
 N_EPISODES_PER_COMBINATION = 100  # 04 §6.1 [DECISION D-08]
+VALID_SEED_STREAM = 1  # second word of the valid set's numpy seed, see build_eval_dataset
 
 # 04 §5 [PAPER §4.1] [DECISION D-12]
 SCHEDULE = {
@@ -137,7 +138,11 @@ def build_eval_dataset(data_path: str, dataset: str, cvfold: int, n_way: int, k_
         raise ValueError(f"mode must be 'test' or 'valid', got {mode!r}")
     tag = TEST_EPISODE_TAG if mode == "test" else VALID_EPISODE_TAG
     state = np.random.get_state()
-    np.random.seed(seed)
+    # The loader draws valid and test episodes with the same code path, so one seed would make the
+    # two sets identical and model selection (D-15) would run on the test episodes themselves.
+    # VIP-Seg's two sets are independent random draws [VIPSEG runs/training.py:52-66]. The test set
+    # keeps the plain integer seed (existing caches stay valid); the valid set uses a separate stream.
+    np.random.seed(seed if mode == "test" else [seed, VALID_SEED_STREAM])
     try:
         episodes = MyTestDataset(tag, data_path, dataset, cvfold=cvfold,
                                  num_episode_per_comb=N_EPISODES_PER_COMBINATION,

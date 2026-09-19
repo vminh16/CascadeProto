@@ -205,9 +205,10 @@ Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real
 | DATA-3 | Training classes of fold 0 exclude the S0 test classes and `clutter` | 04 §3 |
 | DATA-4 | `MyTestDataset(mode='test')` for S0, 2-way 1-shot yields 1,500 episodes | 04 §6.1 |
 | DATA-5 | `python train.py --dataset s3dis --data_path <blocks> --cvfold 0 --n_way 2 --k_shot 1 --dry_run true` loads 4 real episodes, runs one optimiser step and exits 0; the log names the data path, CLIP variant and loader arguments | 04 §4–5 |
+| DATA-7 | The valid and test episode sets (1,500 each for S0 2-way 1-shot) share no episode | 04 §6.1, D-15 |
 | DATA-6 | `python eval.py --dry_run true ...` evaluates 5 fixed test episodes with the 04 §6.2 metric and refuses to run without a loadable checkpoint (the refusal is also unit-tested, PIPE-6) | 04 §6 |
 
-Before DATA-0…4, `python preprocess/verify_s3dis.py` compares the prepared blocks with `preprocess/s3dis_blocks_manifest.json` (272 rooms, 7,547 blocks, per-block point and class counts, independent of point order). DATA-0…4 are in `tests/test_data.py` (data path `$CASCADEPROTO_S3DIS`, default `datasets/S3DIS/blocks_bs1_s1`; DATA-0 checks that all 272 rooms have loadable blocks; on Windows reading a WSL path, set `HDF5_USE_FILE_LOCKING=FALSE` so the episode cache can be written); DATA-5 and DATA-6 are command-line checks that need the rewritten model (phase 10 onwards).
+Before DATA-0…4, `python preprocess/verify_s3dis.py` compares the prepared blocks with `preprocess/s3dis_blocks_manifest.json` (272 rooms, 7,547 blocks, per-block point and class counts, independent of point order). DATA-0…4 are in `tests/test_data.py` (data path `$CASCADEPROTO_S3DIS`, default `datasets/S3DIS/blocks_bs1_s1`; DATA-0 checks that all 272 rooms have loadable blocks; on Windows reading a WSL path, set `HDF5_USE_FILE_LOCKING=FALSE` so the episode cache can be written); DATA-7 checks that no episode appears in both the 1,500 valid and the 1,500 test episodes. DATA-5 and DATA-6 are command-line checks that need the rewritten model (run in phase 10e).
 
 ### 3.11 `tests/test_pipeline.py` (G1)
 
@@ -220,6 +221,7 @@ Before DATA-0…4, `python preprocess/verify_s3dis.py` compares the prepared blo
 | PIPE-5 | Default schedule: S3DIS 50×480, ScanNet 30×800 episodes (24,000), 4 per step, AdamW 1e-3 / 0.1, StepLR 10 / 0.5 | 04 §5 |
 | PIPE-6 | `eval.py` refuses a missing checkpoint; unimplemented modalities raise; switch defaults are the full model | 04 §6, 03 §2.2, 01 §3 |
 | PIPE-7 | `eval.py` rebuilds the configuration stored in the checkpoint (not its own CLI) and reproduces the logits exactly | 01 §3 |
+| PIPE-8 | With the same seed the valid and test sets see different random draws; the test set keeps the plain seed; the caller's random state is restored | 04 §6.1, D-15 |
 
 ---
 
