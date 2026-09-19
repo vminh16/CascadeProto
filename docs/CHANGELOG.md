@@ -479,3 +479,27 @@ B (training) after the pending VM check 13e.
   infrastructure. Every pytest gate and every dry run (baseline, + LMA, + Entropy Gate, + Cascade,
   full model) passed. Phases 12 and 13 are closed; 12f is covered by this check.
 * **Not yet shown.** Reproduction of the paper's numbers: that needs the full-schedule runs of 14e.
+
+### 14e-P1 — first full-schedule runs (S3DIS S0 2-way 1-shot) · far below the paper
+
+| Run | valid @10 / 20 / 30 / 40 / 50 | best valid | test best (fixed100) | paper S0 |
+| :--- | :--- | ---: | ---: | ---: |
+| baseline (`point_T0`) | 46.42 / 49.49 / 46.07 / 49.42 / 49.31 | 49.49 | pending | 82.72 |
+| full model (`text_T4`) | 49.42 / 58.03 / 57.45 / 57.23 / 57.41 | 58.03 | 57.15 | 88.53 |
+
+* **Reading.**
+  1. The added modules help: full − baseline ≈ +8.5 valid points (paper S0: +5.81). The direction of
+     Table 4 holds; the gap is common to both runs.
+  2. Both runs are far below VIP-Seg's own 72.20, which uses the same encoder and which our pipeline
+     scores at 71.97 with VIP-Seg's checkpoint. The problem lies in what the two runs share: training
+     schedule or prototype/logit scale, not in LMA/EPPM/ADRM.
+  3. Validation plateaus after epoch 10–20 while the training loss keeps falling (0.33 → 0.15 for the
+     baseline): the model fits the training classes but does not transfer to the test classes.
+* **Differences from VIP-Seg's training that both runs share.**
+  * Schedule: VIP-Seg makes 24,000 optimiser steps with one episode each and halves the rate every
+    7,000 steps (3 times); D-12 gives 6,000 steps of 4 episodes and halves every 1,200 steps (5 times).
+  * Prototype scale: VIP-Seg L2-normalises the initial prototypes [VIPSEG models/vipseg.py:142]; D-10
+    follows the paper (no normalisation), so the logits `F^q P_pointᵀ` are unbounded, which fits the
+    very low training loss.
+* **Decision.** P2–P4 are on hold. Control run in progress: VIP-Seg trained with its own code
+  (`main.py`, `scripts/vipseg_s3dis.sh` settings) on our data.
