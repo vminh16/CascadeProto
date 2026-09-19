@@ -237,6 +237,18 @@ CPU, stand-in encoder and CLIP, a stand-in loader that draws from the global `np
 
 Mutation check (2026-09-19): fourteen wrong variants (random states, optimiser or scheduler not restored, counters reset, every epoch restarting at episode 0, no argument check, resume ignored, `resume.pt` only at validation, non-atomic save, episodes not seeded, only numpy seeded, seed ignoring the index, caller state not restored) — thirteen fail. Restoring only the torch random state survives and is equivalent: training episodes are seeded by index and validation draws nothing, so the global numpy and `random` states do not influence a resumed run. Three survivors of a first version (scheduler, episode offset, seed index) exposed tests that compared two runs of the same faulty code; RES-1, RES-2 and RES-4 now also check absolute properties.
 
+### 3.8c `tests/test_phase14.py` (G1)
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| Q14-1 | The queue holds P1 2, P2 8, P2s 2, P3 6, P4 8 runs with 26 distinct run directories | phase-14 plan |
+| Q14-2 | Every Table 4 row runs on S0 and S1 with exactly the D-17 configuration | [PAPER Tab.4], D-17 |
+| Q14-3 | Table 5 T = 1…6 and Table 2 (2/3-way, 1/5-shot) are covered on both folds with the right configuration; the extra seeds are full-model runs | [PAPER Tab.2, Tab.5] |
+| Q14-4 | Finished steps (`last.pt`, result JSON) are skipped; the rest run in order | 04 §5 |
+| Q14-5 | Training commands resume; evaluation commands write JSON; only P1 uses `random600`; the seed is part of the run directory | D-08, D-15 |
+
+Mutation check (2026-09-19): eleven wrong variants (cascade with ADRM, baseline with LMA, gate with two stages, seed not passed, no resume, `random600` everywhere, training or evaluation never skipped, only `best.pt` evaluated, a Table 2 setting or Table 5 depth missing) all fail.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

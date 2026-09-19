@@ -7,6 +7,7 @@
 """
 
 import argparse
+import json
 import os
 
 import numpy as np
@@ -37,6 +38,7 @@ def parse_args(argv=None):
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--save_dir", default="log_eval")
     p.add_argument("--dry_run", type=str2bool, default=False)
+    p.add_argument("--result_json", default=None, help="also write the result as JSON to this path")
     return p.parse_args(argv)
 
 
@@ -53,6 +55,7 @@ def load_model(args, device) -> torch.nn.Module:
     config = CascadeProtoConfig(**checkpoint["config"])  # the architecture the weights were trained with
     model = build_model(config).to(device)
     model.load_state_dict(checkpoint["model"], strict=True)
+    model.checkpoint_epoch = checkpoint.get("epoch")
     return model
 
 
@@ -83,6 +86,10 @@ def main(argv=None):
     miou = evaluate(model, dataset, class_names, logger, device, max_episodes=n)
     logger.cprint(f"[TEST] {args.model} {args.dataset} S{args.cvfold} {args.n_way}-way {args.k_shot}-shot "
                   f"mIoU: {miou:.6f}")
+    if args.result_json:
+        with open(args.result_json, "w") as f:
+            json.dump({"miou": miou, "protocol": args.eval_protocol, "episodes": n, "checkpoint": args.checkpoint,
+                       "epoch": getattr(model, "checkpoint_epoch", None), "dry_run": args.dry_run}, f)
     return 0
 
 

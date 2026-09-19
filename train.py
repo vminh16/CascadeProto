@@ -116,6 +116,7 @@ def run_dir(args) -> str:
     variant = args.modality if args.use_lma else "point"
     tag = f"_T{args.num_stages}" + ("" if args.use_adrm or args.num_stages == 0 else "_noadrm")
     tag += "" if args.use_gate or args.num_stages == 0 else "_nogate"
+    tag += "" if args.seed == 0 else f"_seed{args.seed}"
     return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 
 

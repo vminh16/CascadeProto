@@ -419,3 +419,19 @@ B (training) after the pending VM check 13e.
 * **Verification.** CPU gate 247 passed. RES-2 shows bit-identical weights and AdamW moments after
   stop/resume. Mutation check: 13/14 killed; the survivor is equivalent (05 §3.8b). The first run had
   3 more survivors, which led to the absolute checks now in RES-1/2/4.
+
+### 14b — run queue for the phase-14 experiments
+
+* **What.** New `experiments/phase14.py`: the 26 S3DIS runs of the plan (P1 full + baseline S0;
+  P2 the rest of Table 4; P2s two extra seeds of the full model; P3 the rest of Table 2; P4 Table 5
+  depths 2, 3, 5, 6), each with the cells of Tables 2/4/5 it fills. It trains with `--resume true`,
+  evaluates `best.pt` and `last.pt` (D-15) with `fixed100` (plus `random600` for P1, D-08) and skips
+  every step whose output exists, so the same command can be rerun after an interruption.
+  `eval.py --result_json` writes the result as JSON; `train.run_dir` appends `_seed<n>` for seeds
+  other than 0. `tests/test_phase14.py` (Q14-1…5).
+* **Note.** Table 4's "+ Entropy Gate" row and Table 5's T = 1 are the same configuration under
+  D-17, and the full model is Table 5's T = 4, so one run fills two cells. The paper reports
+  different numbers for them (85.34/82.48 vs 85.21/81.34 for the gate row and T = 1), i.e. they were
+  separate runs there; phase 14 compares our single run with both.
+* **Verification.** 6 CPU tests; mutation check 11/11. `eval.py --result_json` needs CUDA and is
+  checked by the first P1 evaluation on the VM.
