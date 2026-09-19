@@ -120,9 +120,9 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 
 | ID | Check | Source |
 | :--- | :--- | :--- |
-| GATE-1 | For inputs in [−1000, 1000]: `H ∈ [0, ln 2]`, no NaN/Inf | 02 §5.1, 02 §9 |
-| GATE-2 | At θ = 0.5: gate values lie in [0.4046, 0.7311] | 02 §5.1 |
-| GATE-3 | θ is a scalar `nn.Parameter` per stage, initial value 0.5, receives gradient | 02 §5.1, 01 §2.4 |
+| GATE-1 | For inputs in [−1000, 1000]: `H ∈ [0, ln 2]`, no NaN/Inf; `H` equals Eq.10 evaluated on Python floats (with the D-16 clamp), is even in x and strictly decreasing in |x| | 02 §5.1, 02 §9 |
+| GATE-2 | At θ = 0.5: gate values lie in [0.4046, 0.7311], the lower end reached at x = 0; the output equals `x·σ(2(θ − H(x)))` entry by entry; changing one entry changes only its own gate | 02 §5.1, [DECISION D-02] |
+| GATE-3 | θ is a scalar `nn.Parameter` per stage, initial value 0.5; its gradient equals `Σ 2·P·g(1 − g)` for the loss `Σ P_gated`; `gradcheck` passes; `use_gate=false` is the identity with no θ | 02 §5.1, 01 §2.4, D-17 |
 | XATT-1 | `A` has shape `[B_q, N+1, K, 128, 128]`; every row sums to 1 | 02 §5.2 |
 | XATT-2 | `A[b, c, k]` equals `softmax(Q'[b]ᵀ S'[c, k] / √72)` computed with an explicit loop | 02 §5.2, [DECISION D-01] |
 | XATT-3 | Query and support use the **same** φ module (`id` equal); φ is `Conv1d(64, 72, 1, bias=False)` | 02 §5.2, [PAPER Eq.13] |
@@ -133,6 +133,7 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 | DIFF-2 | Non-negative features with strictly positive channel means in both branches: `c_unique = 0`, `P_diffuse = (q_ch + s_ch)/4` | 02 §5.3, [DECISION D-14] |
 | DIFF-3 | A channel that is zero on all support points but positive in the query gives a non-zero `c_unique` for that channel | 02 §5.3, [DECISION D-14] |
 | DIFF-4 | For any input, `P_diffuse` is identical across class rows | 02 §5.3 |
+| (mutation) | 12a (2026-09-19): thirteen wrong variants of the gate (log₂, one entropy term, no sigmoid, no clamp, ε = 1e-6, θ₀ = 0, no factor 2, `H − θ`, gate replacing P, θ not learnable, θ per channel, gate averaged over channels, disabled gate still gating) each fail at least one test | |
 | FUSE-1 | Fusion weight shape `[B_q, 2]`, rows sum to 1 | 02 §5.4, [DECISION D-11] |
 | FUSE-2 | SE vector shape `[B_q, 128]` in (0, 1) | 02 §5.4 |
 | FUSE-3 | Row 0 of `P_weighted` equals 0.8 × row 0 of `P_attended`; other rows × 1.0; `w_cls` is not a parameter | 02 §5.4 |

@@ -228,3 +228,28 @@ generator input `[E_fused; z]` of width 2D. `eval_noise=mean_of_M` raises until 
   seen the text of the 6 training classes only; at test time `P_modal` comes from 6 unseen class names,
   so an early, undertrained adapter can hurt. Whether LMA helps is decided by the full-schedule runs of
   phase 14, not here.
+
+---
+
+## Phase 12 — EPPM and the cascade (Table 4 "+ Entropy Gate" and "+ Cascade" rows)
+
+Before this phase the maintainer closed D-01 step 5 (one attention matrix per query, class slot and
+shot, as in VIP-Seg) and scoped the flags: `cross_attn=two_hop`, `gate_target=features` and
+`diffusion_input=pre_relu` raise `NotImplementedError`; `use_gate`, `cross_attn_scale` and
+`fusion_weight` are implemented. Cross-checked against the paper (§3.4, Eq.10–23) and VIP-Seg's
+`PrototypeEnhancementModule` [VIPSEG models/vipseg.py:196-310].
+
+### 12a — entropy gate (Eq.10–12)
+
+* **What.** `models/eppm.py` rewritten from scratch, starting with `channel_entropy` and
+  `EntropyGate(enabled)`. `tests/test_eppm.py` rewritten (GATE-1…3 plus the disabled gate).
+* **Why.** The old file carried the rejected two-hop attention and an API whose batch axes broadcast
+  support against query (audit); it is replaced stage by stage in 12a–12d.
+* **Sources.** Eq.10 with natural log and ε = 1e-8, Eq.11 `g = σ(2(θ − H))`, Eq.12 [PAPER §3.4];
+  θ learnable, initialised at 0.5, one per stage [PAPER Eq.11] [PAPER §3.5]; gate applied to the
+  prototype channel-wise [DECISION D-02]; clamp of p [DECISION D-16]; `use_gate=false` means g ≡ 1
+  [DECISION D-17].
+* **Verification.** 8 CPU tests, float64: entropy against Python floats to 1e-12 on [−1000, 1000],
+  bounds `[0, ln 2]`, gate range [0.4046, 0.7311] at θ = 0.5, entry-wise formula, locality,
+  analytic θ gradient `Σ 2·P·g(1 − g)`, `gradcheck`. `H(x) = H(−x)` holds to 2e-15, not bit for bit
+  (`σ(−x)` and `1 − σ(x)` round differently). Mutation check: 13/13 killed.
