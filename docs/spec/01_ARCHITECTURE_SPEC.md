@@ -153,9 +153,9 @@ Required configuration options. Defaults reproduce the full model. They live in 
 | `num_stages` | 4 | 0–6 | [PAPER Tab.5] [DECISION D-17] |
 | `use_adrm` | true | true / false | [PAPER Tab.4] [DECISION D-17] |
 | `modality` | text | text (image, audio: not yet implemented, must raise) | [PAPER Eq.4] [DECISION D-13] |
-| `cross_attn` | channel | channel / two_hop | [DECISION D-01] |
+| `cross_attn` | channel | channel (two_hop raises) | [DECISION D-01] |
 | `cross_attn_scale` | sqrt_d | sqrt_d / sqrt_D | [DECISION D-01] |
-| `gate_target` | prototype | prototype / features | [DECISION D-02] |
+| `gate_target` | prototype | prototype (features raises) | [DECISION D-02] |
 | `gmmn_fg_mode` | joint | joint / per_class | [DECISION D-04] |
 | `gmmn_detach_point` | false | true / false | [DECISION D-04] |
 | `eval_noise` | zero | zero / sample (mean_of_M raises until M is chosen) | [DECISION D-06] |
@@ -163,7 +163,7 @@ Required configuration options. Defaults reproduce the full model. They live in 
 | `logit_scale` | none | none / sqrt_D | [DECISION D-10] |
 | `l2norm_point_proto` | false | true / false | [DECISION D-10] |
 | `fusion_weight` | per_query | per_query / per_class | [DECISION D-11] |
-| `diffusion_input` | post_relu | post_relu / pre_relu | [DECISION D-14] |
+| `diffusion_input` | post_relu | post_relu (pre_relu raises) | [DECISION D-14] |
 
 ---
 
