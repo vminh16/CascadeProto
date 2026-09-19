@@ -318,3 +318,13 @@ shot, as in VIP-Seg) and scoped the flags: `cross_attn=two_hop`, `gate_target=fe
   until phase 13; the "+ Cascade" row needs `--use_adrm false`.
 * **Verification.** CPU gate 206 passed. Mutation check: 14/14 killed after CP-14 gained the
   `logit_scale` case.
+
+### 12f — VM check · PENDING
+
+* **Status.** Not run: the VM is not reachable at the moment (2026-09-19). Phase 12 is verified on the
+  CPU only (206 passed, mutation checks of 12a–12e) and is **not yet closed**.
+* **To run when the VM is back.**
+  `git pull && pytest -m "not clip" -q && pytest -m clip -q`, then
+  `python train.py --dataset s3dis --data_path datasets/S3DIS/blocks_bs1_s1 --cvfold 0 --n_way 2 --k_shot 1 --use_lma true --num_stages 4 --use_adrm false --dry_run true`.
+* **What only the VM can show.** The EPPM cascade on the real VIP-Seg encoder (CUDA-only
+  `mamba_ssm`, `pointnet2_ops`), float32 on the GPU, memory and time per step.
