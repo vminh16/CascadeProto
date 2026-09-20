@@ -45,6 +45,8 @@ VARIANTS = {  # name: train.py switches (None = VIP-Seg's own model)
     "full": [],
     "full_l2": ["--l2norm_point_proto", "true"],
     "full_norm": ["--cross_attn_norm", "layernorm"],  # [DECISION D-18]
+    "full_gatefeat": ["--gate_target", "features"],  # [DECISION D-02] literal Eq.13-14
+    "full_scaled": ["--logit_scale", "sqrt_D"],  # [DECISION D-10] "scaled dot-product" of Eq.23
 }
 
 

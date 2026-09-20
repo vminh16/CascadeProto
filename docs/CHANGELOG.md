@@ -679,3 +679,12 @@ B (training) after the pending VM check 13e.
 * **Verification.** G1 CPU gate. One file was damaged by a bad line-split during this step and
   restored from the committed blob of 5794de5; no work was lost, since the only uncommitted change to
   it was the damage.
+
+### 15g - two more diag variants for the readings the paper leaves open
+
+* **full_gatefeat** (`--gate_target features`, D-02): the reading in which Eq.12's `x_gated` is
+  consumed, by Eq.13, and Eq.14 keeps the ungated `psi(P^(t-1))` it prints.
+* **full_scaled** (`--logit_scale sqrt_D`, D-10): Eq.23's prose calls the matching "scaled
+  dot-product" while the equation prints no scale. Never measured.
+* Both are three-seed runs, because the loop's run-to-run spread is about a point (15e). The
+  comparison set already exists: baseline_l2 0.5205 +- 0.0104 and full 0.5171 +- 0.0123.
