@@ -152,7 +152,7 @@ Not to be copied: VIP-Seg's `reshape(proj_dim, -1)` before the product, which in
 
 With `cross_attn_norm = layernorm` [DECISION D-18], one shared LayerNorm standardises the columns of `Q'` and `S'_{c,k}` along the projection axis `r` before step 3:
 $$Q'_{:,i} \leftarrow \mathrm{LN}(Q'_{:,i}), \qquad S'_{c,k,:,j} \leftarrow \mathrm{LN}(S'_{c,k,:,j})$$
-This makes `A` invariant to the scale of the features and gives each stage 144 parameters with which to set its own sharpness. It is a probe, not a fix: both limits of the channel softmax leave `P_cross` constant along `D`, and `P_diffuse` has no class index [DECISION D-16], so the class-discriminative content of `P^t` comes from the residual of Eq.21 either way. The default is `none`, the literal Eq.14; see D-18 for the measurements.
+This makes `A` invariant to the scale of the features and gives each stage 144 parameters with which to set its own sharpness. It is an ablation flag, not a fix, and scored below the default on the VM: both limits of the channel softmax leave `P_cross` constant along `D`, and `P_diffuse` has no class index [DECISION D-16], so the class-discriminative content of `P^t` comes from the residual of Eq.21 either way. The default is `none`, the literal Eq.14; see D-18 for the measurements.
 
 ### 5.3 Prototype diffusion (Eq.15–18)
 

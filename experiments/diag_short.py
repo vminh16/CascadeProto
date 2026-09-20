@@ -7,10 +7,11 @@ Every variant trains from scratch on the same seeded episodes with AdamW (lr 1e-
 decay (both schedules decay only after this budget), then scores 300 valid episodes spread over all
 class combinations. Only the variant changes, one variable at a time.
 
-Each run also reports the regime of Eq.14 on real encoder features before and after training
-[DECISION D-18]: `attn_width` out of D = 128, and the channel variation of `P_cross`. A width near 1
-or near 128 both mean `P_cross` is constant along D, i.e. the stage can only pass the residual
-through. That measurement is the one the CPU cannot make.
+Each run also reports the state of stage 1 on real encoder features before and after training
+[DECISION D-18]: `attn_width` out of D = 128, the channel variation of `P_cross`, and the Eq.19 fusion
+weight on the class-blind `P_diffuse`. Those are the measurements the CPU cannot make. `--seeds`
+repeats a run, because the loop is not bit-reproducible on CUDA: the same configuration gave 0.5164
+and 0.5346 on two runs, so differences of about a point mean nothing on one seed.
 
     python experiments/diag_short.py --data_path datasets/S3DIS/blocks_bs1_s1 --variants vipseg baseline
 """
@@ -33,6 +34,7 @@ import train  # noqa: E402
 from pipeline.episodes import (EpisodeCollate, SeededEpisodes, build_eval_dataset, build_train_dataset,  # noqa: E402
                                read_class_names)
 from pipeline.evaluation import evaluate  # noqa: E402
+from models.eppm import prototype_diffusion  # noqa: E402
 from models.prototypes import point_prototypes  # noqa: E402
 from pipeline.model_api import EpisodeOutput, episode_loss  # noqa: E402
 
@@ -79,16 +81,25 @@ class _Print:
         pass
 
 
-def attention_regime(model, episode, device):
-    """Softmax width and channel variation of P_cross in stage 1, on real encoder features [D-18].
+NO_STAGE = {"attn_width": float("nan"), "p_cross_chan_var": float("nan"), "w_diffuse": float("nan")}
 
-    width = exp(H(row)) averaged over the rows of A: 1 means every row copies one channel, D = 128
-    means uniform; both ends leave P_cross constant along D. chan_var = std_D / |mean_D| of P_cross.
-    Returns (nan, nan) for a model without EPPM stages.
+
+def attention_regime(model, episode, device):
+    """State of stage 1 of Eq.13-19 on real encoder features [DECISION D-18].
+
+    * `attn_width` = exp(H(row)) averaged over the rows of A, out of D = 128. Near 1 every row of A
+      copies one channel, near 128 every row copies the channel mean; both leave P_cross constant
+      along D, so the stage can only pass its residual through.
+    * `p_cross_chan_var` = max over class rows of std_D / |mean_D| of P_cross. Below about 1e-2 the
+      stage has no channel structure left to contribute.
+    * `w_diffuse` = the Eq.19 fusion weight on P_diffuse, which carries no class index [D-16]; that
+      share of P_combined is identical for every class by construction.
+
+    All `nan` for a model without EPPM stages.
     """
     stages = getattr(model, "stages", None)
     if not stages:
-        return float("nan"), float("nan")
+        return dict(NO_STAGE)
     stage, was_training = stages[0], model.training
     model.eval()  # the probe must not move the BatchNorm running statistics
     with torch.no_grad():
@@ -96,11 +107,14 @@ def attention_regime(model, episode, device):
         f_s, f_q = model.features.encode_episode(ep.support_x, ep.query_x)
         p = point_prototypes(f_s, ep.support_y).unsqueeze(0).expand(f_q.shape[0], -1, -1)  # P^0 (Eq.3)
         a = stage.cross.attention(f_s, f_q)
-        width = torch.exp(-(a * (a + 1e-30).log()).sum(-1)).mean()
         p_cross = stage.cross(stage.gate(p), f_s, f_q)
-        chan = (p_cross[0].std(-1) / p_cross[0].mean(-1).abs()).max()
+        p_diffuse = prototype_diffusion(f_s, f_q)[:, None, :].expand_as(p_cross)
+        w = stage.out.weights(p_cross, p_diffuse)  # [B_q, 2] or [B_q, N+1, 2] (Eq.19)
+        out = {"attn_width": float(torch.exp(-(a * (a + 1e-30).log()).sum(-1)).mean()),
+               "p_cross_chan_var": float((p_cross[0].std(-1) / p_cross[0].mean(-1).abs()).max()),
+               "w_diffuse": float(w[..., 1].mean())}
     model.train(was_training)
-    return float(width), float(chan)
+    return out
 
 
 def build(variant, device):
@@ -119,26 +133,26 @@ def run(variant, data_path, episodes, batch, stride, seed, device):
     loader = DataLoader(data, batch_size=batch, shuffle=False, num_workers=4, collate_fn=EpisodeCollate(names))
     opt = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
     t0, losses, first = time.time(), [], None
-    w0 = c0 = float("nan")
+    init = dict(NO_STAGE)
     model.train()
     for eps in loader:
         if first is None:
             first = eps[0]
-            w0, c0 = attention_regime(model, first, device)
+            init = attention_regime(model, first, device)
         eps = [ep.to(device) for ep in eps]
         loss = torch.stack([episode_loss(model(ep), ep) for ep in eps]).mean()
         opt.zero_grad()
         loss.backward()
         opt.step()
         losses.append(loss.item())
-    w1, c1 = attention_regime(model, first, device)
+    end = attention_regime(model, first, device)
     valid = build_eval_dataset(data_path, "s3dis", 0, 2, 1, mode="valid", seed=0)
     with torch.no_grad():
         miou = evaluate(model, StridedView(valid, stride), names, _Print(), device)
-    return {"variant": variant, "batch": batch, "steps": len(losses), "episodes": episodes,
+    return {"variant": variant, "batch": batch, "seed": seed, "steps": len(losses), "episodes": episodes,
             "loss_last100": float(np.mean(losses[-100:])), "valid_miou": miou,
-            "attn_width_init": w0, "attn_width_end": w1, "p_cross_chan_var_init": c0,
-            "p_cross_chan_var_end": c1, "seconds": time.time() - t0}
+            **{f"{k}_init": v for k, v in init.items()}, **{f"{k}_end": v for k, v in end.items()},
+            "seconds": time.time() - t0}
 
 
 def main(argv=None):
@@ -148,14 +162,15 @@ def main(argv=None):
     p.add_argument("--batches", nargs="+", type=int, default=[4])
     p.add_argument("--episodes", type=int, default=2400)
     p.add_argument("--stride", type=int, default=5, help="1500 valid episodes / 5 = 300")
-    p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--seeds", nargs="+", type=int, default=[0], help="repeat each run; the spread is the noise floor")
     args = p.parse_args(argv)
     device = torch.device("cuda")
     for variant in args.variants:
         for batch in args.batches:
-            r = run(variant, args.data_path, args.episodes, batch, args.stride, args.seed, device)
-            print("[diag] " + " | ".join(f"{k}={v:.4f}" if isinstance(v, float) else f"{k}={v}" for k, v in r.items()),
-                  flush=True)
+            for seed in args.seeds:
+                r = run(variant, args.data_path, args.episodes, batch, args.stride, seed, device)
+                print("[diag] " + " | ".join(f"{k}={v:.4f}" if isinstance(v, float) else f"{k}={v}"
+                                             for k, v in r.items()), flush=True)
     return 0
 
 

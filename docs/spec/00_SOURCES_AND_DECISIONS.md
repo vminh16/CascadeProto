@@ -228,7 +228,7 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 
 ---
 
-### D-18 — Degeneracy of the cross-attention output (Eq.14) · `PROPOSED`
+### D-18 — Degeneracy of the cross-attention output (Eq.14) · `LOCKED` (as an ablation flag)
 
 * **Symptom (L0, measured).** On the VM, with the same loop, data, encoder and metric, 2,400 training
   episodes and 300 valid episodes (2026-09-20): `baseline_l2` 0.5218, `full_l2` 0.5150, `full` 0.5164,
@@ -276,12 +276,34 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   `1/√d` does not provide. It removes the saturated regime but not the rank-1 update, and in the
   β std 0.5–2.0 rows above it has **less** channel variation than `none`, so it is not established as
   an improvement. The default stays `none`, the literal Eq.14.
-* **What would settle it (15c).** On the VM, with real encoder features: the effective width of a
-  softmax row and the channel variation of `P_cross` at initialisation and after training, and
-  `full_norm` against `baseline_l2` under the diag budget. If `layernorm` does not lift the cascade
-  above `baseline_l2`, the missing piece is the channel-preserving term in Eq.19 — a defect of the
-  paper's module — and it is to be reported as such rather than patched.
-* **Ablation flag.** `cross_attn_norm = {none (default), layernorm}`. Neither value raises.
+* **Outcome on the VM (15c, real encoder, 2,400 train / 300 valid episodes, 2026-09-20).** The
+  saturation hypothesis is **refuted** and `layernorm` is **rejected as a default**.
+
+  | variant | valid mIoU | `attn_width` init → end | `P_cross` channel variation init → end |
+  | :--- | ---: | :--- | :--- |
+  | `baseline_l2` | 0.5223 | — | — |
+  | `full` | 0.5346 | 127.9997 → 9.59 | 6e-04 → 0.369 |
+  | `full_norm` | 0.5134 | 92.14 → 109.31 | 0.649 → 0.012 |
+
+  Readings. (i) The real encoder puts Eq.14 at the **uniform** end at initialisation, not the
+  saturated one: width 127.9997 of 128, `P_cross` channel variation 6e-04, i.e. collapsed, but by the
+  other limit than the CPU probe suggested. (ii) The stage **escapes on its own**: after 600 steps the
+  width is 9.59 and the channel variation 0.369, so φ does learn and the module is not dead. (iii) It
+  still buys almost nothing — `full` is 1.2 points above `baseline_l2`, and the same `full`
+  configuration scored 0.5164 on an earlier run of the identical command, so the run-to-run spread of
+  the loop is larger than the effect. (iv) `layernorm` makes it **worse**: it holds the attention near
+  the uniform end (92 → 109 instead of 128 → 9.6), the channel variation ends at 0.012 instead of
+  0.369, and the score drops to 0.5134.
+* **Decision.** `cross_attn_norm` stays in the code as an ablation flag with default `none`, the
+  literal Eq.14. Neither value raises. It is not a fix and must not become the default.
+* **Still open.** Why a stage with a healthy `P_cross` is worth about a point when VIP-Seg's own
+  modules are worth about seventeen over the same `baseline_l2` through the same loop. The remaining
+  candidates, in order: (a) `P_diffuse` carries no class index [DECISION D-16] while the Eq.19 fusion
+  weight on it is 0.504 at initialisation, so about half of `P_combined` is identical for every class;
+  (b) Eq.19 has no channel-preserving self-correlation term, which is what VIP-Seg's `proto_self`
+  supplies. Both are properties of the paper's module as printed, so the finding may be that Table 4's
+  increments are not reproducible, not that our code is wrong. 15d reports the learned fusion weight
+  and `--seeds` gives the noise floor.
 
 ---
 
@@ -363,5 +385,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-18 | Pipeline sanity check (05 §4): VIP-Seg's released S0 2-way 1-shot checkpoint scores 0.719687 through `eval.py --model vipseg` on our data and metric (VIP-Seg log 0.722026, [PAPER Tab.6] 72.20). |
 | 2026-09-19 | D-05 locked by the maintainer (one modality per run, `E_fused := E_adapted^(m)`, generator input `[E_fused; z]` of width 2D). D-06: `eval_noise=mean_of_M` raises until M is chosen. |
 | 2026-09-19 | D-01 step 5 closed by the maintainer: one `A` per (query, class slot, shot) as in VIP-Seg. D-01, D-02, D-14: the flags `two_hop`, `gate_target=features`, `diffusion_input=pre_relu` raise until implemented. D-17: `num_stages = 1` gives `L^1` with or without ADRM. |
-| 2026-09-20 | D-18 proposed: on the VM the four EPPM stages plus ADRM are worth −0.7 points against `baseline_l2`, because Eq.14's channel softmax leaves `P_cross` degenerate along D and Eq.19's other summand has no class index (D-16). New probe switch `cross_attn_norm`, default unchanged. |
+| 2026-09-20 | D-18: the EPPM cascade is worth about a point against `baseline_l2`, inside the run-to-run spread of the loop. The real encoder collapses Eq.14 at the **uniform** end at initialisation, not the saturated one, and the stage escapes it by itself (width 128 → 9.6). The `layernorm` probe is rejected as a default (0.5134 against 0.5223) and stays an ablation flag. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

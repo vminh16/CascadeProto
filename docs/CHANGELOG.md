@@ -586,3 +586,29 @@ B (training) after the pending VM check 13e.
   variation 1.1e-03) while `cross_attn_norm=layernorm` gives 94.79 and 4.8e-01.
 * **Verification.** Smoke-tested on CPU with the stand-in encoder for the full, full_norm and baseline
   configurations; the real measurement is the VM run.
+
+### 15d - the saturation hypothesis is refuted; fusion weight and seeds in the harness
+
+* **VM result (15c run, real encoder, 2,400 train / 300 valid episodes).** `baseline_l2` 0.5223,
+  `full` 0.5346, `full_norm` 0.5134. Stage 1 of `full`: `attn_width` 127.9997 -> 9.59,
+  `P_cross` channel variation 6e-04 -> 0.369. Stage 1 of `full_norm`: 92.14 -> 109.31 and
+  0.649 -> 0.012.
+* **What that overturns.** The cross-attention is **not** stuck: the real encoder collapses Eq.14 at
+  the *uniform* end at initialisation (every row of A copies the channel mean, `P_cross` channel
+  variation 6e-04), and training moves it out on its own. phi learns. The saturated regime measured on
+  synthetic CPU features is reachable but is not the regime of the real model, and the
+  `cross_attn_norm=layernorm` probe of 15a is rejected as a default: it pins the attention near the
+  uniform end and costs 0.9 points. D-18 keeps it as an ablation flag with default `none`.
+* **What survives.** A stage with a healthy `P_cross` is still worth about a point against
+  `baseline_l2`, where VIP-Seg's own modules are worth about seventeen through the same loop. The
+  collapse-at-both-ends argument and the class-blind `P_diffuse` (D-16) stand; the measured Eq.19
+  fusion weight on `P_diffuse` is 0.504 at initialisation, so about half of `P_combined` is the same
+  vector for every class.
+* **Also measured.** The loop is not bit-reproducible on CUDA: the identical `full` command gave
+  0.5164 and 0.5346 on two runs (loss_last100 0.3648 and 0.3556). Differences of about a point on one
+  seed carry no information, which the earlier readings of 14e did not account for.
+* **What.** `experiments/diag_short.py`: `attention_regime` now also returns the Eq.19 fusion weight on
+  `P_diffuse`, the run record carries the seed, and `--seed` becomes `--seeds` so one command measures
+  the noise floor. Spec 00 (D-18 outcome), 02 5.2 updated.
+* **Verification.** CPU smoke test of the probe on the stand-in encoder for full, full_norm and
+  baseline; G1 unchanged (no model code touched).
