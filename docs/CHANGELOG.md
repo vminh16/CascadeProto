@@ -707,3 +707,29 @@ B (training) after the pending VM check 13e.
   experiment, not a claim; it is off by default and any run using it is outside the paper.
 * **Verification.** G1 CPU gate; two new tests in `tests/test_eppm.py` for the term and for the
   switch/argument mismatch.
+
+### 15h - both open readings of the paper measured, three seeds each
+
+* **Result** (`results/phase15_diag/SUMMARY.md`, 2,400 train / 300 valid episodes, batch 4).
+
+  | variant | seeds | mean | sd | t vs baseline_l2 |
+  | :--- | :--- | ---: | ---: | ---: |
+  | baseline_l2 | 0.5316 / 0.5187 / 0.5111 | 0.5205 | 0.0104 | - |
+  | full | 0.5029 / 0.5244 / 0.5241 | 0.5171 | 0.0123 | -0.36 |
+  | full_gatefeat | 0.4951 / 0.5219 / 0.5484 | 0.5218 | 0.0267 | +0.08 |
+  | full_scaled | 0.4343 / 0.4961 / 0.4673 | 0.4659 | 0.0309 | -2.90 |
+
+* **D-02 settled, negatively.** `gate_target=features`, the only reading in which Eq.12's x_gated is
+  consumed, lands exactly on baseline_l2 with more than twice the seed spread. Which of the two
+  readings is right changes nothing measurable, so the audit finding stands as a correctness point
+  about the paper, not as an explanation of the gap. The default stays `prototype`.
+* **D-10 settled, positively.** `logit_scale=sqrt_D`, the reading suggested by Eq.23's prose
+  ("scaled dot-product matching"), is clearly worse: -5.5 points, t = -2.90, and its training loss
+  plateaus at 0.446-0.463 against 0.33-0.39 everywhere else, because dividing the logits by sqrt(D)
+  flattens the softmax. The printed Eq.23 without a scale is the right reading; the default `none`
+  stays and the ambiguity is closed.
+* **A pattern across variants.** The ones that leave the class-blind `P_diffuse` weighted highest
+  score lowest: full drives w_diffuse to 0.008-0.082 (0.5171), full_gatefeat leaves 0.11-0.17
+  (0.5218), full_scaled leaves 0.17-0.65 (0.4659). Consistent with D-16, but not evidence that
+  removing the branch by hand would help, since training already removes it.
+* **Nothing measured so far beats prototype matching with normalised prototypes.**

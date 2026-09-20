@@ -1,0 +1,70 @@
+=== 2026-09-20T16:47:52+00:00 commit b824a77
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+[diag] variant=full_gatefeat | batch=4 | seed=0 | steps=600 | episodes=2400 | loss_last100=0.3591 | valid_miou=0.4951 | attn_width_init=127.9997 | p_cross_chan_var_init=0.0006 | w_diffuse_init=0.5069 | attn_width_end=16.3622 | p_cross_chan_var_end=0.3116 | w_diffuse_end=0.1483 | seconds=512.1301
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+[diag] variant=full_gatefeat | batch=4 | seed=1 | steps=600 | episodes=2400 | loss_last100=0.3877 | valid_miou=0.5219 | attn_width_init=127.9995 | p_cross_chan_var_init=0.0019 | w_diffuse_init=0.4902 | attn_width_end=47.4197 | p_cross_chan_var_end=1.9087 | w_diffuse_end=0.1064 | seconds=500.7400
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+[diag] variant=full_gatefeat | batch=4 | seed=2 | steps=600 | episodes=2400 | loss_last100=0.3741 | valid_miou=0.5484 | attn_width_init=127.9998 | p_cross_chan_var_init=0.0013 | w_diffuse_init=0.4681 | attn_width_end=37.4958 | p_cross_chan_var_end=0.6733 | w_diffuse_end=0.1652 | seconds=503.6218
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+[diag] variant=full_scaled | batch=4 | seed=0 | steps=600 | episodes=2400 | loss_last100=0.4471 | valid_miou=0.4343 | attn_width_init=127.9997 | p_cross_chan_var_init=0.0006 | w_diffuse_init=0.5069 | attn_width_end=49.2418 | p_cross_chan_var_end=0.8080 | w_diffuse_end=0.1651 | seconds=494.4785
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+[diag] variant=full_scaled | batch=4 | seed=1 | steps=600 | episodes=2400 | loss_last100=0.4629 | valid_miou=0.4961 | attn_width_init=127.9995 | p_cross_chan_var_init=0.0019 | w_diffuse_init=0.4902 | attn_width_end=15.7336 | p_cross_chan_var_end=8.2796 | w_diffuse_end=0.5598 | seconds=493.9480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+[diag] variant=full_scaled | batch=4 | seed=2 | steps=600 | episodes=2400 | loss_last100=0.4630 | valid_miou=0.4673 | attn_width_init=127.9998 | p_cross_chan_var_init=0.0013 | w_diffuse_init=0.4681 | attn_width_end=47.8916 | p_cross_chan_var_end=0.5273 | w_diffuse_end=0.6528 | seconds=493.8751
+=== exit=0 2026-09-20T17:38:06+00:00 ALL RUNS FINISHED

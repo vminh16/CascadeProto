@@ -1,27 +1,39 @@
-# Phase 15 diagnostic: three seeds per variant (S0, 2-way 1-shot)
+# Phase 15 diagnostics: every variant, three seeds each
 
-Budget: 2,400 training episodes, batch 4 (600 steps), AdamW lr 1e-3 wd 0.1, no decay;
-300 valid episodes (every 5th of the 1,500 cached ones). Commit db72cc7, NVIDIA L4.
+S3DIS S0, 2-way 1-shot. 2,400 training episodes, batch 4 (600 steps), AdamW lr 1e-3 wd 0.1, no
+decay; 300 valid episodes. The loop is not bit-reproducible on CUDA, so the seed spread is the
+resolution of the whole table.
 
-| variant | seed | valid mIoU | loss_last100 | attn_width init -> end | P_cross chan_var init -> end | w_diffuse init -> end |
-| :--- | ---: | ---: | ---: | :--- | :--- | :--- |
-| baseline_l2 | 0 | 0.5316 | 0.3330 | - -> - | - -> - | - -> - |
-| baseline_l2 | 1 | 0.5187 | 0.3636 | - -> - | - -> - | - -> - |
-| baseline_l2 | 2 | 0.5111 | 0.3753 | - -> - | - -> - | - -> - |
-| full | 0 | 0.5029 | 0.3763 | 127.9997 -> 53.8467 | 0.0006 -> 0.3674 | 0.5069 -> 0.0077 |
-| full | 1 | 0.5244 | 0.3723 | 127.9995 -> 29.4160 | 0.0019 -> 0.5337 | 0.4902 -> 0.0254 |
-| full | 2 | 0.5241 | 0.3863 | 127.9998 -> 40.0859 | 0.0013 -> 0.6142 | 0.4681 -> 0.0819 |
+| variant | what it tests | seeds | mean | sd |
+| :--- | :--- | :--- | ---: | ---: |
+| `baseline_l2` | prototype matching with L2-normalised prototypes, no added module | 0.5316 / 0.5187 / 0.5111 | 0.5205 | 0.0104 |
+| `full` | the paper as specified (D-01, D-02, D-16) | 0.5029 / 0.5244 / 0.5241 | 0.5171 | 0.0123 |
+| `full_gatefeat` | D-02 read as gating the features, the only reading that consumes Eq.12 | 0.4951 / 0.5219 / 0.5484 | 0.5218 | 0.0267 |
+| `full_scaled` | D-10: Eq.23's prose says "scaled dot-product", the equation prints no scale | 0.4343 / 0.4961 / 0.4673 | 0.4659 | 0.0309 |
 
-| variant | mean | sd | min | max |
-| :--- | ---: | ---: | ---: | ---: |
-| baseline_l2 | 0.5205 | 0.0104 | 0.5111 | 0.5316 |
-| full | 0.5171 | 0.0123 | 0.5029 | 0.5244 |
+Against `baseline_l2`, Welch's t on 3 + 3 runs:
 
-full - baseline_l2 = -0.0033 (standard error 0.0093, t = -0.36 on ~4 degrees of
-freedom). The four EPPM stages, ADRM and LMA together are worth nothing measurable at this budget;
-the point estimate is slightly negative. A 95 % interval is about +-2.6 points, so the +4.04 that
-Table 4 attributes to gate + cascade + ADRM lies outside it.
+| variant | difference | standard error | t |
+| :--- | ---: | ---: | ---: |
+| `full` | -0.0033 | 0.0093 | -0.36 |
+| `full_gatefeat` | +0.0013 | 0.0165 | +0.08 |
+| `full_scaled` | -0.0546 | 0.0188 | -2.90 |
 
-Earlier runs of the identical command, for the run-to-run spread at fixed seed 0:
-baseline_l2 0.5218, 0.5223, 0.5316; full 0.5164, 0.5346, 0.5029. The loop is not bit-reproducible
-on CUDA, so single-seed differences below about 2 points carry no information.
+| variant | attn_width init -> end | P_cross chan_var init -> end | w_diffuse init -> end |
+| :--- | :--- | :--- | :--- |
+| `full` | 128.00 -> 53.85/29.42/40.09 | 0.00/0.00/0.00 -> 0.37/0.53/0.61 | 0.51/0.49/0.47 -> 0.01/0.03/0.08 |
+| `full_gatefeat` | 128.00 -> 16.36/47.42/37.50 | 0.00/0.00/0.00 -> 0.31/1.91/0.67 | 0.51/0.49/0.47 -> 0.15/0.11/0.17 |
+| `full_scaled` | 128.00 -> 49.24/15.73/47.89 | 0.00/0.00/0.00 -> 0.81/8.28/0.53 | 0.51/0.49/0.47 -> 0.17/0.56/0.65 |
+
+## Readings
+
+* **Neither reading of the paper's ambiguities helps.** `full_gatefeat` lands on `baseline_l2`
+  (t = +0.08) with more than twice the seed spread, and `full_scaled` is clearly **worse**
+  (t = -2.90, and its training loss plateaus at 0.446-0.463 against 0.33-0.39 everywhere else,
+  because dividing the logits by sqrt(D) flattens the softmax). The default `logit_scale=none`
+  of D-10 is therefore the right reading of Eq.23, and D-02's `gate_target` does not matter.
+* **The variants that keep `w_diffuse` high score worst.** `full` drives it to 0.008-0.082 and
+  scores 0.5171; `full_gatefeat` leaves it at 0.11-0.17 and scores 0.5218; `full_scaled` leaves
+  it at 0.17-0.65 and scores 0.4659. Consistent with `P_diffuse` carrying no class information
+  (D-16), but not evidence that removing it by hand would help, since the model already does.
+* **Nothing in this table beats prototype matching with normalised prototypes.**
