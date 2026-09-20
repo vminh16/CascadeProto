@@ -565,3 +565,24 @@ B (training) after the pending VM check 13e.
   instead of the projection axis, the norm always built, the norm never built, and the support branch left
   unnormalised while the query is normalised (the last one is what a separate norm per branch would be).
 * **Verification.** G1 CPU gate: 269 passed, 33 deselected.
+
+### 15c - measure the Eq.14 regime on real features (harness, DEBUG)
+
+* **Why.** D-18 leaves one question open that the CPU cannot answer: where on the saturated-to-uniform
+  axis the real encoder puts Eq.14. Both ends leave `P_cross` constant along D, and the CPU
+  measurements span softmax widths from 1.02 to 127 depending on the per-channel offset of the
+  features, so only a run with the CUDA encoder settles it.
+* **What.** `experiments/diag_short.py` gains `attention_regime(model, episode, device)`: the effective
+  softmax width of stage 1's `A` (`exp(H(row))` averaged over the rows, out of D = 128) and the channel
+  variation of `P_cross` on the real `P^0` of one training episode, measured before the first optimiser
+  step and again after the last. Reported in the `[diag]` line as `attn_width_init`, `attn_width_end`,
+  `p_cross_chan_var_init`, `p_cross_chan_var_end`; `nan` for a model without EPPM stages. The probe
+  switches the model to eval for its forward pass, so it does not move the BatchNorm running
+  statistics, and restores the previous mode.
+* **Reading the numbers.** A width near 1 means every row of `A` copies one channel; a width near 128
+  means every row copies the channel mean. Both make `P_cross` constant along D, so a channel variation
+  below about 1e-2 says the stage passes only its residual through, whatever the width. On the CPU
+  stand-in encoder the default configuration already sits at the uniform end (width 128.00, channel
+  variation 1.1e-03) while `cross_attn_norm=layernorm` gives 94.79 and 4.8e-01.
+* **Verification.** Smoke-tested on CPU with the stand-in encoder for the full, full_norm and baseline
+  configurations; the real measurement is the VM run.
