@@ -9,8 +9,8 @@ import math
 import pytest
 import torch
 
-from models.eppm import (CrossAttention, EntropyGate, EPPMStage, FusionOutput, channel_entropy, class_weights,
-                         pool_tokens, prototype_diffusion, stage_logits)
+from models.eppm import (PROJ_DIM, CrossAttention, EntropyGate, EPPMStage, FusionOutput, channel_entropy,
+                         class_weights, pool_tokens, prototype_diffusion, stage_logits)
 
 ATOL = 1e-12
 LN2 = math.log(2.0)
@@ -230,6 +230,99 @@ def test_xatt_gradcheck_in_the_prototype():
 def test_xatt_invalid_scale_raises():
     with pytest.raises(ValueError):
         CrossAttention(scale="sqrt_72")
+
+
+# ------------------------------------------- XATT-7..10: cross_attn_norm (02 §5.2, D-18)
+
+def saturating_features(scale=1.0, seed=70):
+    """Post-ReLU features with a positive per-channel offset, i.e. a trained BatchNorm's beta.
+
+    Unlike `features()` the channels have visibly different means, which is what drives the columns of
+    S' apart and saturates the softmax of Eq.14 [DECISION D-18].
+    """
+    g = torch.Generator().manual_seed(seed)
+    offset = torch.randn(D, generator=g).relu()
+    f_s = torch.relu(torch.randn(N, 1, P, D, generator=g) + offset).double() * scale
+    f_q = torch.relu(torch.randn(1, P, D, generator=g) + offset).double() * scale
+    return f_s, f_q
+
+
+def xatt_ln(seed=0):
+    torch.manual_seed(seed)
+    return CrossAttention(norm="layernorm").double()
+
+
+def softmax_width(a):
+    """exp(H(row)) averaged over the rows: 1 = one channel per row, D = uniform."""
+    return float(torch.exp(-(a * (a + 1e-300).log()).sum(-1)).mean())
+
+
+def test_xatt7_default_is_the_literal_eq14_and_layernorm_costs_144_parameters():
+    plain, ln = xatt(), xatt_ln()
+    assert plain.proj_norm is None and CrossAttention(norm="none").proj_norm is None
+    count = lambda m: sum(p.numel() for p in m.parameters())
+    assert count(ln) - count(plain) == 2 * PROJ_DIM == 144
+    f_s, f_q = features()
+    assert torch.equal(plain.project(pool_tokens(f_q)), plain.phi(pool_tokens(f_q)))  # no-op by default
+
+
+def test_xatt7_invalid_norm_raises():
+    with pytest.raises(ValueError):
+        CrossAttention(norm="batchnorm")
+
+
+def test_xatt8_layernorm_standardises_the_projection_axis():
+    """gamma = 1, beta = 0 at initialisation, so each column of Q' has mean 0 and variance 1 over r."""
+    m = xatt_ln()
+    q = m.project(pool_tokens(features()[1]))  # [B_q, d, D]
+    assert q.shape[1] == PROJ_DIM
+    assert torch.allclose(q.mean(dim=1), torch.zeros(1).double(), atol=1e-12, rtol=0)
+    biased = q.var(dim=1, unbiased=False)
+    assert torch.allclose(biased, torch.ones_like(biased), atol=1e-5, rtol=0)  # LayerNorm eps = 1e-5
+
+
+@pytest.mark.parametrize("alpha", [3.0, 100.0])
+def test_xatt9_layernorm_makes_the_attention_scale_invariant(alpha):
+    """Pooling and phi are positively homogeneous, so only the norm can remove a global feature scale.
+
+    Without it the same episode at a different feature magnitude gives a different A, which is how the
+    module reaches the saturated regime [DECISION D-18]. LayerNorm's eps = 1e-5 is the only thing that
+    keeps the invariance from being exact, so A moves by 4e-07 instead of 0.42.
+    """
+    f_s, f_q = saturating_features()
+    ln, plain = xatt_ln(), xatt()
+    assert (ln.attention(alpha * f_s, alpha * f_q) - ln.attention(f_s, f_q)).abs().max() < 1e-5
+    assert (plain.attention(alpha * f_s, alpha * f_q) - plain.attention(f_s, f_q)).abs().max() > 0.1
+
+
+def measure_regime(m, f_s, f_q, p):
+    """Softmax width, channel variation of P_cross, and phi's relative gradient (02 §5.2, D-18)."""
+    width = softmax_width(m.attention(f_s, f_q)[0, 1, 0])
+    out = m(p, f_s, f_q)
+    flat = float((out[0].std(-1) / out[0].mean(-1).abs()).max())
+    out.square().mean().backward()
+    return width, flat, float(m.phi.weight.grad.norm() / m.phi.weight.norm())
+
+
+def test_xatt10_large_features_collapse_the_literal_eq14():
+    """The failure mode of D-18: every row of A picks one channel, P_cross is constant along D and phi
+    has no gradient left, so the stage cannot leave that state. Regression test for phase 15."""
+    p = rand(1, N + 1, D, seed=71).double()
+    f_s, f_q = saturating_features(scale=10.0)
+    width, flat, grad = measure_regime(xatt(), f_s, f_q, p)
+    assert width < 1.1  # one channel per row out of D = 128
+    assert flat == 0.0  # P_cross exactly constant along the channels
+    assert grad < 1e-12  # 4.2e-17 measured; at scale 1.0 the same model has 0.31
+
+
+def test_xatt10_layernorm_gives_the_same_regime_at_every_feature_scale():
+    """The switch of D-18 removes the collapse, and its numbers do not depend on the feature scale."""
+    p = rand(1, N + 1, D, seed=71).double()
+    small = measure_regime(xatt_ln(), *saturating_features(scale=1.0), p)
+    large = measure_regime(xatt_ln(), *saturating_features(scale=10.0), p)
+    assert small == pytest.approx(large, rel=1e-4)
+    width, flat, grad = large
+    assert width > 64.0 and flat > 1e-2 and grad > 1e-5
 
 
 # ------------------------------------------------------------------ DIFF (02 §5.3, Eq.15-18, D-14)

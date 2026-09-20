@@ -129,6 +129,10 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 | XATT-4 | Background slot of `S'` is built from the way-mean of support features, taken before pooling; permuting the ways keeps slot 0 and permutes slots 1..N | 02 §5.2 |
 | XATT-5 | `P_cross` equals the mean over K of `A · ψ(P_gated)` for K = 1, 2, 3 (ψ written out); reordering the shots changes nothing | 02 §5.2 |
 | XATT-6 | Permuting queries in the batch permutes outputs identically; one query's output does not depend on the others | 02 §5.2, [DECISION D-01] |
+| XATT-7 | `cross_attn_norm` defaults to `none`, which leaves φ untouched; `layernorm` costs 2d = 144 parameters; an unknown value raises | 02 §5.2, [DECISION D-18] |
+| XATT-8 | `layernorm` standardises each column of `Q'` along the projection axis (mean 0, variance 1 to the LayerNorm eps) | 02 §5.2, [DECISION D-18] |
+| XATT-9 | Scaling every feature by α leaves `A` unchanged to 1e-5 with `layernorm` and moves it by more than 0.1 without | [DECISION D-18] |
+| XATT-10 | On features with a per-channel offset at scale 10 the literal Eq.14 collapses: softmax width below 1.1 of 128, `P_cross` exactly constant along D, `‖∇φ‖/‖φ‖` below 1e-12. `layernorm` gives the same three numbers at scale 1 and at scale 10 | [DECISION D-18] |
 | DIFF-1 | Mixed-sign features: `P_diffuse` matches Eq.15–18 computed by hand, including a non-zero `c_unique` | 02 §5.3 |
 | DIFF-2 | Non-negative features with strictly positive channel means in both branches: `c_unique = 0`, `P_diffuse = (q_ch + s_ch)/4` | 02 §5.3, [DECISION D-14] |
 | DIFF-3 | A channel that is zero on all support points but positive in the query gives a non-zero `c_unique` for that channel | 02 §5.3, [DECISION D-14] |
@@ -190,6 +194,7 @@ Phase-13 model = all Table 4 rows of D-17, including the full model (CP-7 and CP
 | CP-16 | The cascade keeps way equivariance (row 0 fixed, rows 1..N permuted) and query independence, with and without LMA | 02 §5–6 |
 | CP-17 | Full model: logits equal `Σ_t w_gate^(t) L^t` with the stage logits recomputed and `w_gate` written out, for T = 2 and 4; ADRM really mixes the stages; the added modules total 466,444 parameters | [PAPER Eq.24–25], 01 §4 |
 | CP-18 | Table 5: T = 1…6 with every switch on train end to end, every parameter receives a gradient; T = 1 has no `W_g` | [PAPER Tab.5], D-17 |
+| CP-19 | `cross_attn_norm` reaches every stage and adds 4 × 144 parameters; the default builds no LayerNorm; an unknown value raises | [DECISION D-18] |
 | CP-13 | `state_dict` holds only `features.*` and `lma.*` (CLIP excluded); LMA adds exactly 148,352 parameters; `.double()` leaves the CLIP cache in float32; a phase-10 checkpoint configuration still loads | 01 §4, 03 §2.1 |
 
 Mutation check (2026-09-18): eight wrong variants (cosine logits, scale always on, L2 flag ignored or always on, background prototype dropped, non-zero `L_GMMN`, no implementation check, reversed ways) each fail at least one test.

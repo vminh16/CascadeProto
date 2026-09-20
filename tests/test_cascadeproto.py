@@ -366,3 +366,16 @@ def test_cp18_table5_depths_with_adrm(t):
     episode_loss(m(ep), ep).backward()
     for name, p in m.named_parameters():
         assert p.grad is not None and torch.isfinite(p.grad).all() and p.grad.abs().sum() > 0, name
+
+
+def test_cp19_cross_attn_norm_reaches_every_stage():
+    """D-18: the switch is off by default and, when on, adds one LayerNorm per stage and nothing else."""
+    default, normed = model(FULL), model(CascadeProtoConfig(cross_attn_norm="layernorm"))
+    assert all(s.cross.proj_norm is None for s in default.stages)
+    assert [s.cross.proj_norm.normalized_shape for s in normed.stages] == [(72,)] * 4
+    count = lambda m: sum(p.numel() for p in m.parameters())
+    assert count(normed) - count(default) == 4 * 144
+    with pytest.raises(ValueError):
+        CascadeProtoConfig(cross_attn_norm="rmsnorm")
+    ep = episode()
+    assert torch.isfinite(normed(ep).logits).all()

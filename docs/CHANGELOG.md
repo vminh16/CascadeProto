@@ -544,3 +544,24 @@ B (training) after the pending VM check 13e.
   `P_cross` than `none`. `none` stays the default, i.e. the literal Eq.14, and the parameter count of
   the default configuration is unchanged (79,395 per stage, 466,444 added modules).
 * **Verification.** G1 CPU gate; the new tests are 15b, the VM measurement is 15c.
+
+### 15b - regression tests for the D-18 collapse
+
+* **What.** `tests/test_eppm.py` gains XATT-7…10 and a `saturating_features` fixture: post-ReLU
+  features with a positive per-channel offset, i.e. what a trained BatchNorm's beta supplies. The
+  phase-11 fixture `features()` has no such offset and therefore never reached the collapsed regime,
+  which is why 261 passing tests said nothing about it. `tests/test_cascadeproto.py` gains CP-19 for
+  the switch reaching all four stages. Spec 05 3.4, 3.6b updated.
+* **What XATT-10 pins.** At feature scale 10 the literal Eq.14 gives a softmax width of 1.00 out of
+  128, a `P_cross` that is exactly constant along D, and `|grad phi|/|phi|` of 4.2e-17 - the state the
+  stage cannot leave. The same model at scale 1.0 has width 1.92 and gradient 0.31, so the collapse is
+  a property of the feature magnitude, not of the initialisation. With `layernorm` the three numbers
+  are identical at scale 1 and 10 (width 126.93, channel variation 2.05e-01, gradient 2.66e-04);
+  XATT-9 pins that invariance, which LayerNorm's eps = 1e-5 makes exact only to 4e-07.
+* **Not asserted.** That `layernorm` is better. It is not, on every distribution measured: with a
+  signed per-channel offset the literal form has more channel variation in `P_cross` (D-18). The tests
+  pin the collapse and the invariance, nothing else.
+* **Mutation check.** 5 mutants on , all killed: the norm ignored, normalising along D
+  instead of the projection axis, the norm always built, the norm never built, and the support branch left
+  unnormalised while the query is normalised (the last one is what a separate norm per branch would be).
+* **Verification.** G1 CPU gate: 269 passed, 33 deselected.
