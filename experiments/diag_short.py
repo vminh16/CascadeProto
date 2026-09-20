@@ -4,8 +4,14 @@ Symptom: after the full schedule our baseline reaches 49.5 and the full model 58
 VIP-Seg trained with its own code reaches 68.9 on the same valid episodes after 2,000 episodes.
 
 Every variant trains from scratch on the same seeded episodes with AdamW (lr 1e-3, wd 0.1) and no LR
-decay (both schedules decay only after this budget), then scores 300 valid episodes spread over all
-class combinations. Only the variant changes, one variable at a time.
+decay, then scores 300 valid episodes spread over all class combinations. Only the variant changes,
+one variable at a time.
+
+**Budget.** The default is 9,600 episodes = 2,400 steps at batch 4 = 20 epochs of the real schedule.
+Anything shorter measures a regime in which the effect does not exist yet: in the P1 logs the full
+model sits at the baseline's level at epoch 10 (0.4942 against 0.4642) and only separates between
+epoch 10 and epoch 20, where it reaches 0.5803. The 2,400-episode default used in 15e-15h was 600
+steps, i.e. epoch 5, so those runs compared variants before any of them had diverged.
 
 Each run also reports the state of stage 1 on real encoder features before and after training
 [DECISION D-18]: `attn_width` out of D = 128, the channel variation of `P_cross`, and the Eq.19 fusion
@@ -164,7 +170,7 @@ def main(argv=None):
     p.add_argument("--data_path", required=True)
     p.add_argument("--variants", nargs="+", default=["vipseg", "baseline"], choices=sorted(VARIANTS))
     p.add_argument("--batches", nargs="+", type=int, default=[4])
-    p.add_argument("--episodes", type=int, default=2400)
+    p.add_argument("--episodes", type=int, default=9600, help="past the divergence point; see the docstring")
     p.add_argument("--stride", type=int, default=5, help="1500 valid episodes / 5 = 300")
     p.add_argument("--seeds", nargs="+", type=int, default=[0], help="repeat each run; the spread is the noise floor")
     args = p.parse_args(argv)

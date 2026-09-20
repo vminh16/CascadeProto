@@ -733,3 +733,22 @@ B (training) after the pending VM check 13e.
   (0.5218), full_scaled leaves 0.17-0.65 (0.4659). Consistent with D-16, but not evidence that
   removing the branch by hand would help, since training already removes it.
 * **Nothing measured so far beats prototype matching with normalised prototypes.**
+
+### 15k - the diag budget was below the divergence point; the short-budget conclusions are void
+
+* **The error.** `experiments/diag_short.py` defaulted to 2,400 episodes = 600 steps at batch 4 = 5
+  epochs of the real schedule. The P1 training logs, already in the repo, show the full model sitting
+  at the baseline's level at epoch 10 (valid 0.4942 against 0.4642) and separating only between epoch
+  10 and epoch 20, where it reaches 0.5803 - that is, between 1,200 and 2,400 steps, two to four times
+  the diag budget. Every diag run therefore compared variants in a regime where none had diverged.
+* **What that voids.** The headline of 15e ("the cascade adds nothing measurable", t = -0.36) and the
+  D-02 result of 15h (full_gatefeat, t = +0.08) say nothing about the real schedule; they say the
+  variants are indistinguishable after 5 epochs, which the P1 logs already implied. The D-10 result
+  (full_scaled, -5.5 points, t = -2.90) is more likely to survive, because its mechanism does not
+  depend on the budget: dividing the logits by sqrt(D) flattens the softmax, and its training loss
+  plateaus at 0.446-0.463 against 0.33-0.39 for every other variant.
+* **What.** The default budget is now 9,600 episodes = 2,400 steps = 20 epochs, and the module
+  docstring states the divergence point and why the budget must clear it. A run cost 8 minutes at the
+  old budget and about 32 at the new one.
+* **How it was found.** By reading the phase-14 P1 valid curves against the full-schedule
+  `baseline_l2` run of 15j, not by any new measurement. The evidence had been in the repo since 14e.
