@@ -228,6 +228,63 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 
 ---
 
+### D-18 — Degeneracy of the cross-attention output (Eq.14) · `PROPOSED`
+
+* **Symptom (L0, measured).** On the VM, with the same loop, data, encoder and metric, 2,400 training
+  episodes and 300 valid episodes (2026-09-20): `baseline_l2` 0.5218, `full_l2` 0.5150, `full` 0.5164,
+  `baseline` 0.4416, VIP-Seg's own model 0.6948. Four EPPM stages plus ADRM plus LMA move the score by
+  −0.7 points against a plain L2-normalised prototype. The +7.5 of `full` over `baseline` is the
+  LayerNorm of Eq.21 equalising the prototype norms, which `l2norm_point_proto` does on its own (+8.0).
+* **Structural cause, independent of any number.** `P_cross[b,c] = A[b,c] ψ(P_gated[b,c])` with the
+  rows of `A` a softmax over the **channel** axis [DECISION D-01]: output channel `i` is a convex
+  combination of the channels of `ψ(P)`. Both limits of that softmax destroy the channel structure —
+  saturated, every row copies the same channel; uniform, every row copies the channel mean — and Eq.14
+  has no learnable term that controls where between the two it sits. The other summand of Eq.19,
+  `P_diffuse`, carries no class index at all [DECISION D-16]. So a stage can add class-discriminative
+  structure only through the residual `P^{t-1}` of Eq.21. Measured: the update `P^1 − P^0` keeps
+  87.5–99.6 % of its energy in a single singular value across every feature distribution tried, and in
+  the distribution of the phase-11 fixtures the class rows leave the stage **more** similar than they
+  entered (max pairwise cosine 0.9906 → 0.9964).
+* **Where on that axis does the module sit?** The regime depends on the per-channel statistics of the
+  encoder features, which are not reproducible on the CPU. Measured on synthetic post-ReLU features,
+  `β` = the per-channel offset a trained BatchNorm supplies (one shared φ, one seed, `|mean_D|`-relative
+  channel variation of `P_cross`):
+
+  | features | `none`: softmax width (uniform = 128) | `none`: channel variation | `layernorm`: width | `layernorm`: channel variation |
+  | :--- | ---: | ---: | ---: | ---: |
+  | β = 0 (BatchNorm at initialisation) | 112.8 | 2.3e-01 | 127.5 | 1.3e-01 |
+  | β std 0.5 | 8.1 | 6.8e-01 | 125.6 | 1.2e-01 |
+  | β std 1.0 | 10.7 | 2.2e+00 | 114.0 | 1.8e-01 |
+  | β std 2.0 | 27.2 | 1.9e+00 | 96.1 | 5.1e-01 |
+  | positive-only offset, `relu(N(0,1))` per channel | 1.02 | 2.6e-04 | 127.4 | 1.5e-01 |
+
+  The last row is the fully saturated case: all 128 rows of `A` select the same channel, the winner
+  takes weight 0.998, `P_cross` is constant along `D`, and φ's relative gradient falls to 2.8e-04 of
+  ψ's (at three times that feature scale it is exactly 0, so the stage can never leave the state).
+  **Which row describes the real encoder is not established** and is the measurement of 15c.
+* **Why VIP-Seg does not hit this.** Its `que.reshape(72, -1)` [VIPSEG models/vipseg.py:284] is not a
+  transpose: it folds the batch axis into the filter axis, so the matrix it builds is not the channel
+  correlation it is annotated as (max abs difference 513.99 against the clean form on the same inputs,
+  same φ, same scale). The scrambling decorrelates the logits — row std 1.191 against 4.543 — and keeps
+  the softmax usable. D-01 deliberately did not copy it. VIP-Seg also carries a channel-preserving term
+  `proto_self = σ(A_s) ⊙ ψ(P)` [VIPSEG models/vipseg.py:270-274]; Eq.19 fuses only `P_cross` and
+  `P_diffuse`, so CascadeProto has no equivalent.
+* **Decision.** Add the switch `cross_attn_norm = {none (default), layernorm}` as a **probe, not a
+  fix**. `layernorm` standardises `Q'` and `S'` along the projection axis `r` with one shared LayerNorm
+  before the correlation, which makes `A` exactly invariant to the scale of the features and gives each
+  stage 144 parameters (`γ`, `β`) with which to choose its own sharpness — control that the fixed
+  `1/√d` does not provide. It removes the saturated regime but not the rank-1 update, and in the
+  β std 0.5–2.0 rows above it has **less** channel variation than `none`, so it is not established as
+  an improvement. The default stays `none`, the literal Eq.14.
+* **What would settle it (15c).** On the VM, with real encoder features: the effective width of a
+  softmax row and the channel variation of `P_cross` at initialisation and after training, and
+  `full_norm` against `baseline_l2` under the diag budget. If `layernorm` does not lift the cascade
+  above `baseline_l2`, the missing piece is the channel-preserving term in Eq.19 — a defect of the
+  paper's module — and it is to be reported as such rather than patched.
+* **Ablation flag.** `cross_attn_norm = {none (default), layernorm}`. Neither value raises.
+
+---
+
 ## 5. Official VIP-Seg files: restore, reuse, avoid
 
 ### 5.1 Reference implementations restored from L2
@@ -306,4 +363,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-18 | Pipeline sanity check (05 §4): VIP-Seg's released S0 2-way 1-shot checkpoint scores 0.719687 through `eval.py --model vipseg` on our data and metric (VIP-Seg log 0.722026, [PAPER Tab.6] 72.20). |
 | 2026-09-19 | D-05 locked by the maintainer (one modality per run, `E_fused := E_adapted^(m)`, generator input `[E_fused; z]` of width 2D). D-06: `eval_noise=mean_of_M` raises until M is chosen. |
 | 2026-09-19 | D-01 step 5 closed by the maintainer: one `A` per (query, class slot, shot) as in VIP-Seg. D-01, D-02, D-14: the flags `two_hop`, `gate_target=features`, `diffusion_input=pre_relu` raise until implemented. D-17: `num_stages = 1` gives `L^1` with or without ADRM. |
+| 2026-09-20 | D-18 proposed: on the VM the four EPPM stages plus ADRM are worth −0.7 points against `baseline_l2`, because Eq.14's channel softmax leaves `P_cross` degenerate along D and Eq.19's other summand has no class index (D-16). New probe switch `cross_attn_norm`, default unchanged. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

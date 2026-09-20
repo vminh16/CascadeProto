@@ -21,7 +21,7 @@ import torch.nn.functional as F
 from loss.gmmn_loss import FG_MODES, gmmn_loss
 from models.adrm import DynamicRouting
 from models.clip_text import DEFAULT_CLIP_VARIANT, ClipTextEmbedding
-from models.eppm import CROSS_ATTN_SCALES, FUSION_WEIGHTS, EPPMStage, stage_logits
+from models.eppm import CROSS_ATTN_NORMS, CROSS_ATTN_SCALES, FUSION_WEIGHTS, EPPMStage, stage_logits
 from models.lma import EVAL_NOISE, LearnableModalityAdapter
 from models.prototypes import point_prototypes
 from pipeline.episodes import Episode
@@ -55,6 +55,7 @@ class CascadeProtoConfig:
     gmmn_detach_point: bool = False  # [DECISION D-04]
     cross_attn: str = "channel"  # [DECISION D-01]
     cross_attn_scale: str = "sqrt_d"  # [DECISION D-01]
+    cross_attn_norm: str = "none"  # [DECISION D-18]
     gate_target: str = "prototype"  # [DECISION D-02]
     fusion_weight: str = "per_query"  # [DECISION D-11]
     diffusion_input: str = "post_relu"  # [DECISION D-14]
@@ -68,6 +69,7 @@ class CascadeProtoConfig:
                                      ("gmmn_fg_mode", self.gmmn_fg_mode, FG_MODES),
                                      ("cross_attn", self.cross_attn, CROSS_ATTN),
                                      ("cross_attn_scale", self.cross_attn_scale, CROSS_ATTN_SCALES),
+                                     ("cross_attn_norm", self.cross_attn_norm, CROSS_ATTN_NORMS),
                                      ("gate_target", self.gate_target, GATE_TARGETS),
                                      ("fusion_weight", self.fusion_weight, FUSION_WEIGHTS),
                                      ("diffusion_input", self.diffusion_input, DIFFUSION_INPUTS)):
@@ -105,7 +107,8 @@ class CascadeProto(nn.Module):
         # T stages with their own parameters [PAPER §3.5] [DECISION D-16]
         self.stages = nn.ModuleList(
             EPPMStage(use_gate=config.use_gate, cross_attn_scale=config.cross_attn_scale,
-                      fusion_weight=config.fusion_weight) for _ in range(config.num_stages))
+                      fusion_weight=config.fusion_weight, cross_attn_norm=config.cross_attn_norm)
+            for _ in range(config.num_stages))
         # ADRM over T >= 2 stages; with T = 1 its weight is 1 and W_g could not learn [DECISION D-17]
         self.routing = DynamicRouting(config.num_stages) if config.use_adrm and config.num_stages >= 2 else None
 

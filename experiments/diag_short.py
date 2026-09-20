@@ -36,6 +36,7 @@ VARIANTS = {  # name: train.py switches (None = VIP-Seg's own model)
     "baseline_l2": ["--use_lma", "false", "--num_stages", "0", "--l2norm_point_proto", "true"],
     "full": [],
     "full_l2": ["--l2norm_point_proto", "true"],
+    "full_norm": ["--cross_attn_norm", "layernorm"],  # [DECISION D-18]
 }
 
 

@@ -513,3 +513,34 @@ B (training) after the pending VM check 13e.
   model with L2 prototypes; batch 1 or 4.
 * **Why.** The full-schedule loop takes 1.5 h per run; this gives a comparable signal in about 8 min,
   on the same valid cache that VIP-Seg's control run used (`vipseg_S_0_N_2_K_1_episodes_100_pts_2048`).
+
+### 15a - cross_attn_norm probe and the D-18 evidence
+
+* **Why.** Phase 14e left a gap that the diag runs localised (VM, 2,400 train / 300 valid episodes,
+  2026-09-20): `baseline` 0.4416, `baseline_l2` 0.5218, `full` 0.5164, `full_l2` 0.5150, VIP-Seg's own
+  model through our loop 0.6948. Three readings follow. The training loop, the data, the loss and the
+  metric are sound, since VIP-Seg reaches its own published level through them. `l2norm_point_proto`
+  is worth +8.0 points on the baseline (D-10 deviates from VIPSEG models/vipseg.py:142). And the four
+  EPPM stages, ADRM and LMA together are worth -0.7 points against `baseline_l2`: the +7.5 of `full`
+  over `baseline` is the LayerNorm of Eq.21 equalising the prototype norms, nothing else.
+* **Cause, as far as it is established.** The rows of `A` are a softmax over the channel axis
+  [DECISION D-01], so each channel of `P_cross` is a convex combination of the channels of `psi(P)`;
+  saturated and uniform both collapse it to a constant along D, and Eq.14 has no learnable term that
+  controls which. `P_diffuse`, the other summand of Eq.19, has no class index [DECISION D-16]. A stage
+  can therefore add class-discriminative structure only through the residual of Eq.21. Measured on the
+  CPU: 87.5-99.6 % of the energy of `P^1 - P^0` in one singular value across every feature
+  distribution tried, and in the phase-11 fixture distribution the class rows leave a stage more
+  similar than they entered (max cosine 0.9906 -> 0.9964). In the fully saturated regime phi's
+  relative gradient is 2.8e-04 of psi's and reaches exactly 0 at three times that feature scale.
+  **Which regime the real encoder produces is not established**; the CPU measurements span widths
+  from 1.02 to 112.8 depending on the per-channel offset. That measurement belongs to 15c.
+* **What.** New switch `cross_attn_norm = {none (default), layernorm}` on `CrossAttention`,
+  `EPPMStage`, `CascadeProtoConfig` and `train.py`, plus a `full_norm` variant in
+  `experiments/diag_short.py`. `layernorm` standardises `Q'` and `S'` along the projection axis with
+  one shared LayerNorm (144 parameters per stage) before the correlation, making `A` exactly invariant
+  to the feature scale. Specs 00 (D-18), 01 3, 02 5.2 updated.
+* **Not a fix, and not the default.** `layernorm` removes the saturated regime but not the rank-1
+  update, and on synthetic features with a per-channel offset it has *less* channel variation in
+  `P_cross` than `none`. `none` stays the default, i.e. the literal Eq.14, and the parameter count of
+  the default configuration is unchanged (79,395 per stage, 466,444 added modules).
+* **Verification.** G1 CPU gate; the new tests are 15b, the VM measurement is 15c.

@@ -53,6 +53,7 @@ NUM_POINTS = 2048  # [PAPER §4.1]
 NUM_TOKENS = NUM_POINTS // POOL_WINDOW  # 64, the input channels of phi
 PROJ_DIM = 72  # d [PAPER Eq.13] [PAPER §4.1]
 CROSS_ATTN_SCALES = ("sqrt_d", "sqrt_D")  # [DECISION D-01]
+CROSS_ATTN_NORMS = ("none", "layernorm")  # [DECISION D-18]
 
 
 def pool_tokens(f: torch.Tensor) -> torch.Tensor:
@@ -68,21 +69,39 @@ class CrossAttention(nn.Module):
     A[b,c,k] = softmax_row(Q'[b]ᵀ S'[c,k] / √d) ∈ R^{D×D} with Q' = φ(MaxPool(F^q)), S' = φ(MaxPool(F^s_{c,k})),
     one φ shared by query and support; class slot 0 is the way-mean of the support features
     [VIPSEG models/vipseg.py:244]. P_cross[b,c] = (1/K) Σ_k A[b,c,k] ψ(P_gated[b,c]).
+
+    Rows of A are a softmax over the **channel** axis, so every channel of P_cross is a convex
+    combination of the channels of ψ(P): both a saturated and a uniform A leave P_cross constant along
+    D, and the printed 1/√d gives no control over where between the two the module sits.
+    `norm="layernorm"` standardises Q' and S' along the projection axis r before the correlation, which
+    makes A invariant to the scale of the features and gives 144 learnable parameters for the sharpness.
+    It is a probe, not a fix [DECISION D-18].
     """
 
-    def __init__(self, dim: int = 128, scale: str = "sqrt_d"):
+    def __init__(self, dim: int = 128, scale: str = "sqrt_d", norm: str = "none"):
         super().__init__()
         if scale not in CROSS_ATTN_SCALES:
             raise ValueError(f"cross_attn_scale must be one of {CROSS_ATTN_SCALES}, got {scale!r}")
+        if norm not in CROSS_ATTN_NORMS:
+            raise ValueError(f"cross_attn_norm must be one of {CROSS_ATTN_NORMS}, got {norm!r}")
         self.phi = nn.Conv1d(NUM_TOKENS, PROJ_DIM, kernel_size=1, bias=False)  # shared [PAPER Eq.13]
         self.psi = nn.Linear(dim, dim)  # [PAPER Eq.14] [VIPSEG models/vipseg.py:222]
         self.scale = math.sqrt(PROJ_DIM if scale == "sqrt_d" else dim)
+        # One LayerNorm for both branches, because φ is shared [PAPER Eq.13] [DECISION D-18]
+        self.proj_norm = nn.LayerNorm(PROJ_DIM) if norm == "layernorm" else None
+
+    def project(self, pooled: torch.Tensor) -> torch.Tensor:
+        """φ on [*, 64, D] -> [*, d, D], standardised along r when `norm="layernorm"` [DECISION D-18]."""
+        out = self.phi(pooled)
+        if self.proj_norm is None:
+            return out
+        return self.proj_norm(out.transpose(-1, -2)).transpose(-1, -2)
 
     def attention(self, f_s: torch.Tensor, f_q: torch.Tensor) -> torch.Tensor:
         """f_s [N, K, 2048, D], f_q [B_q, 2048, D] -> A [B_q, N+1, K, D, D], rows summing to 1."""
         slots = torch.cat([f_s.mean(dim=0, keepdim=True), f_s], dim=0)  # [N+1, K, 2048, D]
-        q = self.phi(pool_tokens(f_q))  # [B_q, 64, D] -> [B_q, d, D]
-        s = self.phi(pool_tokens(slots).flatten(0, 1)).unflatten(0, slots.shape[:2])  # [N+1, K, d, D]
+        q = self.project(pool_tokens(f_q))  # [B_q, 64, D] -> [B_q, d, D]
+        s = self.project(pool_tokens(slots).flatten(0, 1)).unflatten(0, slots.shape[:2])  # [N+1, K, d, D]
         logits = torch.einsum("bri,ckrj->bckij", q, s) / self.scale  # [B_q, N+1, K, D, D]
         return torch.softmax(logits, dim=-1)
 
@@ -171,10 +190,10 @@ class EPPMStage(nn.Module):
     """One EPPM stage (§3.4): P^t = Out(Fuse(CrossAttn(Gate(P^{t-1})), Diffuse(F^s, F^q)), P^{t-1})."""
 
     def __init__(self, dim: int = 128, use_gate: bool = True, cross_attn_scale: str = "sqrt_d",
-                 fusion_weight: str = "per_query"):
+                 fusion_weight: str = "per_query", cross_attn_norm: str = "none"):
         super().__init__()
         self.gate = EntropyGate(use_gate)
-        self.cross = CrossAttention(dim, cross_attn_scale)
+        self.cross = CrossAttention(dim, cross_attn_scale, cross_attn_norm)
         self.out = FusionOutput(dim, fusion_weight)
 
     def forward(self, p_prev: torch.Tensor, f_s: torch.Tensor, f_q: torch.Tensor) -> torch.Tensor:

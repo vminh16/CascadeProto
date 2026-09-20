@@ -156,6 +156,7 @@ Required configuration options. Defaults reproduce the full model. They live in 
 | `modality` | text | text (image, audio: not yet implemented, must raise) | [PAPER Eq.4] [DECISION D-13] |
 | `cross_attn` | channel | channel (two_hop raises) | [DECISION D-01] |
 | `cross_attn_scale` | sqrt_d | sqrt_d / sqrt_D | [DECISION D-01] |
+| `cross_attn_norm` | none | none / layernorm | [DECISION D-18] |
 | `gate_target` | prototype | prototype (features raises) | [DECISION D-02] |
 | `gmmn_fg_mode` | joint | joint / per_class | [DECISION D-04] |
 | `gmmn_detach_point` | false | true / false | [DECISION D-04] |

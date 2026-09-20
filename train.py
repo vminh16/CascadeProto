@@ -62,6 +62,7 @@ def parse_args(argv=None):
     p.add_argument("--gmmn_detach_point", type=str2bool, default=False, help="[D-04]")
     p.add_argument("--cross_attn", default="channel", choices=["channel", "two_hop"], help="[D-01]")
     p.add_argument("--cross_attn_scale", default="sqrt_d", choices=["sqrt_d", "sqrt_D"], help="[D-01]")
+    p.add_argument("--cross_attn_norm", default="none", choices=["none", "layernorm"], help="[D-18]")
     p.add_argument("--gate_target", default="prototype", choices=["prototype", "features"], help="[D-02]")
     p.add_argument("--fusion_weight", default="per_query", choices=["per_query", "per_class"], help="[D-11]")
     p.add_argument("--diffusion_input", default="post_relu", choices=["post_relu", "pre_relu"], help="[D-14]")
@@ -101,7 +102,8 @@ def model_config(args):
                               l2norm_point_proto=args.l2norm_point_proto, clip_variant=args.clip_variant,
                               eval_noise=args.eval_noise, gmmn_fg_mode=args.gmmn_fg_mode,
                               gmmn_detach_point=args.gmmn_detach_point, cross_attn=args.cross_attn,
-                              cross_attn_scale=args.cross_attn_scale, gate_target=args.gate_target,
+                              cross_attn_scale=args.cross_attn_scale, cross_attn_norm=args.cross_attn_norm,
+                              gate_target=args.gate_target,
                               fusion_weight=args.fusion_weight, diffusion_input=args.diffusion_input)
 
 
