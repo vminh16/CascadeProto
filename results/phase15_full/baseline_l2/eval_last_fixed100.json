@@ -1,0 +1,1 @@
+{"miou": 0.5018710569615602, "protocol": "fixed100", "episodes": 1500, "checkpoint": "log_phase15_bl2/s3dis_S0_N2_K1_point_T0/last.pt", "epoch": 50, "dry_run": false}

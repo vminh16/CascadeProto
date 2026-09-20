@@ -752,3 +752,27 @@ B (training) after the pending VM check 13e.
   old budget and about 32 at the new one.
 * **How it was found.** By reading the phase-14 P1 valid curves against the full-schedule
   `baseline_l2` run of 15j, not by any new measurement. The evidence had been in the repo since 14e.
+
+### 15j - baseline_l2 on the full schedule: the cascade is worth +4.71, and 15e is retracted
+
+* **Result** (`results/phase15_full/`, 50 epochs, fixed100 on 1,500 episodes, same protocol as P1).
+
+  | configuration | best | last |
+  | :--- | ---: | ---: |
+  | baseline | 0.4908 | 0.4907 |
+  | baseline + L2 normalised prototypes | 0.5244 | 0.5019 |
+  | full model | 0.5715 | 0.5670 |
+
+* **Decomposition of P1's +8.07.** L2-normalising the point prototypes is worth **+3.36**; the added
+  modules (LMA, four EPPM stages, ADRM) are worth **+4.71** on top of that.
+* **Retraction.** 15e concluded "the cascade adds nothing measurable" from the diag harness. That is
+  wrong, and the cause is 15k: the harness trained for 600 steps, while the full model only separates
+  from the baseline between 1,200 and 2,400 steps. The added modules do work; they were measured
+  before they had done anything.
+* **Against the paper.** Table 4 claims +5.81 from its baseline to the full model. VIP-Seg normalises
+  its prototypes (models/vipseg.py:142), so the paper's baseline row corresponds to our baseline + L2,
+  and the increment to compare is +4.71 against +5.81 - approximately reproduced. What is not
+  reproduced is the absolute level: 52.44 against 82.72 and 57.15 against 88.53. The audit already
+  recorded that the paper's own baseline row exceeds VIP-Seg's published 72.20 with no stated reason.
+* **Next.** The intermediate rows of Table 4 on the full schedule (15n), so each claimed increment can
+  be checked on its own.
