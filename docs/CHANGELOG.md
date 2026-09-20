@@ -561,7 +561,7 @@ B (training) after the pending VM check 13e.
 * **Not asserted.** That `layernorm` is better. It is not, on every distribution measured: with a
   signed per-channel offset the literal form has more channel variation in `P_cross` (D-18). The tests
   pin the collapse and the invariance, nothing else.
-* **Mutation check.** 5 mutants on , all killed: the norm ignored, normalising along D
+* **Mutation check.** 5 mutants on `models/eppm.py`, all killed: the norm ignored, normalising along D
   instead of the projection axis, the norm always built, the norm never built, and the support branch left
   unnormalised while the query is normalised (the last one is what a separate norm per branch would be).
 * **Verification.** G1 CPU gate: 269 passed, 33 deselected.
