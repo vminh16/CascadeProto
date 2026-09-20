@@ -296,14 +296,30 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   0.369, and the score drops to 0.5134.
 * **Decision.** `cross_attn_norm` stays in the code as an ablation flag with default `none`, the
   literal Eq.14. Neither value raises. It is not a fix and must not become the default.
-* **Still open.** Why a stage with a healthy `P_cross` is worth about a point when VIP-Seg's own
-  modules are worth about seventeen over the same `baseline_l2` through the same loop. The remaining
-  candidates, in order: (a) `P_diffuse` carries no class index [DECISION D-16] while the Eq.19 fusion
-  weight on it is 0.504 at initialisation, so about half of `P_combined` is identical for every class;
-  (b) Eq.19 has no channel-preserving self-correlation term, which is what VIP-Seg's `proto_self`
-  supplies. Both are properties of the paper's module as printed, so the finding may be that Table 4's
-  increments are not reproducible, not that our code is wrong. 15d reports the learned fusion weight
-  and `--seeds` gives the noise floor.
+* **Three seeds per variant (15e, 2026-09-20, `results/phase15_diag/`).** The cascade contributes
+  nothing measurable, and the module is not broken.
+
+  | variant | seeds | mean | sd | `attn_width` init → end | `P_cross` chan_var init → end | `w_diffuse` init → end |
+  | :--- | :--- | ---: | ---: | :--- | :--- | :--- |
+  | `baseline_l2` | .5316 / .5187 / .5111 | 0.5205 | 0.0104 | — | — | — |
+  | `full` | .5029 / .5244 / .5241 | 0.5171 | 0.0123 | 128.00 → 29–54 | 0.0006–0.0019 → 0.37–0.61 | 0.47–0.51 → 0.008–0.082 |
+
+  `full − baseline_l2 = −0.0033`, standard error 0.0093, `t = −0.36`. A 95 % interval is about
+  ±2.6 points, so the +4.04 that Table 4 attributes to gate + cascade + ADRM lies outside it.
+  Meanwhile every stage diagnostic is healthy on all three seeds: the attention leaves the uniform
+  collapse (128.00 → 29–54), `P_cross` gains channel structure (three orders of magnitude), and the
+  fusion learns to shut the class-blind branch off.
+* **That closes two candidates.** (a) `P_diffuse` having no class index [DECISION D-16] is **not** the
+  cause: the Eq.19 weight on it falls from ~0.49 to 0.008–0.082, i.e. training removes the branch by
+  itself, and removing it earlier by hand would change nothing. (b) The cross-attention is **not**
+  stuck: it is healthy after 600 steps on every seed.
+* **What is left.** The module behaves as specified and adds nothing, while VIP-Seg's own PEM/PDM add
+  about 17 points over the same `baseline_l2` through the same loop. The one structural difference
+  left is the channel-preserving self-correlation term `proto_self = σ(A_s) ⊙ ψ(P)`
+  [VIPSEG models/vipseg.py:270-274], which Eq.19 of the paper does not have. Adding it would mean
+  implementing a module the paper does not describe, so the finding is recorded rather than patched:
+  **Table 4's increments are not reproducible from the equations as printed.** See also D-17, where
+  the paper's own baseline row (81.28 Avg) already sits above VIP-Seg's published 74.15.
 
 ---
 
@@ -385,5 +401,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-18 | Pipeline sanity check (05 §4): VIP-Seg's released S0 2-way 1-shot checkpoint scores 0.719687 through `eval.py --model vipseg` on our data and metric (VIP-Seg log 0.722026, [PAPER Tab.6] 72.20). |
 | 2026-09-19 | D-05 locked by the maintainer (one modality per run, `E_fused := E_adapted^(m)`, generator input `[E_fused; z]` of width 2D). D-06: `eval_noise=mean_of_M` raises until M is chosen. |
 | 2026-09-19 | D-01 step 5 closed by the maintainer: one `A` per (query, class slot, shot) as in VIP-Seg. D-01, D-02, D-14: the flags `two_hop`, `gate_target=features`, `diffusion_input=pre_relu` raise until implemented. D-17: `num_stages = 1` gives `L^1` with or without ADRM. |
-| 2026-09-20 | D-18: the EPPM cascade is worth about a point against `baseline_l2`, inside the run-to-run spread of the loop. The real encoder collapses Eq.14 at the **uniform** end at initialisation, not the saturated one, and the stage escapes it by itself (width 128 → 9.6). The `layernorm` probe is rejected as a default (0.5134 against 0.5223) and stays an ablation flag. |
+| 2026-09-20 | D-18 closed on three seeds per variant: `full` 0.5171 ± 0.0123 against `baseline_l2` 0.5205 ± 0.0104, i.e. the cascade adds nothing (t = −0.36). Every stage diagnostic is healthy, and the Eq.19 weight on the class-blind `P_diffuse` falls to 0.008–0.082 by itself, so D-16 is not the cause either. The `layernorm` probe stays an ablation flag, never a default. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

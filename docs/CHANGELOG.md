@@ -612,3 +612,36 @@ B (training) after the pending VM check 13e.
   the noise floor. Spec 00 (D-18 outcome), 02 5.2 updated.
 * **Verification.** CPU smoke test of the probe on the stand-in encoder for full, full_norm and
   baseline; G1 unchanged (no model code touched).
+
+### 15e - three seeds: the cascade adds nothing, and the module is not broken
+
+* **Result** (`results/phase15_diag/`, commit db72cc7, 2,400 train / 300 valid episodes, batch 4).
+
+  | variant | seeds | mean | sd |
+  | :--- | :--- | ---: | ---: |
+  | baseline_l2 | 0.5316 / 0.5187 / 0.5111 | 0.5205 | 0.0104 |
+  | full | 0.5029 / 0.5244 / 0.5241 | 0.5171 | 0.0123 |
+
+  `full - baseline_l2 = -0.0033`, standard error 0.0093, t = -0.36. The point estimate is slightly
+  negative and a 95 % interval is about +-2.6 points, so the +4.04 that Table 4 attributes to
+  gate + cascade + ADRM lies outside it.
+* **And yet every stage diagnostic is healthy**, on all three seeds: `attn_width` 128.00 -> 29-54,
+  `P_cross` channel variation 0.0006-0.0019 -> 0.37-0.61, `w_diffuse` 0.47-0.51 -> 0.008-0.082. The
+  module escapes the uniform collapse of Eq.14, gains channel structure, and learns to switch the
+  class-blind diffusion branch off. It behaves as specified and buys nothing.
+* **Two candidates closed.** `P_diffuse` having no class index (D-16) is not the cause, because the
+  fusion removes it by itself. The cross-attention being stuck is not the cause, because it is not
+  stuck. The `cross_attn_norm=layernorm` probe of 15a was already rejected in 15d.
+* **What the gap is, then.** VIP-Seg's own model reaches 0.6948 through the same loop, the same data,
+  the same encoder and the same metric, i.e. its PEM/PDM are worth about 17 points over the same
+  `baseline_l2` where ours are worth zero. The one structural difference left is the
+  channel-preserving `proto_self = sigma(A_s) . psi(P)` [VIPSEG models/vipseg.py:270-274], which
+  Eq.19 of the paper does not have. Implementing it would mean inventing a module the paper does not
+  describe, so this is recorded as a finding: **Table 4's increments are not reproducible from the
+  equations as printed.** D-17 already noted that the paper's own baseline row (81.28 Avg) sits above
+  VIP-Seg's published 74.15.
+* **Also settled.** The loop is not bit-reproducible on CUDA: the identical command at seed 0 gave
+  0.5218 / 0.5223 / 0.5316 for baseline_l2 and 0.5164 / 0.5346 / 0.5029 for full. Every earlier
+  single-seed reading in phases 14e and 15a-15d that rested on a difference below about 2 points is
+  void, including "the cascade is worth about a point".
+* **Verification.** 6 VM runs, raw log and summary committed under `results/phase15_diag/`.
