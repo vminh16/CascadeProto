@@ -158,6 +158,7 @@ Required configuration options. Defaults reproduce the full model. They live in 
 | `cross_attn_scale` | sqrt_d | sqrt_d / sqrt_D | [DECISION D-01] |
 | `cross_attn_norm` | none | none / layernorm | [DECISION D-18] |
 | `gate_target` | prototype | prototype / features | [DECISION D-02] |
+| `eq19_self` | none | none / gated (beyond the paper) | [DECISION D-19] |
 | `gmmn_fg_mode` | joint | joint / per_class | [DECISION D-04] |
 | `gmmn_detach_point` | false | true / false | [DECISION D-04] |
 | `eval_noise` | zero | zero / sample (mean_of_M raises until M is chosen) | [DECISION D-06] |

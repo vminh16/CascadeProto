@@ -688,3 +688,22 @@ B (training) after the pending VM check 13e.
   dot-product" while the equation prints no scale. Never measured.
 * Both are three-seed runs, because the loop's run-to-run spread is about a point (15e). The
   comparison set already exists: baseline_l2 0.5205 +- 0.0104 and full 0.5171 +- 0.0123.
+
+### 15i - a channel-preserving term in Eq.19, off by default (D-19)
+
+* **The measurement behind it.** Only the class-varying part of a prototype can change
+  `argmax_c <f, p_c>`. On synthetic post-ReLU features `P^0` carries 14.2-14.9 % of its energy there,
+  one EPPM stage leaves 3.8-4.2 %, VIP-Seg's PEM leaves 6.9-8.9 %. Both summands of Eq.19 are
+  class-poor by construction, so the stage dilutes the only signal that matters.
+* **What.** `eq19_self = {none (default), gated}` on `FusionOutput`, `EPPMStage`, `CascadeProtoConfig`
+  and `train.py`; `gated` adds `psi(P^(t-1)_gated)` to `P_combined` before Eq.20, reusing the same
+  `psi` as Eq.14, so the parameter budget is unchanged at 79,395 per stage. New `full_self` and
+  `full_self_gatefeat` variants in `experiments/diag_short.py`. Specs 00 (D-19), 01 3 updated.
+* **The analysis did not confirm it.** Adding the term moves the class-varying share only from 3.9 %
+  to 4.2 %. Reaching VIP-Seg's 7-8 % additionally needs a LayerNorm on the new term and the removal of
+  Eq.21's ReLU, the SE block and W_out's bias - and then a third metric (how many point predictions
+  survive the stage) moves the wrong way, from 0.37 to 0.00. Three static metrics disagree, and 15e
+  showed a stage whose diagnostics are all healthy after training still buys nothing. The switch is an
+  experiment, not a claim; it is off by default and any run using it is outside the paper.
+* **Verification.** G1 CPU gate; two new tests in `tests/test_eppm.py` for the term and for the
+  switch/argument mismatch.

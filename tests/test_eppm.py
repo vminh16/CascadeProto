@@ -567,3 +567,28 @@ def test_stage_rejects_mismatched_prototypes():
         m(rand(BQ, N + 2, D), f_s, f_q)
     with pytest.raises(ValueError):
         FusionOutput(fusion_weight="per_way")
+
+
+def test_eq19_self_adds_a_channel_preserving_term_without_new_parameters():
+    """D-19, beyond the paper: P_combined gains psi(P_gated), reusing psi, so the budget is unchanged."""
+    plain, gated = stage(), stage(eq19_self="gated")
+    count = lambda m: sum(p.numel() for p in m.parameters())
+    assert count(plain) == count(gated) == 79_395
+    f_s, f_q = features(k=1)
+    p_prev = rand(BQ, N + 1, D, seed=80)
+    assert not torch.allclose(plain(p_prev, f_s, f_q), gated(p_prev, f_s, f_q))
+
+    m = gated
+    p_cross = m.cross(m.gate(p_prev), f_s, f_q)
+    p_diffuse = prototype_diffusion(f_s, f_q)[:, None, :].expand_as(p_cross)
+    expected = m.out(p_cross, p_diffuse, p_prev, m.cross.psi(m.gate(p_prev)))
+    assert torch.allclose(m(p_prev, f_s, f_q), expected, atol=ATOL, rtol=0)
+
+
+def test_eq19_self_mismatch_between_switch_and_argument_raises():
+    with pytest.raises(ValueError):
+        stage().out(rand(1, 3, D), rand(1, 3, D), rand(1, 3, D), rand(1, 3, D))
+    with pytest.raises(ValueError):
+        stage(eq19_self="gated").out(rand(1, 3, D), rand(1, 3, D), rand(1, 3, D))
+    with pytest.raises(ValueError):
+        EPPMStage(eq19_self="identity")

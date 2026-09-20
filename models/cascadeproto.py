@@ -21,8 +21,8 @@ import torch.nn.functional as F
 from loss.gmmn_loss import FG_MODES, gmmn_loss
 from models.adrm import DynamicRouting
 from models.clip_text import DEFAULT_CLIP_VARIANT, ClipTextEmbedding
-from models.eppm import (CROSS_ATTN_NORMS, CROSS_ATTN_SCALES, FUSION_WEIGHTS, GATE_TARGETS, EPPMStage,
-                         stage_logits)
+from models.eppm import (CROSS_ATTN_NORMS, CROSS_ATTN_SCALES, EQ19_SELF, FUSION_WEIGHTS, GATE_TARGETS,
+                         EPPMStage, stage_logits)
 from models.lma import EVAL_NOISE, LearnableModalityAdapter
 from models.prototypes import point_prototypes
 from pipeline.episodes import Episode
@@ -57,6 +57,7 @@ class CascadeProtoConfig:
     cross_attn_scale: str = "sqrt_d"  # [DECISION D-01]
     cross_attn_norm: str = "none"  # [DECISION D-18]
     gate_target: str = "prototype"  # [DECISION D-02]
+    eq19_self: str = "none"  # [DECISION D-19], beyond the paper
     fusion_weight: str = "per_query"  # [DECISION D-11]
     diffusion_input: str = "post_relu"  # [DECISION D-14]
 
@@ -71,6 +72,7 @@ class CascadeProtoConfig:
                                      ("cross_attn_scale", self.cross_attn_scale, CROSS_ATTN_SCALES),
                                      ("cross_attn_norm", self.cross_attn_norm, CROSS_ATTN_NORMS),
                                      ("gate_target", self.gate_target, GATE_TARGETS),
+                                     ("eq19_self", self.eq19_self, EQ19_SELF),
                                      ("fusion_weight", self.fusion_weight, FUSION_WEIGHTS),
                                      ("diffusion_input", self.diffusion_input, DIFFUSION_INPUTS)):
             if value not in allowed:
@@ -107,7 +109,7 @@ class CascadeProto(nn.Module):
         self.stages = nn.ModuleList(
             EPPMStage(use_gate=config.use_gate, cross_attn_scale=config.cross_attn_scale,
                       fusion_weight=config.fusion_weight, cross_attn_norm=config.cross_attn_norm,
-                      gate_target=config.gate_target)
+                      gate_target=config.gate_target, eq19_self=config.eq19_self)
             for _ in range(config.num_stages))
         # ADRM over T >= 2 stages; with T = 1 its weight is 1 and W_g could not learn [DECISION D-17]
         self.routing = DynamicRouting(config.num_stages) if config.use_adrm and config.num_stages >= 2 else None

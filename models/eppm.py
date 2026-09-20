@@ -5,6 +5,7 @@ One episode at a time: prototypes `P [B_q, N+1, D]` (one copy per query, 02 §4.
 """
 
 import math
+from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -13,6 +14,7 @@ ENTROPY_EPS = 1e-8  # epsilon of Eq.10 [PAPER Eq.10]
 PROB_CLAMP = 1e-7  # p in [1e-7, 1 - 1e-7] before Eq.10, implementation detail [DECISION D-16]
 THETA_INIT = 0.5  # initial gate threshold [PAPER Eq.11]
 GATE_TARGETS = ("prototype", "features")  # [DECISION D-02]
+EQ19_SELF = ("none", "gated")  # [DECISION D-19], beyond the paper
 
 
 def channel_entropy(x: torch.Tensor) -> torch.Tensor:
@@ -154,13 +156,21 @@ def class_weights(n_classes: int, like: torch.Tensor) -> torch.Tensor:
 
 
 class FusionOutput(nn.Module):
-    """Eq.19-21: fusion weights, SE recalibration, class weights, W_out, residual and LayerNorm."""
+    """Eq.19-21: fusion weights, SE recalibration, class weights, W_out, residual and LayerNorm.
 
-    def __init__(self, dim: int = 128, fusion_weight: str = "per_query"):
+    `eq19_self="gated"` adds a third, channel-preserving summand to Eq.19's P_combined, the way
+    VIP-Seg sums `proto_self` with `proto_cross` [VIPSEG models/vipseg.py:274-277]. It is **not in the
+    paper** [DECISION D-19]: both summands Eq.19 prints are class-poor, which measurably dilutes the
+    only part of a prototype that can change a prediction.
+    """
+
+    def __init__(self, dim: int = 128, fusion_weight: str = "per_query", eq19_self: str = "none"):
         super().__init__()
         if fusion_weight not in FUSION_WEIGHTS:
             raise ValueError(f"fusion_weight must be one of {FUSION_WEIGHTS}, got {fusion_weight!r}")
-        self.fusion_weight = fusion_weight
+        if eq19_self not in EQ19_SELF:
+            raise ValueError(f"eq19_self must be one of {EQ19_SELF}, got {eq19_self!r}")
+        self.fusion_weight, self.eq19_self = fusion_weight, eq19_self
         self.fusion = nn.Sequential(nn.Linear(2 * dim, dim), nn.ReLU(), nn.Linear(dim, 2))  # [DECISION D-16]
         self.se_down = nn.Linear(dim, dim // SE_REDUCTION)  # W_1 [DECISION D-16]
         self.se_up = nn.Linear(dim // SE_REDUCTION, dim)  # W_2
@@ -178,12 +188,21 @@ class FusionOutput(nn.Module):
         """Eq.20 a = σ(W_2 ReLU(W_1 AvgPool_c(P_combined))): [B_q, D]."""
         return torch.sigmoid(self.se_up(torch.relu(self.se_down(p_combined.mean(dim=1)))))
 
-    def forward(self, p_cross: torch.Tensor, p_diffuse: torch.Tensor, p_prev: torch.Tensor) -> torch.Tensor:
-        """All inputs [B_q, N+1, D]; `p_prev` is the ungated P^{t-1} [DECISION D-02] -> P^t [B_q, N+1, D]."""
+    def forward(self, p_cross: torch.Tensor, p_diffuse: torch.Tensor, p_prev: torch.Tensor,
+                p_self: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """All inputs [B_q, N+1, D]; `p_prev` is the ungated P^{t-1} [DECISION D-02] -> P^t [B_q, N+1, D].
+
+        `p_self` is the channel-preserving summand of [DECISION D-19]; it must be None unless
+        `eq19_self="gated"`, and is added to P_combined before Eq.20.
+        """
+        if (p_self is None) == (self.eq19_self == "gated"):
+            raise ValueError(f"eq19_self={self.eq19_self!r} does not match p_self={type(p_self).__name__}")
         w = self.weights(p_cross, p_diffuse)  # [B_q, 2] or [B_q, N+1, 2]
         if self.fusion_weight == "per_query":
             w = w[:, None, :]  # [B_q, 1, 2]
         p_combined = w[..., 0:1] * p_cross + w[..., 1:2] * p_diffuse  # (Eq.19)
+        if p_self is not None:
+            p_combined = p_combined + p_self  # [DECISION D-19]
         p_attended = p_combined * self.excitation(p_combined)[:, None, :]  # (Eq.20)
         p_weighted = p_attended * class_weights(p_prev.shape[1], p_prev)[None, :, None]  # [PAPER §3.4]
         return self.norm(self.w_out(torch.relu(p_weighted)) + p_prev)  # (Eq.21)
@@ -194,14 +213,14 @@ class EPPMStage(nn.Module):
 
     def __init__(self, dim: int = 128, use_gate: bool = True, cross_attn_scale: str = "sqrt_d",
                  fusion_weight: str = "per_query", cross_attn_norm: str = "none",
-                 gate_target: str = "prototype"):
+                 gate_target: str = "prototype", eq19_self: str = "none"):
         super().__init__()
         if gate_target not in GATE_TARGETS:
             raise ValueError(f"gate_target must be one of {GATE_TARGETS}, got {gate_target!r}")
-        self.gate_target = gate_target
+        self.gate_target, self.eq19_self = gate_target, eq19_self
         self.gate = EntropyGate(use_gate)
         self.cross = CrossAttention(dim, cross_attn_scale, cross_attn_norm)
-        self.out = FusionOutput(dim, fusion_weight)
+        self.out = FusionOutput(dim, fusion_weight, eq19_self)
 
     def forward(self, p_prev: torch.Tensor, f_s: torch.Tensor, f_q: torch.Tensor) -> torch.Tensor:
         """p_prev [B_q, N+1, D], f_s [N, K, 2048, D], f_q [B_q, 2048, D] -> P^t [B_q, N+1, D].
@@ -221,7 +240,9 @@ class EPPMStage(nn.Module):
             p_in, f_s_in, f_q_in = self.gate(p_prev), f_s, f_q  # (Eq.12 on P^{t-1})
         p_cross = self.cross(p_in, f_s_in, f_q_in)  # [B_q, N+1, D] (Eq.13-14)
         p_diffuse = prototype_diffusion(f_s, f_q)[:, None, :].expand_as(p_cross)  # (Eq.15-18) [DECISION D-16]
-        return self.out(p_cross, p_diffuse, p_prev)  # (Eq.19-21)
+        # psi(P_gated), channel by channel, so the class structure of P^{t-1} survives [DECISION D-19]
+        p_self = self.cross.psi(self.gate(p_prev)) if self.eq19_self == "gated" else None
+        return self.out(p_cross, p_diffuse, p_prev, p_self)  # (Eq.19-21)
 
 
 def stage_logits(f_q: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
