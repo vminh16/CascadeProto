@@ -16,6 +16,7 @@ import torch.nn.functional as F
 from loss.gmmn_loss import gmmn_loss
 from models.cascadeproto import CascadeProto, CascadeProtoConfig
 from models.clip_text import ClipTextEmbedding, episode_prompts
+from models.eppm import prototype_diffusion
 from models.prototypes import point_prototypes
 from models.vipseg_backbone import PointFeatureExtractor
 from pipeline.episodes import make_episode
@@ -100,7 +101,6 @@ def test_cp5_d10_ablation_flags():
 
 
 @pytest.mark.parametrize("config,phase", [(CascadeProtoConfig(num_stages=2, use_adrm=False, cross_attn="two_hop"), "two_hop"),
-                                          (CascadeProtoConfig(num_stages=1, gate_target="features"), "features"),
                                           (CascadeProtoConfig(num_stages=1, diffusion_input="pre_relu"), "pre_relu"),
                                           (CascadeProtoConfig(num_stages=0, modality="audio"), "modality 'audio'"),
                                           (CascadeProtoConfig(num_stages=0, modality="image"), "modality 'image'"),
@@ -379,3 +379,32 @@ def test_cp19_cross_attn_norm_reaches_every_stage():
         CascadeProtoConfig(cross_attn_norm="rmsnorm")
     ep = episode()
     assert torch.isfinite(normed(ep).logits).all()
+
+
+def test_cp20_gate_target_features_is_the_literal_eq13_14():
+    """D-02: with `features` the gate feeds phi (Eq.13) and psi keeps the ungated P^(t-1) of Eq.14."""
+    proto = model(CascadeProtoConfig(num_stages=1))
+    feats = model(CascadeProtoConfig(num_stages=1, gate_target="features"))
+    count = lambda m: sum(p.numel() for p in m.parameters())
+    assert count(proto) == count(feats)  # same parameters, different wiring
+    assert [s.gate_target for s in feats.stages] == ["features"]
+    ep = episode()
+    assert not torch.allclose(proto(ep).logits, feats(ep).logits)
+
+    stage = feats.stages[0]
+    f_s, f_q = feats.features.encode_episode(ep.support_x, ep.query_x)
+    p = point_prototypes(f_s, ep.support_y).unsqueeze(0).expand(f_q.shape[0], -1, -1)
+    expected = stage.out(stage.cross(p, stage.gate(f_s), stage.gate(f_q)),
+                         prototype_diffusion(f_s, f_q)[:, None, :].expand_as(p), p)
+    assert torch.allclose(stage(p, f_s, f_q), expected, atol=ATOL, rtol=0)
+
+
+def test_cp20_the_gate_is_elementwise_so_one_module_serves_both_targets():
+    """Eq.12 is elementwise on the last axis, so one EntropyGate gates [N,K,P,D] and [B,N+1,D] alike."""
+    stage = model(CascadeProtoConfig(num_stages=1, gate_target="features")).stages[0]
+    with torch.no_grad():
+        stage.gate.theta.fill_(0.42)
+    f = torch.rand(2, 3, 5, 128, dtype=torch.float64)
+    assert torch.allclose(stage.gate(f)[1, 2, 3], stage.gate(f[1, 2, 3]), atol=ATOL, rtol=0)
+    lo, hi = torch.sigmoid(torch.tensor([2 * (0.42 - math.log(2.0)), 2 * 0.42], dtype=torch.float64))
+    assert (stage.gate(f) <= hi * f).all() and (stage.gate(f) >= lo * f).all()  # H in [0, ln 2]

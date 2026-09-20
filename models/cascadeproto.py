@@ -21,7 +21,8 @@ import torch.nn.functional as F
 from loss.gmmn_loss import FG_MODES, gmmn_loss
 from models.adrm import DynamicRouting
 from models.clip_text import DEFAULT_CLIP_VARIANT, ClipTextEmbedding
-from models.eppm import CROSS_ATTN_NORMS, CROSS_ATTN_SCALES, FUSION_WEIGHTS, EPPMStage, stage_logits
+from models.eppm import (CROSS_ATTN_NORMS, CROSS_ATTN_SCALES, FUSION_WEIGHTS, GATE_TARGETS, EPPMStage,
+                         stage_logits)
 from models.lma import EVAL_NOISE, LearnableModalityAdapter
 from models.prototypes import point_prototypes
 from pipeline.episodes import Episode
@@ -30,7 +31,6 @@ from pipeline.model_api import EpisodeOutput
 MODALITIES = ("text", "image", "audio")  # 03 §2
 LOGIT_SCALES = ("none", "sqrt_D")  # [DECISION D-10]
 CROSS_ATTN = ("channel", "two_hop")  # [DECISION D-01]
-GATE_TARGETS = ("prototype", "features")  # [DECISION D-02]
 DIFFUSION_INPUTS = ("post_relu", "pre_relu")  # [DECISION D-14]
 
 
@@ -80,10 +80,9 @@ class CascadeProtoConfig:
         if self.use_lma and self.modality != "text":
             raise NotImplementedError(f"modality {self.modality!r} is not implemented yet (03 §2.2)")
         for name, value, default in (("cross_attn", self.cross_attn, "channel"),
-                                     ("gate_target", self.gate_target, "prototype"),
                                      ("diffusion_input", self.diffusion_input, "post_relu")):
             if value != default:
-                raise NotImplementedError(f"{name}={value!r} is not implemented (00 D-01, D-02, D-14)")
+                raise NotImplementedError(f"{name}={value!r} is not implemented (00 D-01, D-14)")
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -107,7 +106,8 @@ class CascadeProto(nn.Module):
         # T stages with their own parameters [PAPER §3.5] [DECISION D-16]
         self.stages = nn.ModuleList(
             EPPMStage(use_gate=config.use_gate, cross_attn_scale=config.cross_attn_scale,
-                      fusion_weight=config.fusion_weight, cross_attn_norm=config.cross_attn_norm)
+                      fusion_weight=config.fusion_weight, cross_attn_norm=config.cross_attn_norm,
+                      gate_target=config.gate_target)
             for _ in range(config.num_stages))
         # ADRM over T >= 2 stages; with T = 1 its weight is 1 and W_g could not learn [DECISION D-17]
         self.routing = DynamicRouting(config.num_stages) if config.use_adrm and config.num_stages >= 2 else None

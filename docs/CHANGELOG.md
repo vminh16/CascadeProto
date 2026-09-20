@@ -645,3 +645,37 @@ B (training) after the pending VM check 13e.
   single-seed reading in phases 14e and 15a-15d that rested on a difference below about 2 points is
   void, including "the cascade is worth about a point".
 * **Verification.** 6 VM runs, raw log and summary committed under `results/phase15_diag/`.
+
+### 15f - paper audit, and gate_target=features implemented (D-02)
+
+* **Audit.** `docs/research/2026-09-20_paper_vs_code_audit.md` checks every equation and every stated
+  number of the paper on three links: paper -> spec 02, spec 02 -> code, paper -> code. **No
+  implementation bug was found**; of the 12 findings, 10 are defects or ambiguities of the paper
+  itself. The equations were read from the PDF's own LaTeX markup and cross-checked against the
+  rendered pages.
+* **The one thing that changes the model.** Eq.10 says "for a **feature vector** x in R^D", Eq.12 says
+  "the **gated feature** is x_gated = x . g", and the symbol `x_gated` **never appears again in the
+  paper**. Eq.14 multiplies `psi(P^(t-1))`, the ungated prototype, and Eq.21's residual is `P^(t-1)`
+  as well. So under D-02's `gate_target=prototype` the gate output is consumed nowhere, and our code
+  only makes Eq.10-12 matter by feeding psi the gated prototype - a silent departure from what Eq.14
+  prints. Under `gate_target=features` the gate output is consumed by Eq.13 exactly where the text
+  says ("After entropy gating, we apply cross-attention"), and Eq.14 stays literal.
+* **What.** `gate_target=features` is implemented and no longer raises. The gate is applied per point
+  to `F^s [N,K,2048,D]` and `F^q [B_q,2048,D]` before Eq.13; `psi` receives the ungated `P^(t-1)`; the
+  diffusion branch of Eq.15-18 is ungated under both readings, since those equations name `F^q` and
+  `F^s` with no mention of gating. `EntropyGate` is elementwise on the last axis, so the same module
+  and the same single `theta` serve both readings and the parameter count is identical. New
+  `full_gatefeat` variant in `experiments/diag_short.py`; `tests/test_cascadeproto.py` gains CP-20.
+  Specs 00 (D-02 revised), 01 3, 02 5.1 updated.
+* **Default unchanged.** `prototype` stays the default until a VM run separates the two readings,
+  because changing it changes the meaning of every trained checkpoint.
+* **Also recorded from the audit, not acted on.** Table 4 row 3 (83.91 Avg) and Table 5 `T=1` (83.28
+  Avg) are the same configuration under D-17 yet differ by 0.63. The Table 4 baseline row (81.28 Avg /
+  82.72 S0) exceeds VIP-Seg's own Table 2 row (74.15 Avg) and Table 6 S0 (72.20) with no stated
+  reason. Eq.11 can only attenuate (`g < 1` for every finite theta), so the abstract's "amplifying
+  low-entropy foreground information" is unachievable. Eq.23's prose calls the matching "scaled
+  dot-product" while the equation prints no scale, which is the untested `logit_scale=sqrt_D` flag of
+  D-10.
+* **Verification.** G1 CPU gate. One file was damaged by a bad line-split during this step and
+  restored from the committed blob of 5794de5; no work was lost, since the only uncommitted change to
+  it was the damage.

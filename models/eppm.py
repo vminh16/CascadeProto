@@ -12,6 +12,7 @@ import torch.nn as nn
 ENTROPY_EPS = 1e-8  # epsilon of Eq.10 [PAPER Eq.10]
 PROB_CLAMP = 1e-7  # p in [1e-7, 1 - 1e-7] before Eq.10, implementation detail [DECISION D-16]
 THETA_INIT = 0.5  # initial gate threshold [PAPER Eq.11]
+GATE_TARGETS = ("prototype", "features")  # [DECISION D-02]
 
 
 def channel_entropy(x: torch.Tensor) -> torch.Tensor:
@@ -24,8 +25,10 @@ def channel_entropy(x: torch.Tensor) -> torch.Tensor:
 
 
 class EntropyGate(nn.Module):
-    """Eq.11-12 on the incoming prototype, channel-wise: P_gated = P ⊙ sigmoid(2(θ - H(P))) [DECISION D-02].
+    """Eq.11-12 channel-wise on its argument: x_gated = x ⊙ sigmoid(2(θ - H(x))) [PAPER Eq.10-12].
 
+    Elementwise on the last axis, so the same module gates a prototype `[B_q, N+1, D]` or features
+    `[N, K, 2048, D]` / `[B_q, 2048, D]`; which one is the `gate_target` switch of [DECISION D-02].
     One learnable scalar θ per stage [PAPER §3.5]. `enabled=False` is the `use_gate=false` switch:
     g ≡ 1 and no θ [DECISION D-17].
     """
@@ -37,13 +40,13 @@ class EntropyGate(nn.Module):
             self.theta = nn.Parameter(torch.tensor(THETA_INIT))
 
     def gate(self, p: torch.Tensor) -> torch.Tensor:
-        """g [B_q, N+1, D] for p [B_q, N+1, D]."""
+        """g, elementwise, same shape as `p`."""
         if not self.enabled:
             return torch.ones_like(p)
         return torch.sigmoid(2.0 * (self.theta - channel_entropy(p)))
 
     def forward(self, p: torch.Tensor) -> torch.Tensor:
-        return p * self.gate(p)  # [B_q, N+1, D] (Eq.12)
+        return p * self.gate(p)  # same shape as p (Eq.12)
 
 
 # ---------------------------------------------------------------- cross-attention (02 §5.2, D-01)
@@ -190,18 +193,33 @@ class EPPMStage(nn.Module):
     """One EPPM stage (§3.4): P^t = Out(Fuse(CrossAttn(Gate(P^{t-1})), Diffuse(F^s, F^q)), P^{t-1})."""
 
     def __init__(self, dim: int = 128, use_gate: bool = True, cross_attn_scale: str = "sqrt_d",
-                 fusion_weight: str = "per_query", cross_attn_norm: str = "none"):
+                 fusion_weight: str = "per_query", cross_attn_norm: str = "none",
+                 gate_target: str = "prototype"):
         super().__init__()
+        if gate_target not in GATE_TARGETS:
+            raise ValueError(f"gate_target must be one of {GATE_TARGETS}, got {gate_target!r}")
+        self.gate_target = gate_target
         self.gate = EntropyGate(use_gate)
         self.cross = CrossAttention(dim, cross_attn_scale, cross_attn_norm)
         self.out = FusionOutput(dim, fusion_weight)
 
     def forward(self, p_prev: torch.Tensor, f_s: torch.Tensor, f_q: torch.Tensor) -> torch.Tensor:
-        """p_prev [B_q, N+1, D], f_s [N, K, 2048, D], f_q [B_q, 2048, D] -> P^t [B_q, N+1, D]."""
+        """p_prev [B_q, N+1, D], f_s [N, K, 2048, D], f_q [B_q, 2048, D] -> P^t [B_q, N+1, D].
+
+        `gate_target="features"` is the literal reading of Eq.13-14: "After entropy gating, we apply
+        cross-attention" and Eq.14 multiplies ψ(P^{t-1}), the **ungated** prototype, exactly as printed.
+        `gate_target="prototype"` gates P^{t-1} instead and feeds ψ the gated prototype, which departs
+        from the argument Eq.14 prints. Eq.15-18 read F^q and F^s with no mention of gating, so the
+        diffusion branch uses the ungated features either way [DECISION D-02].
+        """
         if p_prev.dim() != 3 or p_prev.shape[0] != f_q.shape[0] or p_prev.shape[1] != f_s.shape[0] + 1:
             raise ValueError(f"P^(t-1) {tuple(p_prev.shape)} does not match F^s {tuple(f_s.shape)} and "
                              f"F^q {tuple(f_q.shape)}")
-        p_cross = self.cross(self.gate(p_prev), f_s, f_q)  # [B_q, N+1, D] (Eq.10-14)
+        if self.gate_target == "features":
+            p_in, f_s_in, f_q_in = p_prev, self.gate(f_s), self.gate(f_q)  # (Eq.12 on F, then Eq.13)
+        else:
+            p_in, f_s_in, f_q_in = self.gate(p_prev), f_s, f_q  # (Eq.12 on P^{t-1})
+        p_cross = self.cross(p_in, f_s_in, f_q_in)  # [B_q, N+1, D] (Eq.13-14)
         p_diffuse = prototype_diffusion(f_s, f_q)[:, None, :].expand_as(p_cross)  # (Eq.15-18) [DECISION D-16]
         return self.out(p_cross, p_diffuse, p_prev)  # (Eq.19-21)
 

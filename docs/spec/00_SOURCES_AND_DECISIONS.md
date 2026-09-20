@@ -100,7 +100,22 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 * **Decision.** Gate the incoming prototype channel-wise: `P^{t−1}_gated = P^{t−1} ⊙ g(P^{t−1})`, with one scalar θ per stage [PAPER §3.5 "each EPPM applies entropy gating independently"]. `P^{t−1}_gated` is the input to ψ in D-01. The residual in Eq.21 uses the **ungated** `P^{t−1}`, as printed.
 * **Rationale.** Channel-wise gating composes naturally with the channel–channel attention of D-01, and it is the only reading consistent with Eq.14 and Eq.21 using `P^{t−1}`.
 * **Known limitation.** With θ = 0.5 and natural log, `g ∈ [0.405, 0.731]`, so the gate is weak at initialisation (audit H4).
-* **Ablation flag.** `gate_target = {prototype (default), features}`. `features` is not in any paper table and raises `NotImplementedError`.
+* **Outcome of the paper audit (2026-09-20, `docs/research/2026-09-20_paper_vs_code_audit.md`).** The
+  rationale above does not hold. Both readings are consistent with Eq.14 and Eq.21 referencing
+  `P^{t-1}`: if the gate applied to `F^q`/`F^s`, Eq.13's `φ(F^q)` would simply consume gated features
+  and Eq.14 would be unchanged. Worse, under `gate_target = prototype` the printed Eq.14 multiplies
+  `ψ(P^{t-1})`, the **ungated** prototype, and Eq.21's residual is also `P^{t-1}`, so `x_gated` — a
+  symbol that appears in Eq.12 and **nowhere else in the paper** — would never be consumed and Eq.10–12
+  would be dead. Our code only makes the gate matter by feeding ψ the gated prototype, which is a
+  silent departure from Eq.14. The paper's own wording leans the other way: Eq.10 says "for a **feature
+  vector** x ∈ R^D", Eq.12 says "the **gated feature** is", and §3.2 says each module "suppresses
+  high-entropy background **features**".
+* **Revised decision (2026-09-20).** `gate_target = features` is implemented and no longer raises: the
+  gate is applied per point to `F^s` and `F^q` before Eq.13, and ψ receives the ungated `P^{t-1}`. The
+  default stays `prototype` until a VM run separates them, because changing it changes every trained
+  checkpoint's meaning. The diffusion branch of Eq.15–18 is ungated under both readings, since those
+  equations name `F^q` and `F^s` with no mention of gating.
+* **Ablation flag.** `gate_target = {prototype (default), features}`. Neither value raises.
 
 ### D-03 — Shared φ · `LOCKED` (paper-explicit)
 
@@ -401,5 +416,6 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-18 | Pipeline sanity check (05 §4): VIP-Seg's released S0 2-way 1-shot checkpoint scores 0.719687 through `eval.py --model vipseg` on our data and metric (VIP-Seg log 0.722026, [PAPER Tab.6] 72.20). |
 | 2026-09-19 | D-05 locked by the maintainer (one modality per run, `E_fused := E_adapted^(m)`, generator input `[E_fused; z]` of width 2D). D-06: `eval_noise=mean_of_M` raises until M is chosen. |
 | 2026-09-19 | D-01 step 5 closed by the maintainer: one `A` per (query, class slot, shot) as in VIP-Seg. D-01, D-02, D-14: the flags `two_hop`, `gate_target=features`, `diffusion_input=pre_relu` raise until implemented. D-17: `num_stages = 1` gives `L^1` with or without ADRM. |
+| 2026-09-20 | Paper audit (`docs/research/2026-09-20_paper_vs_code_audit.md`): no implementation bug; 12 findings, 10 of them defects of the paper. D-02 revised — `gate_target=features` implemented, default unchanged, because `x_gated` is otherwise never consumed. Table 4 row 3 and Table 5 T=1 are the same configuration under D-17 yet differ by 0.63; recorded as an open conflict. |
 | 2026-09-20 | D-18 closed on three seeds per variant: `full` 0.5171 ± 0.0123 against `baseline_l2` 0.5205 ± 0.0104, i.e. the cascade adds nothing (t = −0.36). Every stage diagnostic is healthy, and the Eq.19 weight on the class-blind `P_diffuse` falls to 0.008–0.082 by itself, so D-16 is not the cause either. The `layernorm` probe stays an ablation flag, never a default. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

@@ -124,13 +124,14 @@ Inputs: `P^{t−1} ∈ [B_q, N+1, D]`, `F^s ∈ [N, K, 2048, D]`, `F^q ∈ [B_q,
 
 ### 5.1 Information-theoretic gating (Eq.10–12)
 
-Applied channel-wise to the incoming prototype [DECISION D-02]:
+Applied channel-wise, to the incoming prototype with `gate_target = prototype` (the default) or to `F^q` and `F^s` with `gate_target = features` [DECISION D-02]. Eq.10 names its argument a "feature vector"; the two readings differ in what `x` is:
 
 $$p_{i} = \sigma(P^{t-1}_{i}), \quad H_{i} = -p_{i}\log(p_{i} + \epsilon) - (1 - p_{i})\log(1 - p_{i} + \epsilon)$$
 $$g_{i} = \sigma(2(\theta_t - H_{i})), \qquad P^{t-1}_{gated} = P^{t-1} \odot g$$
 [PAPER Eq.10–12]
 
-* Natural logarithm; `H ∈ [0, ln 2]`; with θ = 0.5, `g ∈ [0.405, 0.731]` [DECISION D-02].
+* Natural logarithm; `H ∈ [0, ln 2]`; with θ = 0.5, `g ∈ [0.405, 0.731]`. `g < 1` for every finite θ, so Eq.11 can only attenuate, never "amplify" as the abstract says [DECISION D-02].
+* With `gate_target = features` the gate is applied per point to `F^s [N,K,2048,D]` and `F^q [B_q,2048,D]` before Eq.13, and ψ in Eq.14 receives the **ungated** `P^{t-1}`, exactly as Eq.14 prints. With `gate_target = prototype` ψ receives `P^{t-1}_gated`, which the printed Eq.14 does not. Eq.15–18 name `F^q` and `F^s` with no mention of gating, so the diffusion branch is ungated under both readings.
 * Implementation clamp of `p` to `[10⁻⁷, 1 − 10⁻⁷]` [DECISION D-16].
 
 ### 5.2 Cross-attention refinement (Eq.13–14)

@@ -145,7 +145,7 @@ flowchart TD
 
 ## 3. Ablation switches
 
-Required configuration options. Defaults reproduce the full model. They live in `models/cascadeproto.py::CascadeProtoConfig` and on the `train.py` command line; every checkpoint stores its configuration and `eval.py` rebuilds the model from it. All rows of Table 4 are implemented: "Baseline" (`use_lma=false, num_stages=0`, `F^q P_pointᵀ`), "+ LMA" (`num_stages=0`, `F^q (P^0)ᵀ` plus `L_GMMN`), "+ Entropy Gate" (`num_stages=1`, `L^1`), "+ Cascade" (`num_stages=T, use_adrm=false`, `L^T`) and the full model (defaults, `L_final`) [DECISION D-17]. Non-default values of `cross_attn`, `gate_target` and `diffusion_input` raise.
+Required configuration options. Defaults reproduce the full model. They live in `models/cascadeproto.py::CascadeProtoConfig` and on the `train.py` command line; every checkpoint stores its configuration and `eval.py` rebuilds the model from it. All rows of Table 4 are implemented: "Baseline" (`use_lma=false, num_stages=0`, `F^q P_pointᵀ`), "+ LMA" (`num_stages=0`, `F^q (P^0)ᵀ` plus `L_GMMN`), "+ Entropy Gate" (`num_stages=1`, `L^1`), "+ Cascade" (`num_stages=T, use_adrm=false`, `L^T`) and the full model (defaults, `L_final`) [DECISION D-17]. Non-default values of `cross_attn` and `diffusion_input` raise.
 
 | Option | Default | Values | Source |
 | :--- | :--- | :--- | :--- |
@@ -157,7 +157,7 @@ Required configuration options. Defaults reproduce the full model. They live in 
 | `cross_attn` | channel | channel (two_hop raises) | [DECISION D-01] |
 | `cross_attn_scale` | sqrt_d | sqrt_d / sqrt_D | [DECISION D-01] |
 | `cross_attn_norm` | none | none / layernorm | [DECISION D-18] |
-| `gate_target` | prototype | prototype (features raises) | [DECISION D-02] |
+| `gate_target` | prototype | prototype / features | [DECISION D-02] |
 | `gmmn_fg_mode` | joint | joint / per_class | [DECISION D-04] |
 | `gmmn_detach_point` | false | true / false | [DECISION D-04] |
 | `eval_noise` | zero | zero / sample (mean_of_M raises until M is chosen) | [DECISION D-06] |
