@@ -884,3 +884,18 @@ B (training) after the pending VM check 13e.
   claim is +16.3 over VIP-Seg where every earlier step in the table is 0.2-5.6 points.
 * **Untested.** The "Area 5 for testing" sentence of §4.1 (D-07's unimplemented `area5` flag); low
   prior, since an unseen test area would make the task harder.
+
+### 15t - D-20 rejected at zero training
+
+* **Result** (`results/vipinit/`, fixed100 on 1,500 episodes, VIP-Seg's released S0 encoder and
+  feature head, no training). Baseline 0.4737 (per episode with bg 0.5696, point accuracy 0.7419);
+  baseline + L2 0.5497 (0.6308, 0.7794). The `[probe]` lines were pasted from the VM; the JSON files
+  carry them to four decimals.
+* **Reading.** Prototype matching on VIP-Seg's own trained features scores the same as on ours
+  (0.4908 and 0.5244 from scratch), so VIP-Seg's 0.7197 comes from its PEM/PDM head, not its encoder,
+  and a "plain VIP-Seg backbone with masked average pooling" cannot reach the paper's 0.8272 with
+  either encoder. Rejected by the rule fixed before the run (below 0.60), so the fine-tuning step was
+  skipped. It also validates our from-scratch encoder training independently.
+* **What remains.** Every explanation large enough for the ~30-point absolute gap that the paper's
+  text supports has now been tested and rejected: pipeline, implementation, protocol, mIoU
+  definition, citations, and a VIP-Seg-trained encoder. Only the low-prior `area5` split is untested.

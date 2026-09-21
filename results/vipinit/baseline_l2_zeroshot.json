@@ -1,0 +1,1 @@
+{"run": "baseline_l2_vipinit_zeroshot", "miou": 0.5497, "episodes": 1500, "extra": {"accumulated_fg": 0.5497, "accumulated_with_bg": 0.5771, "episode_fg": 0.5722, "episode_with_bg": 0.6308, "point_accuracy": 0.7794}, "source": "[probe] line pasted by the maintainer from the VM, 4 decimals"}

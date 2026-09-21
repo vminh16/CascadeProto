@@ -11,7 +11,7 @@ row of Table 4 was trained on the paper's schedule (§2). What does not reproduc
 decreasing order of size:
 
 1. **The paper's absolute numbers are inconsistent with its own base method** (about 30 points),
-   and **no mIoU definition explains them** (§3.1). Its
+   and **neither a different mIoU (§3.1) nor VIP-Seg's trained encoder (§3.2) explains them**. Its
    baseline — "a plain VIP-Seg backbone with masked average pooling and single-step prototype
    matching" — is reported at 82.72 on S0, above VIP-Seg's own full model at 72.20 in the same paper.
    A baseline that removes VIP-Seg's prototype modules cannot outscore VIP-Seg with them unless
@@ -157,7 +157,32 @@ definitions (`pipeline/metrics_alt.py`, `results/rescore/`):
   13–15 points**. Under no scoring does the printed CascadeProto beat the method it is built on,
   which is the paper's central claim.
 
-### 3.2 Are the cited numbers and the metric the ones we use? Yes.
+### 3.2 Was the paper's baseline built on VIP-Seg's trained encoder? No.
+
+VIP-Seg's released S0 checkpoint supplies a trained encoder and feature head. Plugged into our
+baseline — masked average pooling and a dot product, exactly the paper's "plain VIP-Seg backbone with
+masked average pooling and single-step prototype matching" — and scored with no training at all
+(`experiments/vipseg_init_probe.py`, D-20, `results/vipinit/`):
+
+| baseline on … | primary mIoU | best alternative definition |
+| :--- | ---: | ---: |
+| our encoder, trained from scratch | 49.08 | 57.15 (per episode, with bg) |
+| **VIP-Seg's trained encoder** | **47.37** | 56.96 (per episode, with bg) |
+| our encoder, L2-normalised prototypes | 52.44 | 60.38 |
+| **VIP-Seg's trained encoder, L2-normalised prototypes** | **54.97** | 63.08 |
+| VIP-Seg's full model (its PEM/PDM head on the same encoder) | 71.97 | 75.35 |
+| paper, Table 4 baseline | 82.72 | — |
+
+* **VIP-Seg's 72 comes from its prototype head, not its encoder.** On VIP-Seg's own trained features,
+  prototype matching scores 47–55, the same as on ours; the 17–25 points on top come from PEM/PDM.
+  A plain backbone with masked average pooling therefore sits near 50 whether its encoder is trained
+  here or by VIP-Seg, and cannot reach 82.72 — 10 points *above* the head it strips away.
+* **Independent validation of our training.** Our from-scratch encoder gives the baseline the same
+  feature quality as VIP-Seg's released one (49.08 against 47.37; 52.44 against 54.97 with L2).
+* The fine-tuning step of D-20 was not run: by the decision rule fixed before the probe (below 60 →
+  reject), the hypothesis is rejected at zero training.
+
+### 3.3 Are the cited numbers and the metric the ones we use? Yes.
 
 * **The metric of the protocol the paper follows.** The paper states "We follow the standard N-way
   K-shot episodic protocol [34]" (§4.1), [34] being AttMPTI. AttMPTI's `evaluate_metric`
