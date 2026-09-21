@@ -1,1 +1,1 @@
-{"run": "baseline_vipinit_zeroshot", "miou": 0.4737, "episodes": 1500, "extra": {"accumulated_fg": 0.4737, "accumulated_with_bg": 0.5089, "episode_fg": 0.491, "episode_with_bg": 0.5696, "point_accuracy": 0.7419}, "source": "[probe] line pasted by the maintainer from the VM, 4 decimals"}
+{"run": "baseline_vipinit_zeroshot", "miou": 0.4736814117888628, "episodes": 1500, "extra": {"accumulated_fg": 0.4736814117888628, "accumulated_with_bg": 0.5089381025401615, "episode_fg": 0.4910284826916818, "episode_with_bg": 0.5696444370401822, "point_accuracy": 0.7419454752604167}}
