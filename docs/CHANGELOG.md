@@ -817,3 +817,22 @@ B (training) after the pending VM check 13e.
   reproduce - no implementation bug; the paper's absolute numbers are inconsistent with its own base
   method (baseline 82.72 above VIP-Seg's own 72.20); the cascade depth does nothing under the printed
   Eq.19; and an unprinted L2 normalisation is worth +3.36.
+
+### 15p - alternative mIoU definitions, to test whether the paper scored its own rows differently
+
+* **Hypothesis.** The absolute gap (baseline 49.08 against 82.72, full 57.15 against 88.53) is about
+  30 points, far more than any unmeasured switch can move, while VIP-Seg's released checkpoint scores
+  71.97 here against the 72.20 the paper reports for it. One explanation that fits both: the VIP-Seg
+  row was taken from the VIP-Seg paper, and the paper's own rows were scored with a different mIoU.
+  If so, re-scoring our checkpoints with that definition lands near the paper's level.
+* **What.** `pipeline/metrics_alt.py` (pure numpy) computes, from the same predictions: VIP-Seg's
+  accumulated foreground mIoU re-implemented (must equal the primary number), the same counts with
+  background included, per-episode mIoU over foreground labels, per-episode mIoU with background, and
+  point accuracy. `pipeline/evaluation.py` gains `collect_predictions`, so predictions are computed
+  once; `eval.py --extra_metrics true` logs the alternatives and writes them under `extra` in the
+  result JSON. The primary metric (D-08) is untouched. `experiments/rescore_alt_metrics.sh` re-scores
+  VIP-Seg's released checkpoint and the six full-schedule best checkpoints on the VM, then powers the
+  VM off after 20 minutes.
+* **Tests.** `tests/test_metrics_alt.py` (ALT-1..4): equality with a copy of VIP-Seg's loop on random
+  episodes, a hand-computed episode for every metric, episode labels mapping to one global class, and
+  perfect prediction.

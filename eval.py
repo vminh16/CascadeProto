@@ -16,7 +16,8 @@ import torch
 from dataloaders.loader import MyDataset
 from pipeline.episodes import (N_QUERIES, NUM_POINT, PC_ATTRIBS, SCHEDULE, WAY_NUM, WAY_RATIO,
                                build_eval_dataset, read_class_names)
-from pipeline.evaluation import evaluate
+from pipeline.evaluation import accumulated_miou, collect_predictions
+from pipeline.metrics_alt import alternative_metrics
 from train import build_model, seed_everything, str2bool
 from utils.logger import IOStream
 
@@ -39,6 +40,8 @@ def parse_args(argv=None):
     p.add_argument("--save_dir", default="log_eval")
     p.add_argument("--dry_run", type=str2bool, default=False)
     p.add_argument("--result_json", default=None, help="also write the result as JSON to this path")
+    p.add_argument("--extra_metrics", type=str2bool, default=False,
+                   help="also report alternative mIoU definitions (diagnostic only, pipeline/metrics_alt.py)")
     return p.parse_args(argv)
 
 
@@ -83,13 +86,19 @@ def main(argv=None):
     n = DRY_RUN_EPISODES if args.dry_run else len(dataset)
     logger.cprint(f"{args.eval_protocol}: {n} of {len(dataset)} episodes | test classes "
                   f"{[class_names[c] for c in np.asarray(dataset.classes)]}")
-    miou = evaluate(model, dataset, class_names, logger, device, max_episodes=n)
+    preds, gts, label2class = collect_predictions(model, dataset, class_names, device, max_episodes=n)
+    miou = accumulated_miou(logger, preds, gts, label2class, list(dataset.classes))
     logger.cprint(f"[TEST] {args.model} {args.dataset} S{args.cvfold} {args.n_way}-way {args.k_shot}-shot "
                   f"mIoU: {miou:.6f}")
+    extra = None
+    if args.extra_metrics:
+        extra = alternative_metrics(preds, gts, label2class, list(dataset.classes))
+        logger.cprint("[EXTRA] " + " | ".join(f"{k}={v:.6f}" for k, v in extra.items()))
     if args.result_json:
         with open(args.result_json, "w") as f:
             json.dump({"miou": miou, "protocol": args.eval_protocol, "episodes": n, "checkpoint": args.checkpoint,
-                       "epoch": getattr(model, "checkpoint_epoch", None), "dry_run": args.dry_run}, f)
+                       "epoch": getattr(model, "checkpoint_epoch", None), "dry_run": args.dry_run,
+                       **({"extra": extra} if extra is not None else {})}, f)
     return 0
 
 
