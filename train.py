@@ -41,7 +41,7 @@ def str2bool(v: str) -> bool:
     raise argparse.ArgumentTypeError(f"boolean expected, got {v!r}")
 
 
-def parse_args(argv=None):
+def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="CascadeProto episodic training (spec 04)")
     p.add_argument("--dataset", required=True, choices=sorted(SCHEDULE))
     p.add_argument("--data_path", required=True, help="the blocks_bs1_s1 directory (04 §2.2)")
@@ -86,6 +86,11 @@ def parse_args(argv=None):
     p.add_argument("--save_dir", default="log_cascadeproto")
     p.add_argument("--dry_run", type=str2bool, default=False)
     p.add_argument("--resume", type=str2bool, default=False, help="continue from <run dir>/resume.pt if present")
+    return p
+
+
+def parse_args(argv=None):
+    p = build_parser()
     args = p.parse_args(argv)
     schedule = SCHEDULE[args.dataset]
     args.epochs = args.epochs or schedule["epochs"]
@@ -172,6 +177,17 @@ def comparable_args(args) -> dict:
     return {k: v for k, v in vars(args).items() if k not in RESUME_FREE_ARGS}
 
 
+def resume_mismatch(saved: dict, current: dict) -> list:
+    """Arguments on which a checkpoint and the current run differ.
+
+    An argument absent from the checkpoint was added to the parser after the checkpoint was written;
+    every such flag defaults to the behaviour that existed before it, so it matches at its default.
+    """
+    defaults = build_parser()
+    return sorted(k for k in set(saved) | set(current)
+                  if saved.get(k, defaults.get_default(k)) != current.get(k, defaults.get_default(k)))
+
+
 def train_loop(args, model, optimizer, scheduler, train_set, class_names, validate, config, out_dir, logger,
                device, stop_after_epoch=None) -> dict:
     """Epochs state["epoch"]+1 .. args.epochs; validation every args.valid_every epochs (D-15).
@@ -183,9 +199,9 @@ def train_loop(args, model, optimizer, scheduler, train_set, class_names, valida
     resume_path = os.path.join(out_dir, RESUME_FILE)
     if args.resume and os.path.isfile(resume_path):
         ckpt = torch.load(resume_path, map_location="cpu", weights_only=False)  # RNG states must stay on the CPU
-        if ckpt["args"] != comparable_args(args):
-            diff = {k for k in ckpt["args"] if ckpt["args"][k] != comparable_args(args).get(k)}
-            raise ValueError(f"cannot resume {resume_path}: arguments differ in {sorted(diff)}")
+        diff = resume_mismatch(ckpt["args"], comparable_args(args))
+        if diff:
+            raise ValueError(f"cannot resume {resume_path}: arguments differ in {diff}")
         model.load_state_dict(ckpt["model"], strict=True)
         optimizer.load_state_dict(ckpt["optimizer"])
         scheduler.load_state_dict(ckpt["scheduler"])

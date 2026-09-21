@@ -135,3 +135,16 @@ def test_batch_size_option_and_run_directory():
     assert b1.batch_size == 1 and train.run_dir(b1) == train.run_dir(train.parse_args(base)) + "_b1"
     with pytest.raises(SystemExit):
         train.parse_args(base + ["--batch_size", "7"])  # 480 episodes per epoch is not a multiple of 7
+
+
+def test_resume_accepts_flags_added_after_the_checkpoint_at_their_default():
+    """A checkpoint written before --batch_size existed resumes at the default, and only there."""
+    import train
+
+    base = ["--dataset", "s3dis", "--data_path", "d", "--cvfold", "0", "--n_way", "2", "--k_shot", "1"]
+    current = train.comparable_args(train.parse_args(base))
+    saved = {k: v for k, v in current.items() if k != "batch_size"}
+    assert train.resume_mismatch(saved, current) == []
+    changed = train.comparable_args(train.parse_args(base + ["--batch_size", "1"]))
+    assert train.resume_mismatch(saved, changed) == ["batch_size"]
+    assert train.resume_mismatch(dict(saved, seed=1), current) == ["seed"]
