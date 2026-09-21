@@ -157,6 +157,32 @@ definitions (`pipeline/metrics_alt.py`, `results/rescore/`):
   13–15 points**. Under no scoring does the printed CascadeProto beat the method it is built on,
   which is the paper's central claim.
 
+### 3.2 Are the cited numbers and the metric the ones we use? Yes.
+
+* **The metric of the protocol the paper follows.** The paper states "We follow the standard N-way
+  K-shot episodic protocol [34]" (§4.1), [34] being AttMPTI. AttMPTI's `evaluate_metric`
+  (`runs/eval.py` of github.com/Na-Z/attMPTI) accumulates TP, predicted and ground-truth counts per
+  class over all test episodes and averages IoU over the classes **excluding background** — the same
+  computation as VIP-Seg's copy, which we call unchanged (VIP-Seg only adds 0.001 to the
+  denominator). So our primary metric is the standard one the paper names.
+* **The VIP-Seg row is VIP-Seg's own released logs.** The released log folders of VIP-Seg are
+  `log_S0_N2_K1_0.722026`, `log_S1_N2_K1_0.760875`, `log_S0_N2_K5_0.764836`, `log_S1_N2_K5_0.775364`,
+  `log_S0_N3_K1_0.687951`, `log_S1_N3_K1_0.683496`, `log_S0_N3_K5_0.681455`, `log_S1_N3_K5_0.704371`
+  (github.com/changshuowang/VIP-Seg_NeurIPS2025, `log_s3dis_VIPSeg/`). Table 2's VIP-Seg row, 72.20 /
+  76.09 | 76.48 / 77.54 | 68.80 / 68.35 | 68.15 / 70.44, is exactly those values rounded. They were
+  computed with the AttMPTI metric on the loader we use, and our pipeline scores the S0 checkpoint at
+  71.97.
+* **The jump the paper claims.** In Table 2's 2-way 1-shot S0 column, every earlier method improves on
+  its predecessor by 0.2–5.6 points (DGCNN 36.34 … DyPolySeg 72.02, VIP-Seg 72.20). CascadeProto (Text)
+  reports 88.53, +16.3 over VIP-Seg, and its own Table 4 baseline (82.72) would already be +10.5 over
+  the method it is built on. Since the cited rows and the metric are verified to be on the scale we
+  measure, the paper's own rows are the only ones not on it.
+* **One protocol statement not tested.** §4.1 also says "using Areas 1, 2, 3, 4, 6 for training and
+  Area 5 for testing under two category splits S0 and S1", which contradicts the class-only split of
+  [34] that the cited rows use (D-07). Restricting the test rooms to an unseen area would make the task
+  harder, not 30 points easier, so its prior is low; it is recorded as untested (the `area5` flag of
+  D-07 was never implemented).
+
 ## 4. Ambiguities we resolved by measurement
 
 Each was implemented behind a switch, with the default unchanged, and measured on three seeds.

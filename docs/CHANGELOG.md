@@ -871,3 +871,16 @@ B (training) after the pending VM check 13e.
   baseline + L2 on VIP-Seg's trained features with no training, the cheapest test of the hypothesis.
   New test: the `_vipinit` run directory. Spec 00 gains D-20.
 * **Status.** Approved by the maintainer as a diagnostic on 2026-09-21. Never a result configuration.
+
+### 15s - citation and metric check (no GPU)
+
+* **Metric.** AttMPTI's `evaluate_metric` ([34], the protocol the paper says it follows) accumulates
+  per-class counts over all episodes and averages IoU without background - the computation we use
+  through VIP-Seg's unchanged copy.
+* **Citations.** Table 2's VIP-Seg row equals VIP-Seg's released log folders to two decimals
+  (S0 2w1s 0.722026, S1 0.760875, and so on for all eight cells), i.e. it was produced by that metric
+  on the loader we use, which scores the S0 checkpoint at 71.97 here.
+* **Consequence.** The cited rows are on our scale; only the paper's own rows are not. Its S0 2w1s
+  claim is +16.3 over VIP-Seg where every earlier step in the table is 0.2-5.6 points.
+* **Untested.** The "Area 5 for testing" sentence of §4.1 (D-07's unimplemented `area5` flag); low
+  prior, since an unseen test area would make the task harder.
