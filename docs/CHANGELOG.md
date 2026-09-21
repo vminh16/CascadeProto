@@ -911,3 +911,14 @@ B (training) after the pending VM check 13e.
 * **What.** `pipeline/episodes.build_train_dataset(train_classes="all")` and `train.py --train_classes
   all` widen the training sampler to the test classes; run directories get `_leak`. Two tests.
   Spec 00 gains D-21.
+
+### 15v - trace back through the method; the one untested decision on the baseline's path
+
+* **Argument.** The absolute gap is 33.6 points on the baseline, which contains no added module, so
+  only a decision on the baseline's path can explain it. Of the 21 decisions, those are D-07, D-08,
+  D-10, D-12, D-15 and D-17; all but D-12 are verified or measured (report 3.3). Code on the path is
+  checked against VIP-Seg's own (encoder, head, pooling, optimiser).
+* **D-12.** VIP-Seg trains 24,000 steps at batch 1 and halves the LR every 7,000 steps; our D-12 keeps
+  its 24,000 episodes at the paper's batch 4, i.e. 6,000 steps halving every 1,200. New
+  `train.py --batch_size` (default 4, the paper's) makes the VIP-Seg schedule runnable; run
+  directories get `_b<n>`. One test.

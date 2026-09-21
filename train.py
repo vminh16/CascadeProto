@@ -77,6 +77,8 @@ def parse_args(argv=None):
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--weight_decay", type=float, default=0.1)
     p.add_argument("--lr_step_epochs", type=int, default=10)
+    p.add_argument("--batch_size", type=int, default=EPISODES_PER_BATCH,
+                   help="episodes per optimiser step; 4 per the paper [PAPER §4.1], 1 reproduces VIP-Seg's schedule")
     p.add_argument("--lr_gamma", type=float, default=0.5)
     p.add_argument("--valid_every", type=int, default=10, help="epochs between validations [D-15]")
     p.add_argument("--seed", type=int, default=0)
@@ -88,8 +90,8 @@ def parse_args(argv=None):
     schedule = SCHEDULE[args.dataset]
     args.epochs = args.epochs or schedule["epochs"]
     args.episodes_per_epoch = args.episodes_per_epoch or schedule["episodes_per_epoch"]
-    if args.episodes_per_epoch % EPISODES_PER_BATCH:
-        p.error(f"--episodes_per_epoch must be a multiple of {EPISODES_PER_BATCH}")
+    if args.batch_size < 1 or args.episodes_per_epoch % args.batch_size:
+        p.error(f"--episodes_per_epoch must be a multiple of --batch_size ({args.batch_size})")
     return args
 
 
@@ -127,6 +129,7 @@ def run_dir(args) -> str:
     tag += "" if args.seed == 0 else f"_seed{args.seed}"
     tag += "_vipinit" if getattr(args, "init_from_vipseg", None) else ""  # [D-20]
     tag += "_leak" if getattr(args, "train_classes", "split") == "all" else ""  # [D-21]
+    tag += "" if getattr(args, "batch_size", EPISODES_PER_BATCH) == EPISODES_PER_BATCH else f"_b{args.batch_size}"
     return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 
 
@@ -193,7 +196,7 @@ def train_loop(args, model, optimizer, scheduler, train_set, class_names, valida
     while state["epoch"] < args.epochs:
         first = state["epoch"] * args.episodes_per_epoch
         loader = DataLoader(Subset(train_set, range(first, first + args.episodes_per_epoch)),
-                            batch_size=EPISODES_PER_BATCH, shuffle=False, num_workers=args.num_workers,
+                            batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers,
                             collate_fn=EpisodeCollate(class_names), drop_last=True)
         losses = list(train_steps(model, optimizer, loader, device))
         state["epoch"] += 1
@@ -230,8 +233,8 @@ def main(argv=None):
                   f"augmentation={AUGMENT_CONFIG}")
 
     class_names = read_class_names(args.data_path, args.dataset)
-    steps_per_epoch = args.episodes_per_epoch // EPISODES_PER_BATCH
-    total_episodes = EPISODES_PER_BATCH if args.dry_run else args.epochs * args.episodes_per_epoch
+    steps_per_epoch = args.episodes_per_epoch // args.batch_size
+    total_episodes = args.batch_size if args.dry_run else args.epochs * args.episodes_per_epoch
     train_set = SeededEpisodes(build_train_dataset(args.data_path, args.dataset, args.cvfold, args.n_way,
                                                    args.k_shot, num_episode=total_episodes,
                                                    train_classes=args.train_classes), args.seed)
@@ -252,10 +255,10 @@ def main(argv=None):
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_step_epochs, gamma=args.lr_gamma)
 
     if args.dry_run:
-        loader = DataLoader(train_set, batch_size=EPISODES_PER_BATCH, shuffle=False, num_workers=args.num_workers,
+        loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers,
                             collate_fn=EpisodeCollate(class_names), drop_last=True)
         loss, gmmn = next(train_steps(model, optimizer, loader, device))
-        logger.cprint(f"[dry run] one step on {EPISODES_PER_BATCH} real episodes, loss {loss:.4f} "
+        logger.cprint(f"[dry run] one step on {args.batch_size} real episodes, loss {loss:.4f} "
                       f"(L_GMMN {gmmn:.4f})")
         miou = evaluate(model, valid_set, class_names, logger, device, max_episodes=DRY_RUN_VALID_EPISODES)
         logger.cprint(f"[dry run] valid mIoU on {DRY_RUN_VALID_EPISODES} episodes: {miou:.4f}")

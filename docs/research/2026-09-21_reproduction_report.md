@@ -182,7 +182,45 @@ masked average pooling and single-step prototype matching" — and scored with n
 * The fine-tuning step of D-20 was not run: by the decision rule fixed before the probe (below 60 →
   reject), the hypothesis is rejected at zero training.
 
-### 3.3 Are the cited numbers and the metric the ones we use? Yes.
+### 3.3 Trace back through the method: which of our own decisions can reach the gap?
+
+The gap is already 33.6 points on the **baseline**, which contains none of the added modules. So a
+decision can only explain it if it touches the baseline's path: encoder → feature head → masked
+average pooling → dot product → cross-entropy → optimiser and schedule. Every decision, sorted by that
+criterion:
+
+| decision | on the baseline's path? | status |
+| :--- | :---: | :--- |
+| D-01, D-02, D-03, D-11, D-14, D-16, D-18, D-19 (EPPM internals) | no | can only move the increments, which reproduce in total (+8.07 vs +5.81) |
+| D-04, D-05, D-06, D-13 (LMA, GMMN, CLIP) | no | LMA is +0.57 vs +1.21; the paper's three modalities differ by ≤ 2 points |
+| D-07 split, D-08 metric | yes | verified: VIP-Seg's checkpoint scores 71.97 against 72.20; metric equals [34]'s code |
+| D-10 logit form | yes | measured: L2 prototypes +3.4, a 1/√D scale −5.5 |
+| D-15 model selection | yes | `best` and `last` both reported; they differ by < 2.3 points |
+| D-17 what "baseline" means | yes | matches §4.3 word for word: VIP-Seg backbone, masked average pooling, single-step matching |
+| **D-12 epoch size, batch, LR decay** | **yes** | **not varied until now** (below) |
+
+Code on the baseline's path, checked against VIP-Seg's own:
+
+* **Encoder and feature head** — the same modules, names and layer order; ENC-6/ENC-7 on the GPU show
+  our features equal VIP-Seg's forward pass on the same weights.
+* **Masked average pooling** — the same background and foreground means as `models/vipseg.py:108-130`
+  (CP tests), and on VIP-Seg's own trained encoder it scores 47.37 with no training (§3.2), so the
+  pooling is not what keeps the baseline near 50.
+* **Optimiser** — AdamW, lr 1e-3, weight decay 0.1 on every parameter, as VIP-Seg's learner
+  (`models/vipseg_learner.py:16-21`). VIP-Seg's own model trained through our loop reaches 0.6948
+  after 2,400 episodes, where its own script reaches 0.689.
+* **The one difference in schedule.** VIP-Seg trains 24,000 steps at batch 1 and halves the learning
+  rate every 7,000 steps (`scripts/vipseg_s3dis.sh`). D-12 keeps its 24,000 *episodes* but at the
+  paper's batch 4, so we take 6,000 steps and halve every 1,200: a quarter of the updates, the last
+  third of them at a learning rate below 1.25e-4. That is our decision, not the paper's; the paper
+  gives only "batch size 4, 50 epochs, halve every 10 epochs".
+
+The probe for it: the baseline on VIP-Seg's exact schedule (batch 1, 24,000 steps, halving every 15
+epochs ≈ 7,200 steps), `train.py --batch_size 1 --lr_step_epochs 15`. VIP-Seg's own trained encoder
+already caps what masked average pooling can reach on its features at about 50–55 (§3.2), so the
+prediction is a few points at most.
+
+### 3.4 Are the cited numbers and the metric the ones we use? Yes.
 
 * **The metric of the protocol the paper follows.** The paper states "We follow the standard N-way
   K-shot episodic protocol [34]" (§4.1), [34] being AttMPTI. AttMPTI's `evaluate_metric`

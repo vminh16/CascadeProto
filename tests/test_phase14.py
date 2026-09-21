@@ -123,3 +123,15 @@ def test_train_classes_all_gets_its_own_run_directory():
     import train
     base = ["--dataset", "s3dis", "--data_path", "x", "--cvfold", "0", "--n_way", "2", "--k_shot", "1"]
     assert train.run_dir(train.parse_args(base + ["--train_classes", "all"])) == train.run_dir(train.parse_args(base)) + "_leak"
+
+
+def test_batch_size_option_and_run_directory():
+    """D-12 probe: batch 1 reproduces VIP-Seg's 24,000-step schedule and must not share a run directory."""
+    import pytest
+    import train
+    base = ["--dataset", "s3dis", "--data_path", "x", "--cvfold", "0", "--n_way", "2", "--k_shot", "1"]
+    assert train.parse_args(base).batch_size == 4
+    b1 = train.parse_args(base + ["--batch_size", "1"])
+    assert b1.batch_size == 1 and train.run_dir(b1) == train.run_dir(train.parse_args(base)) + "_b1"
+    with pytest.raises(SystemExit):
+        train.parse_args(base + ["--batch_size", "7"])  # 480 episodes per epoch is not a multiple of 7
