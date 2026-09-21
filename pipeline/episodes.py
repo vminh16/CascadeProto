@@ -119,14 +119,28 @@ class EpisodeCollate:
         return [make_episode(item, self.class_names) for item in batch]
 
 
+TRAIN_CLASSES = ("split", "all")  # [DECISION D-21]; "all" is a leakage diagnostic, never a result
+
+
 def build_train_dataset(data_path: str, dataset: str, cvfold: int, n_way: int, k_shot: int,
-                        num_episode: int) -> MyDataset:
-    """Random training episodes over the fold's training classes, with D-12 augmentation."""
-    return MyDataset(data_path, dataset, cvfold=cvfold, num_episode=num_episode,
-                     n_way=n_way, k_shot=k_shot, n_queries=N_QUERIES, phase=None, mode="train",
-                     num_point=NUM_POINT, pc_attribs=PC_ATTRIBS,
-                     pc_augm=True, pc_augm_config=AUGMENT_CONFIG,
-                     way_ratio=WAY_RATIO, way_num=WAY_NUM, random_sample=RANDOM_SAMPLE)
+                        num_episode: int, train_classes: str = "split") -> MyDataset:
+    """Random training episodes over the fold's training classes, with D-12 augmentation.
+
+    `train_classes="all"` also samples the fold's **test** classes during training [DECISION D-21]:
+    the protocol error under which few-shot test classes have been seen, used only to test whether it
+    reproduces the paper's absolute level. The inherited loader is untouched; only the instance's
+    `classes` array is widened, which is the one thing its sampler reads [VIPSEG dataloaders/loader.py:163].
+    """
+    if train_classes not in TRAIN_CLASSES:
+        raise ValueError(f"train_classes must be one of {TRAIN_CLASSES}, got {train_classes!r}")
+    ds = MyDataset(data_path, dataset, cvfold=cvfold, num_episode=num_episode,
+                   n_way=n_way, k_shot=k_shot, n_queries=N_QUERIES, phase=None, mode="train",
+                   num_point=NUM_POINT, pc_attribs=PC_ATTRIBS,
+                   pc_augm=True, pc_augm_config=AUGMENT_CONFIG,
+                   way_ratio=WAY_RATIO, way_num=WAY_NUM, random_sample=RANDOM_SAMPLE)
+    if train_classes == "all":
+        ds.classes = np.array(sorted(set(ds.dataset.train_classes) | set(ds.dataset.test_classes)))
+    return ds
 
 
 def build_eval_dataset(data_path: str, dataset: str, cvfold: int, n_way: int, k_shot: int,

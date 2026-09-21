@@ -65,6 +65,8 @@ def parse_args(argv=None):
     p.add_argument("--cross_attn_norm", default="none", choices=["none", "layernorm"], help="[D-18]")
     p.add_argument("--gate_target", default="prototype", choices=["prototype", "features"], help="[D-02]")
     p.add_argument("--eq19_self", default="none", choices=["none", "gated"], help="[D-19], beyond the paper")
+    p.add_argument("--train_classes", default="split", choices=["split", "all"],
+                   help="all = also train on the test classes; leakage diagnostic only [D-21]")
     p.add_argument("--init_from_vipseg", default=None,
                    help="VIP-Seg checkpoint whose trained encoder + feature head initialise the model; "
                         "diagnostic only, breaks guardrail #1 [D-20]")
@@ -124,6 +126,7 @@ def run_dir(args) -> str:
     tag += "" if args.use_gate or args.num_stages == 0 else "_nogate"
     tag += "" if args.seed == 0 else f"_seed{args.seed}"
     tag += "_vipinit" if getattr(args, "init_from_vipseg", None) else ""  # [D-20]
+    tag += "_leak" if getattr(args, "train_classes", "split") == "all" else ""  # [D-21]
     return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 
 
@@ -230,7 +233,8 @@ def main(argv=None):
     steps_per_epoch = args.episodes_per_epoch // EPISODES_PER_BATCH
     total_episodes = EPISODES_PER_BATCH if args.dry_run else args.epochs * args.episodes_per_epoch
     train_set = SeededEpisodes(build_train_dataset(args.data_path, args.dataset, args.cvfold, args.n_way,
-                                                   args.k_shot, num_episode=total_episodes), args.seed)
+                                                   args.k_shot, num_episode=total_episodes,
+                                                   train_classes=args.train_classes), args.seed)
     valid_set = build_eval_dataset(args.data_path, args.dataset, args.cvfold, args.n_way, args.k_shot,
                                    mode="valid", seed=args.seed)
     logger.cprint(f"train classes {list(train_set.classes)} | test classes {list(valid_set.classes)} | "

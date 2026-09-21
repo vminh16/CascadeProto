@@ -96,3 +96,30 @@ def test_init_from_vipseg_gets_its_own_run_directory():
     init = train.run_dir(train.parse_args(base + ["--init_from_vipseg", "vipseg_S0_N2_K1.pt"]))
     assert init == scratch + "_vipinit"
     assert train.parse_args(base).init_from_vipseg is None
+
+
+def test_train_classes_all_widens_only_the_sampled_classes(monkeypatch):
+    """D-21: the leakage diagnostic adds the fold's test classes to what training samples."""
+    import types
+    import numpy as np
+    import pytest
+    from pipeline import episodes
+
+    class FakeMyDataset:
+        def __init__(self, *a, **k):
+            self.dataset = types.SimpleNamespace(train_classes=[1, 2, 5, 6, 7, 9], test_classes=[3, 11, 10, 0, 8, 4])
+            self.classes = np.array(self.dataset.train_classes)
+
+    monkeypatch.setattr(episodes, "MyDataset", FakeMyDataset)
+    split = episodes.build_train_dataset("x", "s3dis", 0, 2, 1, num_episode=4)
+    leak = episodes.build_train_dataset("x", "s3dis", 0, 2, 1, num_episode=4, train_classes="all")
+    assert list(split.classes) == [1, 2, 5, 6, 7, 9]
+    assert list(leak.classes) == list(range(12))  # all 12 classes, clutter excluded as in the loader
+    with pytest.raises(ValueError):
+        episodes.build_train_dataset("x", "s3dis", 0, 2, 1, num_episode=4, train_classes="some")
+
+
+def test_train_classes_all_gets_its_own_run_directory():
+    import train
+    base = ["--dataset", "s3dis", "--data_path", "x", "--cvfold", "0", "--n_way", "2", "--k_shot", "1"]
+    assert train.run_dir(train.parse_args(base + ["--train_classes", "all"])) == train.run_dir(train.parse_args(base)) + "_leak"

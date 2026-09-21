@@ -899,3 +899,15 @@ B (training) after the pending VM check 13e.
 * **What remains.** Every explanation large enough for the ~30-point absolute gap that the paper's
   text supports has now been tested and rejected: pipeline, implementation, protocol, mIoU
   definition, citations, and a VIP-Seg-trained encoder. Only the low-prior `area5` split is untested.
+
+### 15u - D-21: training on the test classes, to test the protocol hypothesis
+
+* **Why.** The absolute gap is split in two. About 15-22 points are reproduced and explained: removing
+  VIP-Seg's PEM/PDM costs about 22 points even on VIP-Seg's own trained encoder (15t), and the printed
+  CascadeProto head is about 15 points weaker than PEM/PDM. The other 10-16 points - the paper's rows
+  lying *above* VIP-Seg - are explained by nothing in the paper. The gap is nearly uniform across
+  Table 4, which points at data or protocol, and §4.1's "Areas 1-4, 6 for training and Area 5 for
+  testing" admits a reading under which test classes were seen in training.
+* **What.** `pipeline/episodes.build_train_dataset(train_classes="all")` and `train.py --train_classes
+  all` widen the training sampler to the test classes; run directories get `_leak`. Two tests.
+  Spec 00 gains D-21.
