@@ -10,7 +10,7 @@ Rules for autonomous coding agents (Claude Code, Cursor, Copilot, Devin, Aider, 
 * **Base code:** the official VIP-Seg repository `changshuowang/VIP-Seg_NeurIPS2025`, pinned at commit `28aedc5093c0d386d526864c49505ae6921b1600`.
 * **Target hardware:** one NVIDIA GPU; the paper used an RTX 5090.
 * **Modality priority:** text first; image and audio are deferred and must raise until implemented.
-* **Status (2026-09-19):** the docs in `docs/spec/` were rewritten against the paper, and the code follows them: phase 8 (environment, inherited files), 9 (data, episodes, metric), 10 (feature extractor, point prototypes), 11 (LMA, GMMN, CLIP), 12 (EPPM cascade), 13 (ADRM, full model). docs/CHANGELOG.md records every step. The GPU checks of phases 12–13 are pending; no full training run yet. [docs/research/paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) describes the pre-rewrite code and is kept as history.
+* **Status (2026-09-21):** phases 8–13 implement the paper (environment, data and metric, feature extractor, LMA/GMMN/CLIP, EPPM cascade, ADRM) and pass their GPU checks. Phase 14 added resumable training, the run queue and the summary tools; phase 15 trained every row of Table 4 on S3DIS S0, 2-way 1-shot, on the full schedule. Results and the analysis of what does not reproduce: [docs/research/2026-09-21_reproduction_report.md](docs/research/2026-09-21_reproduction_report.md). The equation-by-equation audit of paper, spec and code: [docs/research/2026-09-20_paper_vs_code_audit.md](docs/research/2026-09-20_paper_vs_code_audit.md). docs/CHANGELOG.md records every step. [docs/research/paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) describes the pre-rewrite code and is kept as history.
 
 ---
 
@@ -18,7 +18,7 @@ Rules for autonomous coding agents (Claude Code, Cursor, Copilot, Devin, Aider, 
 
 Read [docs/spec/00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) before any change. In short:
 
-1. **Paper** (L1) beats **pinned VIP-Seg code** (L2) beats the **decision log** D-01…D-17 (L3).
+1. **Paper** (L1) beats **pinned VIP-Seg code** (L2) beats the **decision log** D-01…D-19 (L3).
 2. Specs `01`–`05` restate L1–L3 with a source tag on every normative line: `[PAPER …]`, `[VIPSEG path:line]`, `[DECISION D-nn]`.
 3. Code, tests, this file and the README are **not** sources. When code and spec disagree, the spec wins; when a spec line has no tag, treat it as unverified.
 4. If the paper is ambiguous and no decision covers the case, **stop and ask the maintainer**. Record the answer as a new decision in `00` before writing code.
@@ -51,7 +51,7 @@ Values are defined in the specs; this list is a reminder, not a source. If a val
 | Support masks | binary {0, 1}, prototypes pooled per way | 02 §3 |
 | Encoder | VIP-Seg with `mamba_ssm`; no fallback block | 01 §2.1 |
 | Cross-attention | channel correlation `A ∈ [B_q, N+1, K, D, D]`, shared φ = `Conv1d(64→72)`, scale √72 | 02 §5.2, D-01 |
-| Gate | per-channel Shannon entropy on `P^{t−1}`, ε = 10⁻⁸, θ₀ = 0.5 per stage | 02 §5.1, D-02 |
+| Gate | per-channel Shannon entropy, ε = 10⁻⁸, θ₀ = 0.5 per stage; on `P^{t−1}` by default, on `F^q`/`F^s` with `gate_target=features` | 02 §5.1, D-02 |
 | Diffusion | τ = 0.5, α = 0.5 | 02 §5.3 |
 | Class weights `w_cls = [0.8, 1, …, 1]` | inside EPPM only, **never** in the loss | 02 §5.4, 02 §7 |
 | Stage logits | `F^q (P^t)ᵀ`, no temperature | 02 §5.5, D-10 |
@@ -92,7 +92,7 @@ CascadeProto/
 │   ├── spec/03_MULTIMODAL_SPEC.md         modality front-ends, LMA, GMMN rules
 │   ├── spec/04_DATA_AND_EPISODES.md       data layout, splits, episodes, schedule, metric
 │   ├── spec/05_VERIFICATION_PLAN.md       tests, gates, acceptance
-│   └── research/paper_vs_repo_audit.md    audit of the pre-rewrite code (2026-09-17)
+│   └── research/                          audits (pre-rewrite code; paper vs spec vs code) and the reproduction report
 ├── dataloaders/            inherited, read-only
 ├── preprocess/             inherited scripts (read-only) + prepare_s3dis.py, verify_s3dis.py (local)
 ├── utils/                  inherited, read-only
@@ -111,6 +111,8 @@ CascadeProto/
 ├── runs/, main.py, scripts/  VIP-Seg reference code (inherited, read-only)
 ├── tests/                  see 05
 ├── pipeline/               episodes over the inherited loader, model contract, evaluation
+├── experiments/            phase-14 run queue, summary, complexity; diag_short.py (debug harness)
+├── results/                artefacts of the VM runs (eval JSONs, training logs, summaries)
 ├── train.py, eval.py
 └── requirements.txt
 ```
@@ -132,7 +134,7 @@ python train.py --dataset s3dis --data_path datasets/S3DIS/blocks_bs1_s1 --cvfol
 
 Before any reproduction run, evaluate VIP-Seg's released S0 2-way 1-shot checkpoint with this repository's data and metric; the result must be close to VIP-Seg's logged 0.722; a gap of several points means the pipeline differs (05 §4).
 
-The test files and markers named above are the target of 05; until the tests are rewritten, the existing suite passing says nothing about paper fidelity.
+The test files and markers named above implement 05. Any experiment comparing variants must train past the point where they diverge: at batch 4 the full model separates from the baseline only between 1,200 and 2,400 steps (epochs 10–20), so shorter runs compare nothing (CHANGELOG 15k). The loop is not bit-reproducible on CUDA; use several seeds for differences below about two points.
 
 ---
 

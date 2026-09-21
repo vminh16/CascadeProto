@@ -803,3 +803,17 @@ B (training) after the pending VM check 13e.
   the -0.17 and the +0.60 are each within one standard deviation of it.
 * **Housekeeping.** The VM was stopped after the last run; artefacts (eval JSONs, training logs, the
   batch logs) are under `results/phase15_full/`.
+
+### 15o - docs brought up to the phase-15 results
+
+* **README** status block: no longer "not usable for results"; states what reproduces (pipeline,
+  total gain of the modules, ADRM), what does not (absolute level, cascade depth), and links the
+  report. Decision log range D-01…D-19.
+* **AGENTS.md**: status of 2026-09-21, links to both research documents, decision range D-19, the gate
+  invariant names the `gate_target` switch, `experiments/` and `results/` in the layout, and the
+  verification section now states the two rules phase 15 paid for: train past the divergence point
+  (1,200-2,400 steps at batch 4) before comparing variants, and use several seeds below two points.
+* **Reproduction report**: a verdict section up front answering why the paper does not fully
+  reproduce - no implementation bug; the paper's absolute numbers are inconsistent with its own base
+  method (baseline 82.72 above VIP-Seg's own 72.20); the cascade depth does nothing under the printed
+  Eq.19; and an unprinted L2 normalisation is worth +3.36.

@@ -2,11 +2,13 @@
 
 Re-implementation of **CascadeProto: Cascaded Cross-Modal Prototype Purification via Entropy-Aware Learning for Few-Shot 3D Point Cloud Segmentation** (Changshuo Wang, Weijun Li, Fan Mo, Zhonghang Liu, Shuting He, Prayag Tiwari, Dimitrios Kanoulas).
 
-> **Status: work in progress, not usable for results.**
+> **Status (2026-09-21): complete for S3DIS S0, 2-way 1-shot; the paper is only partly reproduced.**
 > * This is **not** the authors' code. Their repository `github.com/changshuowang/CascadeProto` says "We will release it soon." (checked 2026-09-17).
-> * The specifications in [`docs/spec/`](docs/spec/) were rewritten against the paper on 2026-09-17, and the code was rewritten to follow them in phases 8–13 (2026-09-18/19). Every row of Table 4 and every depth of Table 5 is implemented (text modality only; image and audio raise). Each step, its sources and its verification are listed in [docs/CHANGELOG.md](docs/CHANGELOG.md).
-> * Phases 12 and 13 are verified on the CPU only (unit tests with float64 references and mutation checks); their GPU check on the real VIP-Seg encoder is still pending. No full training run has been made yet.
-> * All numbers in §6 are **reported by the paper**; none have been reproduced here.
+> * Every equation is implemented from the paper (phases 8–13), every ambiguity is a numbered decision (D-01…D-19), and every row of Table 4 has been trained on the full 50-epoch schedule on one GPU (phases 14–15). Text modality only; image and audio raise.
+> * **What reproduces:** the pipeline (VIP-Seg's released checkpoint scores 0.7197 here against its published 0.7220), the total gain of the added modules (+8.07 here, +5.81 in the paper) and ADRM's increment (+0.60 against +0.56).
+> * **What does not:** the absolute level (baseline 49.08 against 82.72, full model 57.15 against 88.53) and the cascade depth (T = 1 → 4 is −0.17 here against +2.06).
+> * No implementation bug was found. Why the rest does not reproduce, with the evidence: [docs/research/2026-09-21_reproduction_report.md](docs/research/2026-09-21_reproduction_report.md). One seed per row, one fold, one setting.
+> * The numbers in §6 are **reported by the paper**.
 
 ---
 
@@ -41,7 +43,7 @@ Exact formulas, shapes and the interpretation of ambiguous equations are in the 
 
 | Document | Content |
 | :--- | :--- |
-| [00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) | Source hierarchy (paper → pinned VIP-Seg code → decisions) and decision log D-01…D-17 |
+| [00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) | Source hierarchy (paper → pinned VIP-Seg code → decisions) and decision log D-01…D-19 |
 | [01_ARCHITECTURE_SPEC.md](docs/spec/01_ARCHITECTURE_SPEC.md) | Modules, wiring, ablation switches, parameter budget |
 | [02_TENSOR_MATH_SPEC.md](docs/spec/02_TENSOR_MATH_SPEC.md) | Every formula and tensor shape |
 | [03_MULTIMODAL_SPEC.md](docs/spec/03_MULTIMODAL_SPEC.md) | Modality front-ends, adapters, GMMN loss rules |

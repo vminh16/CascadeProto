@@ -2,6 +2,37 @@
 
 Status: 2026-09-21, complete for S3DIS fold S0 at 2-way 1-shot. Every number below is a finished run.
 
+## Verdict
+
+**No implementation bug was found.** The trace went through every layer and each one checks out: the
+pipeline reproduces VIP-Seg's published checkpoint to 0.2 points (§1), every equation of spec 02 is
+implemented as written (272 tests, and an independent paper-to-code audit found nothing), and every
+row of Table 4 was trained on the paper's schedule (§2). What does not reproduce has three causes, in
+decreasing order of size:
+
+1. **The paper's absolute numbers are inconsistent with its own base method** (about 30 points). Its
+   baseline — "a plain VIP-Seg backbone with masked average pooling and single-step prototype
+   matching" — is reported at 82.72 on S0, above VIP-Seg's own full model at 72.20 in the same paper.
+   A baseline that removes VIP-Seg's prototype modules cannot outscore VIP-Seg with them unless
+   something the paper does not state is different. Our pipeline scores VIP-Seg's released checkpoint
+   at 0.7197, so it reaches the level VIP-Seg really has; our baseline at 49.08 sits below it, where
+   a stripped-down VIP-Seg should. No setting described in the paper closes this gap (§3).
+2. **The cascade depth does not work as the printed equations define it** (the paper's +2.06). One
+   EPPM stage gains +7.07; stages two to four add −0.17. The mechanism: the only summands Eq.19 adds
+   to the prototype are class-poor — `P_diffuse` has no class index at all (Eq.15–18) and `P_cross`
+   mixes channels (Eq.14) — so a stage after the first can only pass its residual through; training
+   even learns to switch the diffusion branch off (weight 0.47–0.51 → 0.01–0.08). The paper's own
+   tables disagree about the T = 1 configuration by 0.63 points (§3), and Eq.12's gate output is not
+   consumed by any later equation.
+3. **A step the paper does not print** (+3.36). L2-normalising the point prototypes, which VIP-Seg
+   does (`models/vipseg.py:142`), is worth +3.36 on the baseline and about half of the first stage's
+   gain, since Eq.21's LayerNorm has the same effect. We keep the paper's literal Eq.3 as the default
+   and the normalisation as the ablation switch `l2norm_point_proto` (D-10).
+
+What **does** reproduce: the pipeline, the total gain of the added modules (+8.07 against +5.81), and
+ADRM's increment (+0.60 against +0.56).
+
+
 * **Paper.** "CascadeProto", Wang et al., `10069.pdf`. Method in §3 (Eq.1–27), hyper-parameters in
   §4.1, results in Tables 2–6.
 * **Reference implementation.** VIP-Seg at the pinned commit, vendored in `models/vipseg.py`; the
