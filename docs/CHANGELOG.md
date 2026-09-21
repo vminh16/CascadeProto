@@ -859,3 +859,15 @@ B (training) after the pending VM check 13e.
 * **Operational.** The script's timed in-VM `shutdown -h +20` locked every non-root login for its
   last five minutes and kept the results out until the user pushed them; it is removed, and the VM
   is stopped from outside after the copy.
+
+### 15r - D-20: the baseline on VIP-Seg's trained encoder (diagnostic, breaks guardrail #1)
+
+* **Why.** With the metric hypothesis rejected (15q), the one remaining explanation large enough for
+  the 31-point gap is that the paper's rows sit on VIP-Seg's trained encoder. Its baseline (82.72)
+  beating VIP-Seg itself (72.20) would then be possible.
+* **What.** `pipeline/vipseg_baseline.py` gains `load_vipseg_model` and `init_features_from_vipseg`;
+  `train.py --init_from_vipseg <checkpoint>` initialises `model.features` from it before any resume and
+  tags the run directory `_vipinit`; `experiments/vipseg_init_probe.py` scores the baseline and
+  baseline + L2 on VIP-Seg's trained features with no training, the cheapest test of the hypothesis.
+  New test: the `_vipinit` run directory. Spec 00 gains D-20.
+* **Status.** Approved by the maintainer as a diagnostic on 2026-09-21. Never a result configuration.

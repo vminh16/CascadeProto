@@ -86,3 +86,13 @@ def test_q5_seed_is_part_of_the_run_dir(tmp_path):
     seeds = [r for r in phase14.all_runs() if r.name.startswith("full_S0_N2K1")]
     dirs = {phase14.run_dir(r, str(tmp_path)) for r in seeds}
     assert len(dirs) == 3 and any(d.endswith("_seed2") for d in dirs)
+
+
+def test_init_from_vipseg_gets_its_own_run_directory():
+    """D-20: a VIP-Seg-initialised run must never resume from, or overwrite, a from-scratch run."""
+    import train
+    base = ["--dataset", "s3dis", "--data_path", "x", "--cvfold", "0", "--n_way", "2", "--k_shot", "1"]
+    scratch = train.run_dir(train.parse_args(base))
+    init = train.run_dir(train.parse_args(base + ["--init_from_vipseg", "vipseg_S0_N2_K1.pt"]))
+    assert init == scratch + "_vipinit"
+    assert train.parse_args(base).init_from_vipseg is None

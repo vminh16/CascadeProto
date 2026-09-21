@@ -65,6 +65,9 @@ def parse_args(argv=None):
     p.add_argument("--cross_attn_norm", default="none", choices=["none", "layernorm"], help="[D-18]")
     p.add_argument("--gate_target", default="prototype", choices=["prototype", "features"], help="[D-02]")
     p.add_argument("--eq19_self", default="none", choices=["none", "gated"], help="[D-19], beyond the paper")
+    p.add_argument("--init_from_vipseg", default=None,
+                   help="VIP-Seg checkpoint whose trained encoder + feature head initialise the model; "
+                        "diagnostic only, breaks guardrail #1 [D-20]")
     p.add_argument("--fusion_weight", default="per_query", choices=["per_query", "per_class"], help="[D-11]")
     p.add_argument("--diffusion_input", default="post_relu", choices=["post_relu", "pre_relu"], help="[D-14]")
     p.add_argument("--epochs", type=int, default=None, help="default: 50 (S3DIS) / 30 (ScanNet) [D-12]")
@@ -120,6 +123,7 @@ def run_dir(args) -> str:
     tag = f"_T{args.num_stages}" + ("" if args.use_adrm or args.num_stages == 0 else "_noadrm")
     tag += "" if args.use_gate or args.num_stages == 0 else "_nogate"
     tag += "" if args.seed == 0 else f"_seed{args.seed}"
+    tag += "_vipinit" if getattr(args, "init_from_vipseg", None) else ""  # [D-20]
     return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 
 
@@ -234,6 +238,11 @@ def main(argv=None):
 
     config = model_config(args)
     model = build_model(config).to(device)
+    if args.init_from_vipseg:  # before resume.pt is read, so a resumed run keeps its own weights [D-20]
+        from pipeline.vipseg_baseline import init_features_from_vipseg
+
+        init_features_from_vipseg(model, args.init_from_vipseg)
+        logger.cprint(f"features initialised from VIP-Seg checkpoint {args.init_from_vipseg} [D-20]")
     logger.cprint(f"model config: {config.to_dict()}")
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_step_epochs, gamma=args.lr_gamma)
