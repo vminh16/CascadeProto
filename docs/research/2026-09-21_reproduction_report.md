@@ -1,6 +1,6 @@
 # CascadeProto: what an unofficial re-implementation reproduces, and what it does not
 
-Status: draft of 2026-09-21. Numbers marked `PENDING` are runs still on the VM at the time of writing.
+Status: 2026-09-21, complete for S3DIS fold S0 at 2-way 1-shot. Every number below is a finished run.
 
 * **Paper.** "CascadeProto", Wang et al., `10069.pdf`. Method in §3 (Eq.1–27), hyper-parameters in
   §4.1, results in Tables 2–6.
@@ -35,28 +35,38 @@ reproduce VIP-Seg's published behaviour. Whatever the gap below is, it is not th
 
 `fixed100`, 1,500 episodes, `best` checkpoint (D-15). One seed per row.
 
-| configuration | switches | ours | paper [Tab.4] |
-| :--- | :--- | ---: | ---: |
-| Baseline | `use_lma=false num_stages=0` | 0.4908 | 0.8272 |
-| Baseline, prototypes L2-normalised | `… l2norm_point_proto=true` | 0.5244 | — |
-| + LMA | `use_lma=true num_stages=0` | `PENDING` | 0.8393 |
-| + Entropy Gate | `num_stages=1` | `PENDING` | 0.8535 |
-| + Cascade (T = 4) | `num_stages=4 use_adrm=false` | `PENDING` | 0.8741 |
-| + ADRM, the full model | defaults | 0.5715 | 0.8853 |
+| configuration | switches | ours best | ours last | paper [Tab.4] |
+| :--- | :--- | ---: | ---: | ---: |
+| Baseline | `use_lma=false num_stages=0` | 0.4908 | 0.4907 | 0.8272 |
+| + LMA | `use_lma=true num_stages=0` | 0.4965 | 0.4832 | 0.8393 |
+| + Entropy Gate (T = 1) | `num_stages=1` | 0.5672 | 0.5672 | 0.8535 |
+| + Cascade (T = 4) | `num_stages=4 use_adrm=false` | 0.5655 | 0.5603 | 0.8741 |
+| + ADRM, the full model | defaults | 0.5715 | 0.5670 | 0.8853 |
+| *aside*: baseline, prototypes L2-normalised | `… l2norm_point_proto=true` | 0.5244 | 0.5019 | — |
 
-### The increments
+### The increments, one at a time
 
-The paper's baseline is "a plain VIP-Seg backbone with masked average pooling and single-step
-prototype matching" (§4.3). VIP-Seg L2-normalises its prototypes (`models/vipseg.py:142`), so the row
-to compare the paper's baseline with is **Baseline + L2**, not Baseline.
+| step | ours | paper | verdict |
+| :--- | ---: | ---: | :--- |
+| Baseline → + LMA | +0.57 | +1.21 | same sign, about half the size |
+| + LMA → + Entropy Gate (T = 1) | **+7.07** | +1.42 | five times the claim |
+| + Entropy Gate → + Cascade (T = 4) | **−0.17** | +2.06 | **not reproduced; depth buys nothing** |
+| + Cascade → + ADRM | +0.60 | +0.56 | reproduced almost exactly |
+| Baseline → full model | +8.07 | +5.81 | larger than claimed |
 
-| step | ours | paper |
-| :--- | ---: | ---: |
-| L2-normalising the point prototypes (not printed in the paper; D-10) | +3.36 | — |
-| Baseline + L2 → full model | **+4.71** | **+5.81** |
+**The total is reproduced; the attribution is not.** The paper spreads its +5.81 over four components.
+We obtain +8.07, but almost all of it comes from the single first EPPM stage, and going from one stage
+to four costs 0.17 points instead of gaining 2.06.
 
-**The relative claim of Table 4 is approximately reproduced. The absolute level is not**: 52.44
-against 82.72 for the baseline, 57.15 against 88.53 for the full model.
+The "+ Entropy Gate" row is `num_stages=1` under D-17, i.e. a whole EPPM stage — gate,
+cross-attention, diffusion, fusion, and the LayerNorm of Eq.21. That LayerNorm equalises the
+prototype row norms, which is what `l2norm_point_proto` does on its own for +3.36. So of the +7.07,
+roughly 3.4 points are the normalisation the paper never prints and roughly 3.7 are the stage's own
+refinement.
+
+**What is reproduced:** ADRM's +0.56, to within 0.04. **What is not:** the cascade depth that gives
+the paper its largest single increment, and the absolute level — 49.08 against 82.72 for the
+baseline, 57.15 against 88.53 for the full model.
 
 ---
 
@@ -71,7 +81,9 @@ is documented in full in `2026-09-20_paper_vs_code_audit.md`.
   retraining or normalisation difference that would account for it, and every §4.3 increment is
   measured from this row.
 * **Two tables disagree about the same configuration.** Table 4 row 3 (83.91 Avg) and Table 5 `T=1`
-  (83.28 Avg) are the same model under D-17's mapping.
+  (83.28 Avg) are the same model under D-17's mapping. This matters more than it looks: our T = 1 row
+  is already within 0.4 points of our full model, so which configuration the paper means by
+  "+ Entropy Gate" decides whether its cascade increment is being measured from the right place.
 * **Eq.14 is dimensionally invalid as printed.** `A ∈ R^{Nq×Ns}` times `ψ(P^{t-1}) ∈ R^{(N+1)×D}` is
   undefined unless `Ns = N+1`, and even then it yields `R^{Nq×D}`, not the `(N+1)×D` that Eq.19 and
   Eq.21 need. Any implementation must discard part of what is printed; D-01 records the choice.
@@ -121,8 +133,11 @@ below about two points carry no information on one seed.
 
 ## 6. What is not established
 
-* Every full-schedule number is **one seed**. At the short budget the seed spread was 0.010–0.031, so
-  +4.71 is comfortably outside it but +3.36 is not by much.
+* Every full-schedule number is **one seed**. At the short budget the seed spread was 0.010–0.031.
+  The increments that survive that scale are the +7.07 of the first stage and the +8.07 total; the
+  +0.57 of LMA, the −0.17 of cascade depth and the +0.60 of ADRM are all inside one standard
+  deviation of it, so "ADRM reproduces the paper's +0.56" and "depth buys nothing" are both stated
+  with that caveat.
 * Only fold S0 and only 2-way 1-shot. Table 2's other columns and ScanNet were never run.
 * Table 6 (parameters, FLOPs, time) is not an acceptance criterion here (D-09), and its FLOPs are a
   lower bound because fvcore does not count the custom CUDA kernels.

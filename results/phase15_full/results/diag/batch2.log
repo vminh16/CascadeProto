@@ -1,0 +1,124 @@
+=== 2026-09-20T17:39:20+00:00 commit 7bb2fee
+=== step 1: baseline_l2 on the full 50-epoch schedule
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'epochs': 50, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 10, 'lr_gamma': 0.5, 'valid_every': 10, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_phase15_bl2', 'dry_run': False, 'resume': True}
+data: /home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+train classes [1, 2, 5, 6, 7, 9] | test classes [3, 11, 10, 0, 8, 4] | 24000 training episodes, 120 steps/epoch
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config: {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+epoch 1/50 | loss 0.5701 | L_GMMN 0.0000 | lr 1.00e-03 | 86s
+epoch 2/50 | loss 0.4499 | L_GMMN 0.0000 | lr 1.00e-03 | 170s
+epoch 3/50 | loss 0.3876 | L_GMMN 0.0000 | lr 1.00e-03 | 255s
+epoch 4/50 | loss 0.3722 | L_GMMN 0.0000 | lr 1.00e-03 | 339s
+epoch 5/50 | loss 0.3431 | L_GMMN 0.0000 | lr 1.00e-03 | 424s
+epoch 6/50 | loss 0.3197 | L_GMMN 0.0000 | lr 1.00e-03 | 508s
+epoch 7/50 | loss 0.3274 | L_GMMN 0.0000 | lr 1.00e-03 | 593s
+epoch 8/50 | loss 0.3131 | L_GMMN 0.0000 | lr 1.00e-03 | 677s
+epoch 9/50 | loss 0.3067 | L_GMMN 0.0000 | lr 1.00e-03 | 762s
+epoch 10/50 | loss 0.2948 | L_GMMN 0.0000 | lr 5.00e-04 | 847s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 10 | valid mIoU 0.5314
+epoch 11/50 | loss 0.2599 | L_GMMN 0.0000 | lr 5.00e-04 | 1043s
+epoch 12/50 | loss 0.2564 | L_GMMN 0.0000 | lr 5.00e-04 | 1127s
+epoch 13/50 | loss 0.2416 | L_GMMN 0.0000 | lr 5.00e-04 | 1212s
+epoch 14/50 | loss 0.2201 | L_GMMN 0.0000 | lr 5.00e-04 | 1296s
+epoch 15/50 | loss 0.2319 | L_GMMN 0.0000 | lr 5.00e-04 | 1381s
+epoch 16/50 | loss 0.2321 | L_GMMN 0.0000 | lr 5.00e-04 | 1465s
+epoch 17/50 | loss 0.2151 | L_GMMN 0.0000 | lr 5.00e-04 | 1549s
+epoch 18/50 | loss 0.2044 | L_GMMN 0.0000 | lr 5.00e-04 | 1634s
+epoch 19/50 | loss 0.2436 | L_GMMN 0.0000 | lr 5.00e-04 | 1719s
+epoch 20/50 | loss 0.2178 | L_GMMN 0.0000 | lr 2.50e-04 | 1803s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 20 | valid mIoU 0.5057
+epoch 21/50 | loss 0.1853 | L_GMMN 0.0000 | lr 2.50e-04 | 1996s
+epoch 22/50 | loss 0.2003 | L_GMMN 0.0000 | lr 2.50e-04 | 2080s
+epoch 23/50 | loss 0.1843 | L_GMMN 0.0000 | lr 2.50e-04 | 2165s
+epoch 24/50 | loss 0.1848 | L_GMMN 0.0000 | lr 2.50e-04 | 2249s
+epoch 25/50 | loss 0.1782 | L_GMMN 0.0000 | lr 2.50e-04 | 2334s
+epoch 26/50 | loss 0.1816 | L_GMMN 0.0000 | lr 2.50e-04 | 2418s
+epoch 27/50 | loss 0.1801 | L_GMMN 0.0000 | lr 2.50e-04 | 2503s
+epoch 28/50 | loss 0.1809 | L_GMMN 0.0000 | lr 2.50e-04 | 2587s
+epoch 29/50 | loss 0.1616 | L_GMMN 0.0000 | lr 2.50e-04 | 2672s
+epoch 30/50 | loss 0.1671 | L_GMMN 0.0000 | lr 1.25e-04 | 2756s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 30 | valid mIoU 0.5200
+epoch 31/50 | loss 0.1671 | L_GMMN 0.0000 | lr 1.25e-04 | 2951s
+epoch 32/50 | loss 0.1597 | L_GMMN 0.0000 | lr 1.25e-04 | 3036s
+epoch 33/50 | loss 0.1587 | L_GMMN 0.0000 | lr 1.25e-04 | 3121s
+epoch 34/50 | loss 0.1377 | L_GMMN 0.0000 | lr 1.25e-04 | 3206s
+epoch 35/50 | loss 0.1604 | L_GMMN 0.0000 | lr 1.25e-04 | 3290s
+epoch 36/50 | loss 0.1589 | L_GMMN 0.0000 | lr 1.25e-04 | 3375s
+epoch 37/50 | loss 0.1567 | L_GMMN 0.0000 | lr 1.25e-04 | 3460s
+epoch 38/50 | loss 0.1461 | L_GMMN 0.0000 | lr 1.25e-04 | 3544s
+epoch 39/50 | loss 0.1551 | L_GMMN 0.0000 | lr 1.25e-04 | 3629s
+epoch 40/50 | loss 0.1593 | L_GMMN 0.0000 | lr 6.25e-05 | 3713s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 40 | valid mIoU 0.4976
+epoch 41/50 | loss 0.1511 | L_GMMN 0.0000 | lr 6.25e-05 | 3906s
+epoch 42/50 | loss 0.1590 | L_GMMN 0.0000 | lr 6.25e-05 | 3991s
+epoch 43/50 | loss 0.1355 | L_GMMN 0.0000 | lr 6.25e-05 | 4076s
+epoch 44/50 | loss 0.1432 | L_GMMN 0.0000 | lr 6.25e-05 | 4160s
+epoch 45/50 | loss 0.1480 | L_GMMN 0.0000 | lr 6.25e-05 | 4245s
+epoch 46/50 | loss 0.1462 | L_GMMN 0.0000 | lr 6.25e-05 | 4330s
+epoch 47/50 | loss 0.1420 | L_GMMN 0.0000 | lr 6.25e-05 | 4415s
+epoch 48/50 | loss 0.1454 | L_GMMN 0.0000 | lr 6.25e-05 | 4499s
+epoch 49/50 | loss 0.1537 | L_GMMN 0.0000 | lr 6.25e-05 | 4584s
+epoch 50/50 | loss 0.1328 | L_GMMN 0.0000 | lr 3.13e-05 | 4669s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 50 | valid mIoU 0.5048
+done: best valid mIoU 0.5314; evaluate best.pt and last.pt with eval.py [D-15]
+=== train exit=0 2026-09-20T18:59:07+00:00
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_phase15_bl2/s3dis_S0_N2_K1_point_T0/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': 'log_phase15_bl2/s3dis_S0_N2_K1_point_T0/eval_best_fixed100.json'}
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.524408
+=== eval best exit=0 2026-09-20T19:01:09+00:00
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_phase15_bl2/s3dis_S0_N2_K1_point_T0/last.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': 'log_phase15_bl2/s3dis_S0_N2_K1_point_T0/eval_last_fixed100.json'}
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.501871
+=== eval last exit=0 2026-09-20T19:03:05+00:00
+=== STEP1 FINISHED 2026-09-20T19:03:05+00:00
+=== step 2: the D-19 experiment, three seeds
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]

@@ -6,8 +6,14 @@ epochs. `best` is the checkpoint with the best validation mIoU, `last` is epoch 
 | configuration | switches | best | last | source |
 | :--- | :--- | ---: | ---: | :--- |
 | Baseline | `use_lma=false num_stages=0` | 0.4908 | 0.4907 | phase 14, P1 |
-| Baseline + L2 | `… l2norm_point_proto=true` | **0.5244** | 0.5019 | phase 15j |
-| Full model | defaults | 0.5715 | 0.5670 | phase 14, P1 |
+| + LMA | `use_lma=true num_stages=0` | 0.4965 | 0.4832 | phase 15n |
+| + Entropy Gate (T = 1) | `num_stages=1` | 0.5672 | 0.5672 | phase 15n |
+| + Cascade (T = 4) | `num_stages=4 use_adrm=false` | 0.5655 | 0.5603 | phase 15n |
+| + ADRM, full model | defaults | 0.5715 | 0.5670 | phase 14, P1 |
+| *aside*: Baseline + L2 | `… l2norm_point_proto=true` | **0.5244** | 0.5019 | phase 15j |
+
+Increments, ours against [PAPER Tab.4]: LMA +0.57 (+1.21), first EPPM stage +7.07 (+1.42),
+cascade depth -0.17 (+2.06), ADRM +0.60 (+0.56), total +8.07 (+5.81).
 
 ## What the +8.07 of P1 was made of
 

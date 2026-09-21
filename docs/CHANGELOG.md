@@ -776,3 +776,30 @@ B (training) after the pending VM check 13e.
   recorded that the paper's own baseline row exceeds VIP-Seg's published 72.20 with no stated reason.
 * **Next.** The intermediate rows of Table 4 on the full schedule (15n), so each claimed increment can
   be checked on its own.
+
+### 15n - every row of Table 4 on the full schedule
+
+* **Result** (`results/phase15_full/`, 50 epochs, fixed100 on 1,500 episodes, one seed per row).
+
+  | row | ours best | paper | increment ours | increment paper |
+  | :--- | ---: | ---: | ---: | ---: |
+  | Baseline | 0.4908 | 0.8272 | - | - |
+  | + LMA | 0.4965 | 0.8393 | +0.57 | +1.21 |
+  | + Entropy Gate (T = 1) | 0.5672 | 0.8535 | +7.07 | +1.42 |
+  | + Cascade (T = 4) | 0.5655 | 0.8741 | -0.17 | +2.06 |
+  | + ADRM (full) | 0.5715 | 0.8853 | +0.60 | +0.56 |
+
+* **The total is reproduced, the attribution is not.** Baseline to full is +8.07 against the paper's
+  +5.81, but almost all of ours comes from the first EPPM stage; going from one stage to four costs
+  0.17 points where the paper claims +2.06, its largest single increment. ADRM's +0.56 is reproduced
+  to within 0.04.
+* **Of the first stage's +7.07, about 3.4 is normalisation.** The LayerNorm of Eq.21 equalises the
+  prototype row norms, which `l2norm_point_proto` does on its own for +3.36 (15j). The stage's own
+  refinement is therefore worth about +3.7.
+* **What this says about the cascade.** T = 4 is not better than T = 1 at the real budget, which is
+  the opposite of Table 5's ordering and consistent with the audit's F6: Table 4 row 3 and Table 5
+  T = 1 are the same configuration and the paper reports two different numbers for it.
+* **Caveat.** One seed per row. The seed spread at the short budget was 0.010-0.031, so the +0.57,
+  the -0.17 and the +0.60 are each within one standard deviation of it.
+* **Housekeeping.** The VM was stopped after the last run; artefacts (eval JSONs, training logs, the
+  batch logs) are under `results/phase15_full/`.
