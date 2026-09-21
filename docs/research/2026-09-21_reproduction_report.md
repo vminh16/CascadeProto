@@ -17,7 +17,9 @@ decreasing order of size:
    A baseline that removes VIP-Seg's prototype modules cannot outscore VIP-Seg with them unless
    something the paper does not state is different. Our pipeline scores VIP-Seg's released checkpoint
    at 0.7197, so it reaches the level VIP-Seg really has; our baseline at 49.08 sits below it, where
-   a stripped-down VIP-Seg should. No setting described in the paper closes this gap (§3).
+   a stripped-down VIP-Seg should. No setting described in the paper closes this gap (§3), none of our
+   own decisions on the baseline's path does either (§3.3, including VIP-Seg's schedule), and even
+   training on the test classes leaves the full model at 69.24, below the paper's baseline (§3.5).
 2. **The cascade depth does not work as the printed equations define it** (the paper's +2.06). One
    EPPM stage gains +7.07; stages two to four add −0.17. The mechanism: the only summands Eq.19 adds
    to the prototype are class-poor — `P_diffuse` has no class index at all (Eq.15–18) and `P_cross`
@@ -197,7 +199,7 @@ criterion:
 | D-10 logit form | yes | measured: L2 prototypes +3.4, a 1/√D scale −5.5 |
 | D-15 model selection | yes | `best` and `last` both reported; they differ by < 2.3 points |
 | D-17 what "baseline" means | yes | matches §4.3 word for word: VIP-Seg backbone, masked average pooling, single-step matching |
-| **D-12 epoch size, batch, LR decay** | **yes** | **not varied until now** (below) |
+| D-12 epoch size, batch, LR decay | yes | measured: VIP-Seg's schedule gives 49.01 against 49.08 (below) |
 
 Code on the baseline's path, checked against VIP-Seg's own:
 
@@ -216,9 +218,13 @@ Code on the baseline's path, checked against VIP-Seg's own:
   gives only "batch size 4, 50 epochs, halve every 10 epochs".
 
 The probe for it: the baseline on VIP-Seg's exact schedule (batch 1, 24,000 steps, halving every 15
-epochs ≈ 7,200 steps), `train.py --batch_size 1 --lr_step_epochs 15`. VIP-Seg's own trained encoder
-already caps what masked average pooling can reach on its features at about 50–55 (§3.2), so the
-prediction is a few points at most.
+epochs ≈ 7,200 steps), `train.py --batch_size 1 --lr_step_epochs 15`. It scores **49.01** (best,
+epoch 40) and 47.88 (last) on fixed100, against 49.08 and 49.07 on D-12's schedule, and its validation
+curve stays within noise of the old one at every checkpoint (`results/b1/`, CHANGELOG 15x). Four times
+the updates and a slower decay change nothing.
+
+**The trace back is closed.** Every decision on the baseline's path is verified or measured, and the
+code on it matches VIP-Seg's. Nothing we decided ourselves can account for the 33.6 points.
 
 ### 3.4 Are the cited numbers and the metric the ones we use? Yes.
 
@@ -244,7 +250,29 @@ prediction is a few points at most.
   Area 5 for testing under two category splits S0 and S1", which contradicts the class-only split of
   [34] that the cited rows use (D-07). Restricting the test rooms to an unseen area would make the task
   harder, not 30 points easier, so its prior is low; it is recorded as untested (the `area5` flag of
-  D-07 was never implemented).
+  D-07 was never implemented). The stronger form of the protocol hypothesis was tested instead
+  (§3.5).
+
+### 3.5 Were the test classes seen in training? It explains part of the level, not all of it.
+
+The gap is nearly uniform across Table 4 (28.6–34.3 points), the pattern of a data or protocol
+difference rather than a model difference. The largest such difference the paper's wording admits is
+that the category split did not take effect and the S0 test classes were trained on. D-21 trains on
+all 12 classes (`--train_classes all`, 20 epochs, past the divergence point) and scores the usual
+fixed100 test episodes. It leaks classes and possibly blocks, so it is an upper bound of that reading.
+
+| row | class split (50 epochs) | test classes seen (20 epochs) | change | paper |
+| :-- | --: | --: | --: | --: |
+| baseline | 49.08 | **63.54** | +14.46 | 82.72 |
+| full model | 57.15 | **69.24** | +12.09 | 88.53 |
+| full − baseline | +8.07 | +5.70 | | +5.81 |
+
+Leakage lifts both rows by 12–15 points and leaves the gain of the added modules close to the paper's
++5.81, which is what a protocol difference would do. But the leaked full model stays 13.5 points below
+the paper's *baseline* and 19.3 below its full model. The leaked runs had not plateaued at 20 epochs
+(validation rose 5–7 points between epochs 10 and 20), so the share leakage explains could be somewhat
+larger. It still cannot reach the paper's level by itself. One seed per row (`results/leak/`,
+CHANGELOG 15x).
 
 ## 4. Ambiguities we resolved by measurement
 
@@ -287,5 +315,7 @@ below about two points carry no information on one seed.
 * Only fold S0 and only 2-way 1-shot. Table 2's other columns and ScanNet were never run.
 * Table 6 (parameters, FLOPs, time) is not an acceptance criterion here (D-09), and its FLOPs are a
   lower bound because fvcore does not count the custom CUDA kernels.
-* Whether the remaining absolute gap is a difference in the encoder's training, in the episode
-  sampler's class balance, or simply unreachable from the paper as written, is not settled.
+* What produces the remaining absolute gap is not settled. The encoder's training, the schedule
+  (D-12) and our own decisions are ruled out (§3.2, §3.3). Test-class leakage explains 12–15 points of
+  it at 20 epochs (§3.5) but not the rest, and the paper's own rows remain the only numbers not on the
+  scale that its cited rows and VIP-Seg's checkpoint are on.

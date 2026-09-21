@@ -189,6 +189,7 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   * ScanNet: 30 epochs × 800 episodes/epoch = 24,000 episodes = 200 optimiser steps/epoch (batch 4).
   * StepLR(step = 10 epochs, γ = 0.5) [PAPER §4.1]. Episodes per epoch exposed on the CLI.
   * *Correction (2026-09-17):* the option text confirmed earlier said "≈480 steps/epoch"; 480 is the number of **episodes** per epoch, i.e. 120 steps at batch 4.
+  * *Measured (2026-09-21):* VIP-Seg's own schedule (batch 1, 24,000 steps, halving every 7,200) gives the baseline 0.4901 on fixed100 against 0.4908 under this decision, so the choice of batch and decay is not a source of the gap to the paper (`train.py --batch_size`, report §3.3, CHANGELOG 15x).
 * **Decision (LOCKED, augmentation).** Use VIP-Seg's training augmentation: `pc_augm` on, `shift 0.1`, `rot 1`, `jitter 1`, `scale 0`, `mirror 0`, `color 0` [VIPSEG scripts/vipseg_s3dis.sh] [VIPSEG main.py:56-66]. No augmentation at test time. Measured effect (2026-09-17): the encoder reads only the normalised `XYZ` and `rgb` columns [VIPSEG models/encoder.py:645], and `XYZ` is recomputed after subtracting the minimum [VIPSEG dataloaders/loader.py:70-74], so the shift augmentation does not change the model input; rotation and jitter do.
 
 ### D-13 — Modality scope, CLIP variant, prompts · `LOCKED`
@@ -401,6 +402,10 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   increments between rows stay small.
 * **Ablation flag.** `train_classes = {split (default), all}`. `all` is a protocol violation, never a
   result configuration.
+* **Result (2026-09-21).** 20 epochs each, fixed100: baseline 0.6354 (+14.46 over the split run),
+  full 0.6924 (+12.09); full − baseline +5.70 against the paper's +5.81. Leakage explains part of the
+  level but leaves the leaked full model below the paper's baseline (82.72), so it is not the whole
+  explanation (report §3.5, CHANGELOG 15x).
 
 ---
 
@@ -484,4 +489,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-19 | D-01 step 5 closed by the maintainer: one `A` per (query, class slot, shot) as in VIP-Seg. D-01, D-02, D-14: the flags `two_hop`, `gate_target=features`, `diffusion_input=pre_relu` raise until implemented. D-17: `num_stages = 1` gives `L^1` with or without ADRM. |
 | 2026-09-20 | Paper audit (`docs/research/2026-09-20_paper_vs_code_audit.md`): no implementation bug; 12 findings, 10 of them defects of the paper. D-02 revised — `gate_target=features` implemented, default unchanged, because `x_gated` is otherwise never consumed. Table 4 row 3 and Table 5 T=1 are the same configuration under D-17 yet differ by 0.63; recorded as an open conflict. |
 | 2026-09-20 | D-18 closed on three seeds per variant: `full` 0.5171 ± 0.0123 against `baseline_l2` 0.5205 ± 0.0104, i.e. the cascade adds nothing (t = −0.36). Every stage diagnostic is healthy, and the Eq.19 weight on the class-blind `P_diffuse` falls to 0.008–0.082 by itself, so D-16 is not the cause either. The `layernorm` probe stays an ablation flag, never a default. |
+| 2026-09-21 | D-12 measured against VIP-Seg's batch-1 schedule: no difference (0.4901 vs 0.4908). D-21 measured: leakage lifts baseline and full model by 12–15 points, not to the paper's level. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

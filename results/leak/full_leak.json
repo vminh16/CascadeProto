@@ -1,0 +1,1 @@
+{"miou": 0.6923885671928053, "protocol": "fixed100", "episodes": 1500, "checkpoint": "log_leak/s3dis_S0_N2_K1_text_T4_leak/best.pt", "epoch": 20, "dry_run": false, "extra": {"accumulated_fg": 0.6923885671928053, "accumulated_with_bg": 0.7114711978164739, "episode_fg": 0.7122243025279781, "episode_with_bg": 0.7524494792464037, "point_accuracy": 0.8618907877604167}}

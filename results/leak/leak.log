@@ -1,0 +1,260 @@
+=== 2026-09-21T04:26:12+00:00 commit 4b0b2ec
+=== 2026-09-21T04:26:12+00:00 row baseline_leak
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'train_classes': 'all', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'epochs': 20, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 10, 'lr_gamma': 0.5, 'valid_every': 10, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_leak', 'dry_run': False, 'resume': True}
+data: /home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+train classes [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] | test classes [3, 11, 10, 0, 8, 4] | 9600 training episodes, 120 steps/epoch
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config: {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+epoch 1/20 | loss 0.9289 | L_GMMN 0.0000 | lr 1.00e-03 | 88s
+epoch 2/20 | loss 0.5174 | L_GMMN 0.0000 | lr 1.00e-03 | 172s
+epoch 3/20 | loss 0.4739 | L_GMMN 0.0000 | lr 1.00e-03 | 257s
+epoch 4/20 | loss 0.4365 | L_GMMN 0.0000 | lr 1.00e-03 | 341s
+epoch 5/20 | loss 0.4184 | L_GMMN 0.0000 | lr 1.00e-03 | 424s
+epoch 6/20 | loss 0.4222 | L_GMMN 0.0000 | lr 1.00e-03 | 509s
+epoch 7/20 | loss 0.4066 | L_GMMN 0.0000 | lr 1.00e-03 | 593s
+epoch 8/20 | loss 0.4027 | L_GMMN 0.0000 | lr 1.00e-03 | 677s
+epoch 9/20 | loss 0.3992 | L_GMMN 0.0000 | lr 1.00e-03 | 761s
+epoch 10/20 | loss 0.3605 | L_GMMN 0.0000 | lr 5.00e-04 | 845s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 10 | valid mIoU 0.5861
+epoch 11/20 | loss 0.3650 | L_GMMN 0.0000 | lr 5.00e-04 | 1042s
+epoch 12/20 | loss 0.3358 | L_GMMN 0.0000 | lr 5.00e-04 | 1126s
+epoch 13/20 | loss 0.3519 | L_GMMN 0.0000 | lr 5.00e-04 | 1210s
+epoch 14/20 | loss 0.3358 | L_GMMN 0.0000 | lr 5.00e-04 | 1294s
+epoch 15/20 | loss 0.3040 | L_GMMN 0.0000 | lr 5.00e-04 | 1379s
+epoch 16/20 | loss 0.3002 | L_GMMN 0.0000 | lr 5.00e-04 | 1463s
+epoch 17/20 | loss 0.3094 | L_GMMN 0.0000 | lr 5.00e-04 | 1547s
+epoch 18/20 | loss 0.2969 | L_GMMN 0.0000 | lr 5.00e-04 | 1631s
+epoch 19/20 | loss 0.2835 | L_GMMN 0.0000 | lr 5.00e-04 | 1715s
+epoch 20/20 | loss 0.3029 | L_GMMN 0.0000 | lr 2.50e-04 | 1799s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 20 | valid mIoU 0.6374
+done: best valid mIoU 0.6374; evaluate best.pt and last.pt with eval.py [D-15]
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_leak/s3dis_S0_N2_K1_point_T0_leak/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': 'results/leak/baseline_leak.json', 'extra_metrics': True}
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.635387
+[EXTRA] accumulated_fg=0.635387 | accumulated_with_bg=0.657407 | episode_fg=0.668525 | episode_with_bg=0.711362 | point_accuracy=0.831088
+=== ROW baseline_leak DONE 2026-09-21T05:00:18+00:00
+{"miou": 0.6353874134766277, "protocol": "fixed100", "episodes": 1500, "checkpoint": "log_leak/s3dis_S0_N2_K1_point_T0_leak/best.pt", "epoch": 20, "dry_run": false, "extra": {"accumulated_fg": 0.6353874134766277, "accumulated_with_bg": 0.6574070950798188, "episode_fg": 0.6685248865285707, "episode_with_bg": 0.7113616843743844, "point_accuracy": 0.8310875651041667}}
+=== 2026-09-21T05:00:18+00:00 row full_leak
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': True, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'train_classes': 'all', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'epochs': 20, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 10, 'lr_gamma': 0.5, 'valid_every': 10, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_leak', 'dry_run': False, 'resume': True}
+data: /home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+train classes [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] | test classes [3, 11, 10, 0, 8, 4] | 9600 training episodes, 120 steps/epoch
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config: {'use_lma': True, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+epoch 1/20 | loss 1.8581 | L_GMMN 0.7927 | lr 1.00e-03 | 102s
+epoch 2/20 | loss 0.7296 | L_GMMN 0.1548 | lr 1.00e-03 | 196s
+epoch 3/20 | loss 0.5906 | L_GMMN 0.0836 | lr 1.00e-03 | 290s
+epoch 4/20 | loss 0.5221 | L_GMMN 0.0760 | lr 1.00e-03 | 385s
+=== 2026-09-21T07:11:21+00:00 commit 8e49485
+=== 2026-09-21T07:11:21+00:00 row baseline_leak
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'train_classes': 'all', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'epochs': 20, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 10, 'batch_size': 4, 'lr_gamma': 0.5, 'valid_every': 10, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_leak', 'dry_run': False, 'resume': True}
+data: /home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+train classes [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] | test classes [3, 11, 10, 0, 8, 4] | 9600 training episodes, 120 steps/epoch
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config: {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+Traceback (most recent call last):
+  File "/home/nguyenvanminh16082k5/CascadeProto/train.py", line 274, in <module>
+    raise SystemExit(main())
+  File "/home/nguyenvanminh16082k5/CascadeProto/train.py", line 267, in main
+    state = train_loop(args, model, optimizer, scheduler, train_set, class_names,
+  File "/home/nguyenvanminh16082k5/CascadeProto/train.py", line 188, in train_loop
+    raise ValueError(f"cannot resume {resume_path}: arguments differ in {sorted(diff)}")
+ValueError: cannot resume log_leak/s3dis_S0_N2_K1_point_T0_leak/resume.pt: arguments differ in []
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_leak/s3dis_S0_N2_K1_point_T0_leak/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': 'results/leak/baseline_leak.json', 'extra_metrics': True}
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.635387
+[EXTRA] accumulated_fg=0.635387 | accumulated_with_bg=0.657407 | episode_fg=0.668525 | episode_with_bg=0.711362 | point_accuracy=0.831088
+=== ROW baseline_leak DONE 2026-09-21T07:13:34+00:00
+{"miou": 0.6353874134766277, "protocol": "fixed100", "episodes": 1500, "checkpoint": "log_leak/s3dis_S0_N2_K1_point_T0_leak/best.pt", "epoch": 20, "dry_run": false, "extra": {"accumulated_fg": 0.6353874134766277, "accumulated_with_bg": 0.6574070950798188, "episode_fg": 0.6685248865285707, "episode_with_bg": 0.7113616843743844, "point_accuracy": 0.8310875651041667}}
+=== 2026-09-21T07:13:34+00:00 row full_leak
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': True, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'train_classes': 'all', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'epochs': 20, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 10, 'batch_size': 4, 'lr_gamma': 0.5, 'valid_every': 10, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_leak', 'dry_run': False, 'resume': True}
+data: /home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+train classes [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] | test classes [3, 11, 10, 0, 8, 4] | 9600 training episodes, 120 steps/epoch
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config: {'use_lma': True, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+Traceback (most recent call last):
+  File "/home/nguyenvanminh16082k5/CascadeProto/train.py", line 274, in <module>
+    raise SystemExit(main())
+  File "/home/nguyenvanminh16082k5/CascadeProto/train.py", line 267, in main
+    state = train_loop(args, model, optimizer, scheduler, train_set, class_names,
+  File "/home/nguyenvanminh16082k5/CascadeProto/train.py", line 188, in train_loop
+    raise ValueError(f"cannot resume {resume_path}: arguments differ in {sorted(diff)}")
+ValueError: cannot resume log_leak/s3dis_S0_N2_K1_text_T4_leak/resume.pt: arguments differ in []
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_leak/s3dis_S0_N2_K1_text_T4_leak/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': 'results/leak/full_leak.json', 'extra_metrics': True}
+Traceback (most recent call last):
+  File "/home/nguyenvanminh16082k5/CascadeProto/eval.py", line 106, in <module>
+    raise SystemExit(main())
+  File "/home/nguyenvanminh16082k5/CascadeProto/eval.py", line 74, in main
+    model = load_model(args, device)
+  File "/home/nguyenvanminh16082k5/CascadeProto/eval.py", line 50, in load_model
+    raise FileNotFoundError(f"checkpoint not found: {args.checkpoint}")
+FileNotFoundError: checkpoint not found: log_leak/s3dis_S0_N2_K1_text_T4_leak/best.pt
+=== ROW full_leak DONE 2026-09-21T07:13:43+00:00
+cat: results/leak/full_leak.json: No such file or directory
+
+=== ALL RUNS FINISHED 2026-09-21T07:13:43+00:00
+=== 2026-09-21T08:45:58+00:00 commit 0593ab3
+=== 2026-09-21T08:45:58+00:00 row baseline_leak
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'train_classes': 'all', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'epochs': 20, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 10, 'batch_size': 4, 'lr_gamma': 0.5, 'valid_every': 10, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_leak', 'dry_run': False, 'resume': True}
+data: /home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+train classes [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] | test classes [3, 11, 10, 0, 8, 4] | 9600 training episodes, 120 steps/epoch
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config: {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+resumed from log_leak/s3dis_S0_N2_K1_point_T0_leak/resume.pt after epoch 20
+done: best valid mIoU 0.6374; evaluate best.pt and last.pt with eval.py [D-15]
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_leak/s3dis_S0_N2_K1_point_T0_leak/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': 'results/leak/baseline_leak.json', 'extra_metrics': True}
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.635387
+[EXTRA] accumulated_fg=0.635387 | accumulated_with_bg=0.657407 | episode_fg=0.668525 | episode_with_bg=0.711362 | point_accuracy=0.831088
+=== ROW baseline_leak DONE 2026-09-21T08:48:01+00:00
+{"miou": 0.6353874134766277, "protocol": "fixed100", "episodes": 1500, "checkpoint": "log_leak/s3dis_S0_N2_K1_point_T0_leak/best.pt", "epoch": 20, "dry_run": false, "extra": {"accumulated_fg": 0.6353874134766277, "accumulated_with_bg": 0.6574070950798188, "episode_fg": 0.6685248865285707, "episode_with_bg": 0.7113616843743844, "point_accuracy": 0.8310875651041667}}
+=== 2026-09-21T08:48:01+00:00 row full_leak
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': True, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'train_classes': 'all', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'epochs': 20, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 10, 'batch_size': 4, 'lr_gamma': 0.5, 'valid_every': 10, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_leak', 'dry_run': False, 'resume': True}
+data: /home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+train classes [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] | test classes [3, 11, 10, 0, 8, 4] | 9600 training episodes, 120 steps/epoch
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config: {'use_lma': True, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+resumed from log_leak/s3dis_S0_N2_K1_text_T4_leak/resume.pt after epoch 4
+epoch 5/20 | loss 0.4808 | L_GMMN 0.0604 | lr 1.00e-03 | 102s
+epoch 6/20 | loss 0.4543 | L_GMMN 0.0542 | lr 1.00e-03 | 196s
+epoch 7/20 | loss 0.4049 | L_GMMN 0.0420 | lr 1.00e-03 | 290s
+epoch 8/20 | loss 0.3852 | L_GMMN 0.0378 | lr 1.00e-03 | 385s
+epoch 9/20 | loss 0.3648 | L_GMMN 0.0317 | lr 1.00e-03 | 479s
+epoch 10/20 | loss 0.3350 | L_GMMN 0.0308 | lr 5.00e-04 | 573s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 10 | valid mIoU 0.6378
+epoch 11/20 | loss 0.3194 | L_GMMN 0.0232 | lr 5.00e-04 | 794s
+epoch 12/20 | loss 0.3076 | L_GMMN 0.0228 | lr 5.00e-04 | 889s
+epoch 13/20 | loss 0.3105 | L_GMMN 0.0204 | lr 5.00e-04 | 983s
+epoch 14/20 | loss 0.2961 | L_GMMN 0.0195 | lr 5.00e-04 | 1077s
+epoch 15/20 | loss 0.2827 | L_GMMN 0.0209 | lr 5.00e-04 | 1171s
+epoch 16/20 | loss 0.2760 | L_GMMN 0.0182 | lr 5.00e-04 | 1266s
+epoch 17/20 | loss 0.2904 | L_GMMN 0.0185 | lr 5.00e-04 | 1360s
+epoch 18/20 | loss 0.2658 | L_GMMN 0.0166 | lr 5.00e-04 | 1455s
+epoch 19/20 | loss 0.2431 | L_GMMN 0.0167 | lr 5.00e-04 | 1549s
+epoch 20/20 | loss 0.2555 | L_GMMN 0.0188 | lr 2.50e-04 | 1643s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 20 | valid mIoU 0.7040
+done: best valid mIoU 0.7040; evaluate best.pt and last.pt with eval.py [D-15]
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_leak/s3dis_S0_N2_K1_text_T4_leak/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': 'results/leak/full_leak.json', 'extra_metrics': True}
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config (from checkpoint): {'use_lma': True, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.692389
+[EXTRA] accumulated_fg=0.692389 | accumulated_with_bg=0.711471 | episode_fg=0.712224 | episode_with_bg=0.752449 | point_accuracy=0.861891
+=== ROW full_leak DONE 2026-09-21T09:20:03+00:00
+{"miou": 0.6923885671928053, "protocol": "fixed100", "episodes": 1500, "checkpoint": "log_leak/s3dis_S0_N2_K1_text_T4_leak/best.pt", "epoch": 20, "dry_run": false, "extra": {"accumulated_fg": 0.6923885671928053, "accumulated_with_bg": 0.7114711978164739, "episode_fg": 0.7122243025279781, "episode_with_bg": 0.7524494792464037, "point_accuracy": 0.8618907877604167}}
+=== ALL RUNS FINISHED 2026-09-21T09:20:03+00:00

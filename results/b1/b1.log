@@ -1,0 +1,113 @@
+=== 2026-09-21T07:13:43+00:00 commit 8e49485 row baseline_b1
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'train_classes': 'split', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'epochs': 50, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 15, 'batch_size': 1, 'lr_gamma': 0.5, 'valid_every': 10, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_b1', 'dry_run': False, 'resume': True}
+data: /home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+train classes [1, 2, 5, 6, 7, 9] | test classes [3, 11, 10, 0, 8, 4] | 24000 training episodes, 480 steps/epoch
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config: {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+epoch 1/50 | loss 0.8172 | L_GMMN 0.0000 | lr 1.00e-03 | 86s
+epoch 2/50 | loss 0.5257 | L_GMMN 0.0000 | lr 1.00e-03 | 170s
+epoch 3/50 | loss 0.4615 | L_GMMN 0.0000 | lr 1.00e-03 | 255s
+epoch 4/50 | loss 0.4346 | L_GMMN 0.0000 | lr 1.00e-03 | 339s
+epoch 5/50 | loss 0.4015 | L_GMMN 0.0000 | lr 1.00e-03 | 424s
+epoch 6/50 | loss 0.3751 | L_GMMN 0.0000 | lr 1.00e-03 | 508s
+epoch 7/50 | loss 0.3911 | L_GMMN 0.0000 | lr 1.00e-03 | 593s
+epoch 8/50 | loss 0.3777 | L_GMMN 0.0000 | lr 1.00e-03 | 677s
+epoch 9/50 | loss 0.3793 | L_GMMN 0.0000 | lr 1.00e-03 | 762s
+epoch 10/50 | loss 0.3533 | L_GMMN 0.0000 | lr 1.00e-03 | 846s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 10 | valid mIoU 0.4691
+epoch 11/50 | loss 0.3586 | L_GMMN 0.0000 | lr 1.00e-03 | 1042s
+epoch 12/50 | loss 0.3584 | L_GMMN 0.0000 | lr 1.00e-03 | 1127s
+epoch 13/50 | loss 0.3226 | L_GMMN 0.0000 | lr 1.00e-03 | 1212s
+epoch 14/50 | loss 0.3093 | L_GMMN 0.0000 | lr 1.00e-03 | 1297s
+epoch 15/50 | loss 0.3258 | L_GMMN 0.0000 | lr 5.00e-04 | 1382s
+epoch 16/50 | loss 0.2854 | L_GMMN 0.0000 | lr 5.00e-04 | 1466s
+epoch 17/50 | loss 0.2702 | L_GMMN 0.0000 | lr 5.00e-04 | 1551s
+epoch 18/50 | loss 0.2521 | L_GMMN 0.0000 | lr 5.00e-04 | 1636s
+epoch 19/50 | loss 0.2843 | L_GMMN 0.0000 | lr 5.00e-04 | 1721s
+epoch 20/50 | loss 0.2672 | L_GMMN 0.0000 | lr 5.00e-04 | 1806s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 20 | valid mIoU 0.4686
+epoch 21/50 | loss 0.2465 | L_GMMN 0.0000 | lr 5.00e-04 | 1999s
+epoch 22/50 | loss 0.2694 | L_GMMN 0.0000 | lr 5.00e-04 | 2084s
+epoch 23/50 | loss 0.2455 | L_GMMN 0.0000 | lr 5.00e-04 | 2168s
+epoch 24/50 | loss 0.2474 | L_GMMN 0.0000 | lr 5.00e-04 | 2253s
+epoch 25/50 | loss 0.2407 | L_GMMN 0.0000 | lr 5.00e-04 | 2337s
+epoch 26/50 | loss 0.2372 | L_GMMN 0.0000 | lr 5.00e-04 | 2422s
+epoch 27/50 | loss 0.2255 | L_GMMN 0.0000 | lr 5.00e-04 | 2507s
+epoch 28/50 | loss 0.2366 | L_GMMN 0.0000 | lr 5.00e-04 | 2592s
+epoch 29/50 | loss 0.2112 | L_GMMN 0.0000 | lr 5.00e-04 | 2677s
+epoch 30/50 | loss 0.2326 | L_GMMN 0.0000 | lr 2.50e-04 | 2762s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 30 | valid mIoU 0.4215
+epoch 31/50 | loss 0.2136 | L_GMMN 0.0000 | lr 2.50e-04 | 2956s
+epoch 32/50 | loss 0.1975 | L_GMMN 0.0000 | lr 2.50e-04 | 3041s
+epoch 33/50 | loss 0.1894 | L_GMMN 0.0000 | lr 2.50e-04 | 3125s
+epoch 34/50 | loss 0.1759 | L_GMMN 0.0000 | lr 2.50e-04 | 3210s
+epoch 35/50 | loss 0.1979 | L_GMMN 0.0000 | lr 2.50e-04 | 3296s
+epoch 36/50 | loss 0.1909 | L_GMMN 0.0000 | lr 2.50e-04 | 3381s
+epoch 37/50 | loss 0.1848 | L_GMMN 0.0000 | lr 2.50e-04 | 3465s
+epoch 38/50 | loss 0.1897 | L_GMMN 0.0000 | lr 2.50e-04 | 3550s
+epoch 39/50 | loss 0.1860 | L_GMMN 0.0000 | lr 2.50e-04 | 3635s
+epoch 40/50 | loss 0.2020 | L_GMMN 0.0000 | lr 2.50e-04 | 3719s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 40 | valid mIoU 0.4984
+epoch 41/50 | loss 0.1779 | L_GMMN 0.0000 | lr 2.50e-04 | 3912s
+epoch 42/50 | loss 0.1851 | L_GMMN 0.0000 | lr 2.50e-04 | 3997s
+epoch 43/50 | loss 0.1610 | L_GMMN 0.0000 | lr 2.50e-04 | 4082s
+epoch 44/50 | loss 0.1838 | L_GMMN 0.0000 | lr 2.50e-04 | 4166s
+epoch 45/50 | loss 0.1896 | L_GMMN 0.0000 | lr 1.25e-04 | 4251s
+epoch 46/50 | loss 0.1717 | L_GMMN 0.0000 | lr 1.25e-04 | 4336s
+epoch 47/50 | loss 0.1589 | L_GMMN 0.0000 | lr 1.25e-04 | 4421s
+epoch 48/50 | loss 0.1698 | L_GMMN 0.0000 | lr 1.25e-04 | 4505s
+epoch 49/50 | loss 0.1781 | L_GMMN 0.0000 | lr 1.25e-04 | 4590s
+epoch 50/50 | loss 0.1512 | L_GMMN 0.0000 | lr 1.25e-04 | 4675s
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+epoch 50 | valid mIoU 0.4852
+done: best valid mIoU 0.4984; evaluate best.pt and last.pt with eval.py [D-15]
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_b1/s3dis_S0_N2_K1_point_T0_b1/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': 'results/b1/baseline_b1_best.json', 'extra_metrics': True}
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.490065
+[EXTRA] accumulated_fg=0.490065 | accumulated_with_bg=0.517351 | episode_fg=0.510394 | episode_with_bg=0.569495 | point_accuracy=0.728139
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 0, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_b1/s3dis_S0_N2_K1_point_T0_b1/last.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval', 'dry_run': False, 'result_json': 'results/b1/baseline_b1_last.json', 'extra_metrics': True}
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+fixed100: 1500 of 1500 episodes | test classes ['beam', 'board', 'bookcase', 'ceiling', 'chair', 'column']
+*****Test Classes: [3, 11, 10, 0, 8, 4]*****
+[TEST] cascadeproto s3dis S0 2-way 1-shot mIoU: 0.478767
+[EXTRA] accumulated_fg=0.478767 | accumulated_with_bg=0.503571 | episode_fg=0.487402 | episode_with_bg=0.544993 | point_accuracy=0.708325
+=== ROW baseline_b1 DONE 2026-09-21T08:37:28+00:00
+{"miou": 0.4900648813570469, "protocol": "fixed100", "episodes": 1500, "checkpoint": "log_b1/s3dis_S0_N2_K1_point_T0_b1/best.pt", "epoch": 40, "dry_run": false, "extra": {"accumulated_fg": 0.4900648813570469, "accumulated_with_bg": 0.5173511595319804, "episode_fg": 0.5103942160448326, "episode_with_bg": 0.569495004947362, "point_accuracy": 0.7281389973958333}}
+=== ALL RUNS FINISHED 2026-09-21T08:37:28+00:00

@@ -922,3 +922,39 @@ B (training) after the pending VM check 13e.
   its 24,000 episodes at the paper's batch 4, i.e. 6,000 steps halving every 1,200. New
   `train.py --batch_size` (default 4, the paper's) makes the VIP-Seg schedule runnable; run
   directories get `_b<n>`. One test.
+
+### 15w - resume accepts flags added after the checkpoint
+
+* **Symptom.** Resuming `full_leak` (D-21), whose `resume.pt` was written before `--batch_size`
+  existed, failed with `cannot resume ...: arguments differ in []`. The check compared the two argument
+  dicts but listed only the checkpoint's keys, so the one extra key was reported as nothing.
+* **Fix.** `train.resume_mismatch` compares the union of keys and treats a key missing from the
+  checkpoint as the parser default; every flag added so far defaults to the behaviour that existed
+  before it. `build_parser` split out of `parse_args` to read the defaults. One test; G1 281 passed.
+
+### 15x - D-12 and D-21 measured: the schedule is not it, leakage explains part
+
+* **D-12, VIP-Seg's schedule** (`results/b1/`). The baseline at batch 1, 24,000 steps, learning rate
+  halved every 7,200 steps: fixed100 **0.4901** (best, epoch 40) and 0.4788 (last), against 0.4908
+  and 0.4907 on D-12's schedule. Validation tracked the old run within noise at every checkpoint
+  (0.469 / 0.469 / 0.422 / 0.498 / 0.485 against 0.464 / 0.495 / 0.461 / 0.494 / 0.493). Four times
+  the updates and a slower decay change nothing, as predicted. D-12 is cleared, which closes the trace
+  back: every decision on the baseline's path is now verified or measured (report 3.3).
+* **D-21, test classes seen in training** (`results/leak/`, 20 epochs each, fixed100):
+
+  | row | split (50 epochs) | all classes (20 epochs) | change | paper |
+  | :-- | --: | --: | --: | --: |
+  | baseline | 0.4908 | **0.6354** | +14.46 | 82.72 |
+  | full | 0.5715 | **0.6924** | +12.09 | 88.53 |
+  | full - baseline | +8.07 | +5.70 | | +5.81 |
+
+  Seeing the test classes lifts both rows by 12-15 points and leaves the module gain about where the
+  paper puts it, which fits a protocol difference better than a model difference. It still leaves the
+  leaked full model 13.5 points **below the paper's baseline**, and this diagnostic is an upper bound
+  of the area-split reading (it leaks classes and possibly blocks). Leakage therefore explains part of
+  the level, not the level. Twenty epochs is less than the full schedule; the leaked runs had not
+  plateaued (validation 0.586 to 0.637 and 0.638 to 0.704 between epochs 10 and 20), so the part it
+  explains may be somewhat larger. One seed each.
+* **Incident.** The first queue for these runs waited on `pgrep -f run_b1.sh`, which matched its own
+  command line and never returned; about 90 minutes of VM time were idle before it was replaced.
+
