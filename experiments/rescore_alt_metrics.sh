@@ -6,7 +6,8 @@
 #
 # Hypothesis under test: the paper's own rows were scored with a different mIoU than the VIP-Seg row
 # it reports. If so, one of the alternative numbers of our checkpoints lands near the paper's level.
-# The VM powers itself off 20 minutes after the last evaluation, leaving time to copy the results.
+# Stop the VM from outside once the results are copied. A timed `shutdown` inside the VM blocks
+# every non-root login for its last five minutes, which locked the results out on the first run.
 set -u
 cd "$(dirname "$0")/.." || exit 1
 D=datasets/S3DIS/blocks_bs1_s1
@@ -36,4 +37,3 @@ score () {  # name, checkpoint, extra eval flags...
   echo "=== ALL RUNS FINISHED $(date -Is)"
 } >> "$LOG" 2>&1
 
-sudo shutdown -h +20 "rescore finished; powering off in 20 minutes" >> "$LOG" 2>&1 || true

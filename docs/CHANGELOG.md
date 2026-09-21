@@ -836,3 +836,26 @@ B (training) after the pending VM check 13e.
 * **Tests.** `tests/test_metrics_alt.py` (ALT-1..4): equality with a copy of VIP-Seg's loop on random
   episodes, a hand-computed episode for every metric, episode labels mapping to one global class, and
   perfect prediction.
+
+### 15q - the metric hypothesis is rejected
+
+* **Result** (`results/rescore/`, fixed100 on 1,500 episodes, best checkpoints).
+
+  | run | primary | acc. with bg | episode fg | episode with bg | point acc. | paper |
+  | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+  | VIP-Seg released | 0.7197 | 0.7272 | 0.7427 | 0.7535 | 0.8546 | 0.7220 |
+  | baseline | 0.4908 | 0.5188 | 0.5112 | 0.5715 | 0.7281 | 0.8272 |
+  | baseline + L2 | 0.5244 | 0.5509 | 0.5464 | 0.6038 | 0.7556 | - |
+  | + LMA | 0.4965 | 0.5323 | 0.5074 | 0.5892 | 0.7635 | 0.8393 |
+  | + gate (T=1) | 0.5672 | 0.5921 | 0.5845 | 0.6393 | 0.7832 | 0.8535 |
+  | + cascade (T=4) | 0.5655 | 0.5952 | 0.5804 | 0.6463 | 0.7984 | 0.8741 |
+  | full | 0.5715 | 0.5997 | 0.5855 | 0.6485 | 0.7974 | 0.8853 |
+
+* **Sanity.** `accumulated_fg` equals the primary number on all seven rows.
+* **Verdict.** No mIoU definition brings the full model past 0.65; the most generous adds 7.7 points,
+  a quarter of the 31-point gap. Even point accuracy leaves baseline and full 9.9 and 8.8 points
+  short. The ordering is identical under every definition, and VIP-Seg leads every CascadeProto row
+  by 13-15 points, so the paper's central claim (CascadeProto above VIP-Seg) fails under all of them.
+* **Operational.** The script's timed in-VM `shutdown -h +20` locked every non-root login for its
+  last five minutes and kept the results out until the user pushed them; it is removed, and the VM
+  is stopped from outside after the copy.

@@ -10,7 +10,8 @@ implemented as written (272 tests, and an independent paper-to-code audit found 
 row of Table 4 was trained on the paper's schedule (§2). What does not reproduce has three causes, in
 decreasing order of size:
 
-1. **The paper's absolute numbers are inconsistent with its own base method** (about 30 points). Its
+1. **The paper's absolute numbers are inconsistent with its own base method** (about 30 points),
+   and **no mIoU definition explains them** (§3.1). Its
    baseline — "a plain VIP-Seg backbone with masked average pooling and single-step prototype
    matching" — is reported at 82.72 on S0, above VIP-Seg's own full model at 72.20 in the same paper.
    A baseline that removes VIP-Seg's prototype modules cannot outscore VIP-Seg with them unless
@@ -130,6 +131,31 @@ is documented in full in `2026-09-20_paper_vs_code_audit.md`.
   information".
 
 ---
+
+### 3.1 Is it the metric? No.
+
+The paper's VIP-Seg row may have been copied from the VIP-Seg paper while its own rows were scored
+differently. We re-scored every full-schedule checkpoint and VIP-Seg's released checkpoint with five
+definitions (`pipeline/metrics_alt.py`, `results/rescore/`):
+
+| run | primary (D-08) | accumulated, with bg | per episode, fg | per episode, with bg | point accuracy | paper |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| VIP-Seg, released checkpoint | 71.97 | 72.72 | 74.27 | 75.35 | 85.46 | 72.20 |
+| Baseline | 49.08 | 51.88 | 51.12 | 57.15 | 72.81 | 82.72 |
+| Baseline + L2 | 52.44 | 55.09 | 54.64 | 60.38 | 75.56 | — |
+| + LMA | 49.65 | 53.23 | 50.74 | 58.92 | 76.35 | 83.93 |
+| + Entropy Gate (T = 1) | 56.72 | 59.21 | 58.45 | 63.93 | 78.32 | 85.35 |
+| + Cascade (T = 4) | 56.55 | 59.52 | 58.04 | 64.63 | 79.84 | 87.41 |
+| + ADRM, full model | 57.15 | 59.97 | 58.55 | 64.85 | 79.74 | 88.53 |
+
+* The re-implementation of the primary metric equals it on every row, so the other columns are
+  computed from the same counts correctly.
+* No mIoU definition moves the full model past 65; the most generous one (per episode, background
+  included) adds 7.7 points, a quarter of the gap. Even point accuracy, which is not an mIoU, leaves
+  the baseline 9.9 points and the full model 8.8 points short of the paper.
+* The ordering is the same under every definition: **VIP-Seg is ahead of every CascadeProto row by
+  13–15 points**. Under no scoring does the printed CascadeProto beat the method it is built on,
+  which is the paper's central claim.
 
 ## 4. Ambiguities we resolved by measurement
 
