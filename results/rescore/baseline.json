@@ -1,0 +1,1 @@
+{"miou": 0.49082676867829517, "protocol": "fixed100", "episodes": 1500, "checkpoint": "log_phase14/s3dis_S0_N2_K1_point_T0/best.pt", "epoch": 20, "dry_run": false, "extra": {"accumulated_fg": 0.49082676867829517, "accumulated_with_bg": 0.5187503492937886, "episode_fg": 0.5112007439771938, "episode_with_bg": 0.5715125296563253, "point_accuracy": 0.72809375}}

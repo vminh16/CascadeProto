@@ -1,0 +1,1 @@
+{"miou": 0.7196865630496759, "protocol": "fixed100", "episodes": 1500, "checkpoint": "vipseg_S0_N2_K1.pt", "epoch": null, "dry_run": false, "extra": {"accumulated_fg": 0.7196865630496759, "accumulated_with_bg": 0.7272299024605646, "episode_fg": 0.7426563626423395, "episode_with_bg": 0.7534660475849398, "point_accuracy": 0.8545906575520833}}
