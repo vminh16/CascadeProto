@@ -1002,3 +1002,24 @@ B (training) after the pending VM check 13e.
   protocol) and `2026-09-21_gap_diagnosis.md` (the review and the prediction log).
 * **Status.** The project is closed at this point by the maintainer. Not done: extra seeds, random600
   rescoring, the full model on S1, other Table 2 settings, and contacting the authors.
+
+
+## Phase 16 — improvement research, beyond the paper
+
+Opened by the maintainer on 2026-09-22 after the reproduction was closed (15y). Goal: test, without
+leakage, whether CascadeProto's ideas can beat VIP-Seg (72.20 / 76.09) and EDS-Net (73.32 / 74.67)
+under the standard protocol. Every change is behind a flag whose default keeps the reproduction.
+
+### 16.0 - research note: diagnosis and ranked directions
+
+* **What.** `docs/research/2026-09-22_improvement_directions.md`: why the printed EPPM cannot close the
+  gap to VIP-Seg (class-common summands cannot change a prediction, the entropy gate is a fixed even
+  pointwise function, no stage reads the previous prediction, the text prior is fused 1:1 after being
+  aligned to the point prototype), what the modules this paper descends from have in common (Seg-PN's
+  QUEST = VIP-Seg's PDM, TaylorSeg's APP = VIP-Seg's PEM; their ablations credit the channel
+  cross-correlation with +15 points, computed after a reshape that shares it across the episode's
+  classes), EDS-Net as an independent calibration by the same first author (+1.30 S0 for the same
+  ideas under the standard protocol), and a ranked plan with zero-training probes first.
+* **Leading hypothesis for the 15-point gap to VIP-Seg's head:** D-01 computes one correlation per
+  class slot from whole support blocks, where every published member of the family effectively uses one
+  correlation for the whole episode. Phase 16a-16e implement the test.
