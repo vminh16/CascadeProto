@@ -148,3 +148,11 @@ def test_resume_accepts_flags_added_after_the_checkpoint_at_their_default():
     changed = train.comparable_args(train.parse_args(base + ["--batch_size", "1"]))
     assert train.resume_mismatch(saved, changed) == ["batch_size"]
     assert train.resume_mismatch(dict(saved, seed=1), current) == ["seed"]
+
+
+def test_cross_attn_support_gets_its_own_run_directory():
+    """D-23: a pooled run must not overwrite the class-slot run it is compared with."""
+    base = ["--dataset", "s3dis", "--data_path", "x", "--cvfold", "0", "--n_way", "2", "--k_shot", "1"]
+    pooled = train.parse_args(base + ["--cross_attn_support", "pooled"])
+    assert pooled.cross_attn_support == "pooled"
+    assert train.run_dir(pooled) == train.run_dir(train.parse_args(base)) + "_pooled"

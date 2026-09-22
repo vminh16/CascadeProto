@@ -59,6 +59,7 @@ NUM_TOKENS = NUM_POINTS // POOL_WINDOW  # 64, the input channels of phi
 PROJ_DIM = 72  # d [PAPER Eq.13] [PAPER §4.1]
 CROSS_ATTN_SCALES = ("sqrt_d", "sqrt_D")  # [DECISION D-01]
 CROSS_ATTN_NORMS = ("none", "layernorm")  # [DECISION D-18]
+CROSS_ATTN_SUPPORTS = ("class_slots", "pooled")  # [DECISION D-01 item 5] [DECISION D-23]
 
 
 def pool_tokens(f: torch.Tensor) -> torch.Tensor:
@@ -81,14 +82,24 @@ class CrossAttention(nn.Module):
     `norm="layernorm"` standardises Q' and S' along the projection axis r before the correlation, which
     makes A invariant to the scale of the features and gives 144 learnable parameters for the sharpness.
     It is a probe, not a fix [DECISION D-18].
+
+    `support="pooled"` is the other reading of Eq.13, which writes a single `S′ = φ(F^s)` with no class
+    index: the pooled tokens of all N·K support blocks are averaged into one `F̄^s`, giving one
+    `A_b ∈ R^{D×D}` per query, shared by every class row [DECISION D-23]. `class_slots` (the default)
+    is D-01 item 5, one A per (query, class slot, shot), where slot c is the whole support block sampled
+    for way c and slot 0 the way-mean [VIPSEG models/vipseg.py:244].
     """
 
-    def __init__(self, dim: int = 128, scale: str = "sqrt_d", norm: str = "none"):
+    def __init__(self, dim: int = 128, scale: str = "sqrt_d", norm: str = "none",
+                 support: str = "class_slots"):
         super().__init__()
         if scale not in CROSS_ATTN_SCALES:
             raise ValueError(f"cross_attn_scale must be one of {CROSS_ATTN_SCALES}, got {scale!r}")
         if norm not in CROSS_ATTN_NORMS:
             raise ValueError(f"cross_attn_norm must be one of {CROSS_ATTN_NORMS}, got {norm!r}")
+        if support not in CROSS_ATTN_SUPPORTS:
+            raise ValueError(f"cross_attn_support must be one of {CROSS_ATTN_SUPPORTS}, got {support!r}")
+        self.support = support
         self.phi = nn.Conv1d(NUM_TOKENS, PROJ_DIM, kernel_size=1, bias=False)  # shared [PAPER Eq.13]
         self.psi = nn.Linear(dim, dim)  # [PAPER Eq.14] [VIPSEG models/vipseg.py:222]
         self.scale = math.sqrt(PROJ_DIM if scale == "sqrt_d" else dim)
@@ -103,17 +114,26 @@ class CrossAttention(nn.Module):
         return self.proj_norm(out.transpose(-1, -2)).transpose(-1, -2)
 
     def attention(self, f_s: torch.Tensor, f_q: torch.Tensor) -> torch.Tensor:
-        """f_s [N, K, 2048, D], f_q [B_q, 2048, D] -> A [B_q, N+1, K, D, D], rows summing to 1."""
-        slots = torch.cat([f_s.mean(dim=0, keepdim=True), f_s], dim=0)  # [N+1, K, 2048, D]
+        """f_s [N, K, 2048, D], f_q [B_q, 2048, D] -> A, rows summing to 1.
+
+        `[B_q, N+1, K, D, D]` with `support="class_slots"` (D-01) and `[B_q, D, D]` with `"pooled"`,
+        where the same A serves every class row and every shot [DECISION D-23].
+        """
         q = self.project(pool_tokens(f_q))  # [B_q, 64, D] -> [B_q, d, D]
+        if self.support == "pooled":
+            s = self.project(pool_tokens(f_s).mean(dim=(0, 1)))  # [64, D] -> [d, D], one S' per episode
+            return torch.softmax(torch.einsum("bri,rj->bij", q, s) / self.scale, dim=-1)  # [B_q, D, D]
+        slots = torch.cat([f_s.mean(dim=0, keepdim=True), f_s], dim=0)  # [N+1, K, 2048, D]
         s = self.project(pool_tokens(slots).flatten(0, 1)).unflatten(0, slots.shape[:2])  # [N+1, K, d, D]
         logits = torch.einsum("bri,ckrj->bckij", q, s) / self.scale  # [B_q, N+1, K, D, D]
         return torch.softmax(logits, dim=-1)
 
     def forward(self, p_gated: torch.Tensor, f_s: torch.Tensor, f_q: torch.Tensor) -> torch.Tensor:
         """p_gated [B_q, N+1, D] -> P_cross [B_q, N+1, D]."""
-        a = self.attention(f_s, f_q)  # [B_q, N+1, K, D, D]
+        a = self.attention(f_s, f_q)  # [B_q, N+1, K, D, D] or [B_q, D, D] (pooled)
         v = self.psi(p_gated)  # [B_q, N+1, D]
+        if self.support == "pooled":
+            return torch.einsum("bij,bcj->bci", a, v)  # [B_q, N+1, D], one A per query
         return torch.einsum("bckij,bcj->bci", a, v) / a.shape[2]  # mean over the K shots
 
 
@@ -213,13 +233,14 @@ class EPPMStage(nn.Module):
 
     def __init__(self, dim: int = 128, use_gate: bool = True, cross_attn_scale: str = "sqrt_d",
                  fusion_weight: str = "per_query", cross_attn_norm: str = "none",
-                 gate_target: str = "prototype", eq19_self: str = "none"):
+                 gate_target: str = "prototype", eq19_self: str = "none",
+                 cross_attn_support: str = "class_slots"):
         super().__init__()
         if gate_target not in GATE_TARGETS:
             raise ValueError(f"gate_target must be one of {GATE_TARGETS}, got {gate_target!r}")
         self.gate_target, self.eq19_self = gate_target, eq19_self
         self.gate = EntropyGate(use_gate)
-        self.cross = CrossAttention(dim, cross_attn_scale, cross_attn_norm)
+        self.cross = CrossAttention(dim, cross_attn_scale, cross_attn_norm, cross_attn_support)
         self.out = FusionOutput(dim, fusion_weight, eq19_self)
 
     def forward(self, p_prev: torch.Tensor, f_s: torch.Tensor, f_q: torch.Tensor) -> torch.Tensor:

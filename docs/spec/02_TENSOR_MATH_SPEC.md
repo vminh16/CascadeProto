@@ -149,7 +149,12 @@ $$A_{b,c,k} = \text{softmax}_{row}\left(\frac{Q'^{\top}_{b}\, S'_{c,k}}{\sqrt{d}
 4. Prototype refinement with ψ = `Linear(D→D)`; the average over shots is taken on `P_cross` [PAPER Eq.14] [VIPSEG models/vipseg.py:222,296] [DECISION D-01]:
 $$P_{cross}[b,c] = \frac{1}{K}\sum_{k=1}^{K} A_{b,c,k}\, \psi(P^{t-1}_{gated}[b,c]) \in \mathbb{R}^{D}$$
 
-Not to be copied: VIP-Seg's `reshape(proj_dim, -1)` before the product, which interleaves classes and filters [DECISION D-01].
+Not to be copied: VIP-Seg's `reshape(proj_dim, -1)` before the product, which interleaves classes and filters [DECISION D-01]. Its effect is, however, to make the correlation shared by all class rows of the episode, which is what `cross_attn_support = pooled` provides in a clean per-query form [DECISION D-23]:
+
+$$\bar{F}^s = \frac{1}{NK}\sum_{n,k} \text{MaxPool}_{32}(F^s_{n,k}) \in \mathbb{R}^{64 \times D}, \qquad \bar{S}' = \varphi(\bar{F}^s) \in \mathbb{R}^{d \times D}$$
+$$A_b = \text{softmax}_{row}\left(\frac{Q'^{\top}_b \bar{S}'}{\sqrt{d}}\right) \in \mathbb{R}^{D \times D}, \qquad P_{cross}[b,c] = A_b\, \psi(P^{t-1}_{gated}[b,c])$$
+
+The default is `class_slots`, the form D-01 chose; `pooled` is the literal reading of Eq.13's single `S′` and is measured in phase 16 [DECISION D-23].
 
 With `cross_attn_norm = layernorm` [DECISION D-18], one shared LayerNorm standardises the columns of `Q'` and `S'_{c,k}` along the projection axis `r` before step 3:
 $$Q'_{:,i} \leftarrow \mathrm{LN}(Q'_{:,i}), \qquad S'_{c,k,:,j} \leftarrow \mathrm{LN}(S'_{c,k,:,j})$$

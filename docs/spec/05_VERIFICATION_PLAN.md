@@ -132,6 +132,11 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 | XATT-7 | `cross_attn_norm` defaults to `none`, which leaves φ untouched; `layernorm` costs 2d = 144 parameters; an unknown value raises | 02 §5.2, [DECISION D-18] |
 | XATT-8 | `layernorm` standardises each column of `Q'` along the projection axis (mean 0, variance 1 to the LayerNorm eps) | 02 §5.2, [DECISION D-18] |
 | XATT-9 | Scaling every feature by α leaves `A` unchanged to 1e-5 with `layernorm` and moves it by more than 0.1 without | [DECISION D-18] |
+| XATT-11 | `cross_attn_support=pooled` gives one `A[b] ∈ R^{128×128}` per query, rows summing to 1, equal to an explicit loop over `φ(mean of the pooled support blocks)` (also with `sqrt_D`) | 02 §5.2, [DECISION D-23] |
+| XATT-12 | With `pooled` the same `A[b]` is applied to every class row, so two class rows with the same prototype give the same `P_cross` | 02 §5.2, [DECISION D-23] |
+| XATT-13 | `pooled` averages over ways and shots (order-invariant) and reads every support block; queries do not mix | 02 §5.2, [DECISION D-23] |
+| XATT-14 | `pooled` has the same parameters as `class_slots`, and for N = 1, K = 1 the two readings coincide exactly | 02 §5.2, [DECISION D-23] |
+| XATT-15 | With two ways the two readings differ; an unknown `cross_attn_support` raises | 02 §5.2, [DECISION D-23] |
 | XATT-10 | On features with a per-channel offset at scale 10 the literal Eq.14 collapses: softmax width below 1.1 of 128, `P_cross` exactly constant along D, `‖∇φ‖/‖φ‖` below 1e-12. `layernorm` gives the same three numbers at scale 1 and at scale 10 | [DECISION D-18] |
 | DIFF-1 | Mixed-sign features: `P_diffuse` matches Eq.15–18 computed by hand, including a non-zero `c_unique` | 02 §5.3 |
 | DIFF-2 | Non-negative features with strictly positive channel means in both branches: `c_unique = 0`, `P_diffuse = (q_ch + s_ch)/4` | 02 §5.3, [DECISION D-14] |

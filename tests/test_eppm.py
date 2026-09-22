@@ -232,6 +232,92 @@ def test_xatt_invalid_scale_raises():
         CrossAttention(scale="sqrt_72")
 
 
+# ------------------------------- XATT-11..15: cross_attn_support = pooled (02 §5.2, D-23)
+
+def pooled(scale="sqrt_d", seed=0):
+    torch.manual_seed(seed)
+    return CrossAttention(scale=scale, support="pooled").double()
+
+
+def pooled_attention_ref(m, f_s, f_q, scale=72):
+    """A[b] from an explicit loop: one S' from the mean of every pooled support block, φ as a matrix."""
+    w = m.phi.weight[:, :, 0]  # [72, 64]
+    n, k = f_s.shape[:2]
+    pooled_s = sum(vipseg_pool(f_s[i, j]) for i in range(n) for j in range(k)) / (n * k)  # [64, D]
+    s = w @ pooled_s  # [72, D]
+    out = torch.empty(f_q.shape[0], D, D, dtype=torch.float64)
+    for b in range(f_q.shape[0]):
+        logits = ((w @ vipseg_pool(f_q[b])).T @ s) / math.sqrt(scale)  # [D, D]
+        e = torch.exp(logits - logits.max(dim=1, keepdim=True).values)
+        out[b] = e / e.sum(dim=1, keepdim=True)
+    return out
+
+
+@pytest.mark.parametrize("scale,value", [("sqrt_d", 72), ("sqrt_D", 128)])
+def test_xatt11_pooled_attention_is_one_matrix_per_query(scale, value):
+    m, (f_s, f_q) = pooled(scale), features(k=3, bq=3)
+    a = m.attention(f_s, f_q)
+    assert a.shape == (3, D, D) and (a > 0).all()
+    assert torch.allclose(a.sum(-1), torch.ones(3, D, dtype=torch.float64), atol=ATOL, rtol=0)
+    assert torch.allclose(a, pooled_attention_ref(m, f_s, f_q, value), atol=ATOL, rtol=0)
+
+
+def test_xatt12_pooled_p_cross_applies_the_same_a_to_every_class_row():
+    m, (f_s, f_q) = pooled(), features(k=2)
+    p_gated = rand(BQ, N + 1, D, seed=40)
+    a, out = m.attention(f_s, f_q), m(p_gated, f_s, f_q)
+    v = p_gated @ m.psi.weight.T + m.psi.bias  # ψ(P), written out
+    for b in range(BQ):
+        for c in range(N + 1):
+            assert torch.allclose(out[b, c], a[b] @ v[b, c], atol=ATOL, rtol=0)
+    equal_rows = p_gated.clone()
+    equal_rows[:, 2] = equal_rows[:, 1]  # two class rows with the same prototype
+    same = m(equal_rows, f_s, f_q)
+    assert torch.allclose(same[:, 1], same[:, 2], atol=ATOL, rtol=0)  # class enters only through ψ(P)
+
+
+def test_xatt13_pooled_uses_every_support_block_and_ignores_their_order():
+    m, (f_s, f_q) = pooled(), features(k=2)
+    a = m.attention(f_s, f_q)
+    ways, shots = torch.tensor([1, 0]), torch.tensor([1, 0])
+    assert torch.allclose(m.attention(f_s[ways][:, shots], f_q), a, atol=ATOL, rtol=0)  # a mean over N·K
+    changed = f_s.clone()
+    changed[1, 0] = rand(P, D, seed=41).abs()
+    assert (m.attention(changed, f_q) - a).abs().max() > 1e-6  # every block is read
+
+
+def test_xatt13b_pooled_queries_do_not_mix():
+    m, (f_s, f_q) = pooled(), features(bq=3)
+    p_gated = rand(3, N + 1, D, seed=43)
+    out = m(p_gated, f_s, f_q)
+    other_q, other_p = f_q.clone(), p_gated.clone()
+    other_q[1:], other_p[1:] = rand(2, P, D, seed=44).abs(), rand(2, N + 1, D, seed=45)
+    assert torch.allclose(m(other_p, f_s, other_q)[0], out[0], atol=ATOL, rtol=0)
+    perm = torch.tensor([2, 0, 1])
+    assert torch.allclose(m(p_gated[perm], f_s, f_q[perm]), out[perm], atol=ATOL, rtol=0)
+
+
+def test_xatt14_pooled_has_the_same_parameters_and_coincides_with_class_slots_at_n1_k1():
+    m, slots = pooled(seed=7), xatt(seed=7)
+    assert [n for n, _ in m.named_parameters()] == [n for n, _ in slots.named_parameters()]
+    assert all(torch.equal(a, b) for (_, a), (_, b) in zip(m.named_parameters(), slots.named_parameters()))
+    f_s, f_q = features(n=1, k=1)  # one way, one shot: slot 0 (way-mean) and slot 1 are that block
+    p_gated = rand(BQ, 2, D, seed=46)
+    a_slots = slots.attention(f_s, f_q)  # [B_q, 2, 1, D, D]
+    a_pooled = m.attention(f_s, f_q)  # [B_q, D, D]
+    assert torch.allclose(a_slots[:, 0, 0], a_pooled, atol=ATOL, rtol=0)
+    assert torch.allclose(a_slots[:, 1, 0], a_pooled, atol=ATOL, rtol=0)
+    assert torch.allclose(m(p_gated, f_s, f_q), slots(p_gated, f_s, f_q), atol=ATOL, rtol=0)
+
+
+def test_xatt15_readings_differ_with_two_ways_and_invalid_support_raises():
+    f_s, f_q = features(k=2)
+    p_gated = rand(BQ, N + 1, D, seed=47)
+    assert (pooled(seed=3)(p_gated, f_s, f_q) - xatt(seed=3)(p_gated, f_s, f_q)).abs().max() > 1e-6
+    with pytest.raises(ValueError, match="cross_attn_support"):
+        CrossAttention(support="pooled_slots")
+
+
 # ------------------------------------------- XATT-7..10: cross_attn_norm (02 §5.2, D-18)
 
 def saturating_features(scale=1.0, seed=70):

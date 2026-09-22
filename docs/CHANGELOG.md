@@ -561,9 +561,9 @@ B (training) after the pending VM check 13e.
 * **Not asserted.** That `layernorm` is better. It is not, on every distribution measured: with a
   signed per-channel offset the literal form has more channel variation in `P_cross` (D-18). The tests
   pin the collapse and the invariance, nothing else.
-* **Mutation check.** 5 mutants on `models/eppm.py`, all killed: the norm ignored, normalising along D
-  instead of the projection axis, the norm always built, the norm never built, and the support branch left
-  unnormalised while the query is normalised (the last one is what a separate norm per branch would be).
+* **Mutation check.** 5 mutants on `models/eppm.py`, all killed: the norm ignored, normalising along D
+  instead of the projection axis, the norm always built, the norm never built, and the support branch left
+  unnormalised while the query is normalised (the last one is what a separate norm per branch would be).
 * **Verification.** G1 CPU gate: 269 passed, 33 deselected.
 
 ### 15c - measure the Eq.14 regime on real features (harness, DEBUG)
@@ -1041,3 +1041,29 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   fold comparison inverted, `train_classes=all` unchecked, the flag inverted, `main` skipping the check,
   a contradicting `--checkpoint_cvfold` accepted, an unknown fold assumed equal to the scoring fold, a
   diagnostic labelled clean.
+
+### 16b - Eq.13's single S' as a switch: `cross_attn_support = pooled` (D-23)
+
+* **Why.** D-01 item 5 recorded that Eq.13 writes one `S′ = φ(F^s)` without class slots and that our
+  per-slot form follows VIP-Seg. Phase 16 found that this is the one place where we differ from every
+  published member of the family: in QUEST (Seg-PN), APP (TaylorSeg), PEM and PDM (VIP-Seg) the
+  `reshape(72, -1)` makes each correlation block depend on **both** queries and **all** class slots,
+  i.e. an episode-level statistic, and DPA writes that shared form explicitly and measures +13.7 for
+  it alone. The ablations that isolate this branch credit it with +15.4 (Seg-PN Table 6) and +15.2
+  (TaylorSeg Table 4) on S0 - the size of our gap to VIP-Seg's head.
+* **What.** `CrossAttention(support=...)`: `pooled` averages the pooled tokens of all N·K support
+  blocks into one `F̄^s`, projects it once and applies `A_b = softmax_row(Q′_bᵀ S̄′/√d) ∈ R^{D×D}` to
+  every class row. Unlike the published reshape it keeps the queries separate. No new parameters.
+  Wired through `EPPMStage`, `CascadeProtoConfig` and `train.py`; run directories get `_pooled`.
+  Specs 00 (D-23), 01 §3, 02 §5.2, 05 §3.4.
+* **Default unchanged** (`class_slots`) until the R1 comparison of 16e decides it.
+* **Verification.** XATT-11...15 and CP-21 (explicit-loop reference for the pooled attention, the same
+  `A` on every class row, order invariance over ways and shots, every block read, no query mixing,
+  identical parameters, exact coincidence of the two readings at N = K = 1, and a difference at N = 2).
+  On the stand-in encoder the two readings differ by 1.3e-4 of `P_cross`'s scale and 1.8e-8 in the
+  logits, because Eq.14 sits at the uniform end at initialisation (attention width 127.9998 of 128,
+  D-18); the readings can only separate once φ has trained, which is what R1 measures.
+  Mutation check, 8 mutants on `models/eppm.py`, all killed: `S′` from the first block only, `S′`
+  averaged over the shots of way 0, the softmax over the wrong axis, the product transposed, the switch
+  inverted in `attention` and in `forward`, the switch ignored, and the queries pooled together the way
+  VIP-Seg's reshape does.

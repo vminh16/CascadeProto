@@ -408,3 +408,32 @@ def test_cp20_the_gate_is_elementwise_so_one_module_serves_both_targets():
     assert torch.allclose(stage.gate(f)[1, 2, 3], stage.gate(f[1, 2, 3]), atol=ATOL, rtol=0)
     lo, hi = torch.sigmoid(torch.tensor([2 * (0.42 - math.log(2.0)), 2 * 0.42], dtype=torch.float64))
     assert (stage.gate(f) <= hi * f).all() and (stage.gate(f) >= lo * f).all()  # H in [0, ln 2]
+
+
+def test_cp21_cross_attn_support_pooled_reaches_every_stage_and_costs_no_parameter():
+    """D-23: Eq.13's single S' as a switch; the class slots of D-01 stay the default."""
+    slots = model(CascadeProtoConfig(num_stages=4))
+    pooled = model(CascadeProtoConfig(num_stages=4, cross_attn_support="pooled"))
+    assert [s.cross.support for s in slots.stages] == ["class_slots"] * 4
+    assert [s.cross.support for s in pooled.stages] == ["pooled"] * 4
+    count = lambda m: sum(p.numel() for p in m.parameters())
+    assert count(slots) == count(pooled)
+    ep = episode()
+    slots, pooled = slots.eval(), pooled.eval()
+    assert pooled(ep).logits.shape == slots(ep).logits.shape
+    assert not torch.equal(pooled(ep).logits, slots(ep).logits)
+    # On these features Eq.14 sits at the uniform end (D-18), where both readings leave P_cross nearly
+    # constant along D, so the readings separate in P_cross rather than visibly in the logits.
+    f_s, f_q = slots.features.encode_episode(ep.support_x, ep.query_x)
+    p = point_prototypes(f_s, ep.support_y).unsqueeze(0).expand(f_q.shape[0], -1, -1)
+    cross_slots = slots.stages[0].cross(p, f_s, f_q)
+    cross_pooled = pooled.stages[0].cross(p, f_s, f_q)
+    assert (cross_slots - cross_pooled).abs().max() / cross_slots.abs().mean() > 1e-5  # measured 1.3e-4
+    with pytest.raises(ValueError, match="cross_attn_support"):
+        CascadeProtoConfig(cross_attn_support="episode")
+
+
+def test_cp21_pooled_stage_trains_every_parameter():
+    m = model(CascadeProtoConfig(num_stages=2, cross_attn_support="pooled"))
+    episode_loss(m(episode()), episode()).backward()
+    assert all(p.grad is not None and p.grad.abs().sum() > 0 for p in m.parameters())

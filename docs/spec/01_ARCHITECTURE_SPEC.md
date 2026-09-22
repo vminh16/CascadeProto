@@ -157,6 +157,7 @@ Required configuration options. Defaults reproduce the full model. They live in 
 | `cross_attn` | channel | channel (two_hop raises) | [DECISION D-01] |
 | `cross_attn_scale` | sqrt_d | sqrt_d / sqrt_D | [DECISION D-01] |
 | `cross_attn_norm` | none | none / layernorm | [DECISION D-18] |
+| `cross_attn_support` | class_slots | class_slots / pooled | [DECISION D-23] |
 | `gate_target` | prototype | prototype / features | [DECISION D-02] |
 | `eq19_self` | none | none / gated (beyond the paper) | [DECISION D-19] |
 | `gmmn_fg_mode` | joint | joint / per_class | [DECISION D-04] |
