@@ -133,7 +133,7 @@ Before training CascadeProto, the data and metric pipeline must come close to VI
 
 ```bash
 wget https://github.com/changshuowang/VIP-Seg_NeurIPS2025/raw/28aedc5093c0d386d526864c49505ae6921b1600/log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/checkpoint.pt -O vipseg_S0_N2_K1.pt
-python eval.py --model vipseg --checkpoint vipseg_S0_N2_K1.pt --dataset s3dis --data_path $D --cvfold 0 --n_way 2 --k_shot 1
+python eval.py --model vipseg --checkpoint vipseg_S0_N2_K1.pt --checkpoint_cvfold 0 --dataset s3dis --data_path $D --cvfold 0 --n_way 2 --k_shot 1
 ```
 
 ---

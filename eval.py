@@ -4,6 +4,11 @@
         --checkpoint log_cascadeproto/s3dis_S0_N2_K1_text/best.pt
 
 `--model vipseg` scores VIP-Seg's released checkpoint on the same episodes and metric (05 §4).
+
+Protocol guard [DECISION D-22]: a checkpoint is scored only on the test classes of the fold it was
+trained on. S0's training classes are fold 1's test classes and vice versa, so scoring a checkpoint
+with the other `--cvfold`, or one trained with `--train_classes all` [D-21], scores classes it has
+seen. That is refused unless `--allow_seen_classes true` marks the run as a diagnostic.
 """
 
 import argparse
@@ -42,16 +47,24 @@ def parse_args(argv=None):
     p.add_argument("--result_json", default=None, help="also write the result as JSON to this path")
     p.add_argument("--extra_metrics", type=str2bool, default=False,
                    help="also report alternative mIoU definitions (diagnostic only, pipeline/metrics_alt.py)")
+    p.add_argument("--checkpoint_cvfold", type=int, default=None, choices=[0, 1],
+                   help="fold the checkpoint was trained on; required when the checkpoint does not record it "
+                        "(VIP-Seg's released checkpoints) [D-22]")
+    p.add_argument("--allow_seen_classes", type=str2bool, default=False,
+                   help="score classes the checkpoint was trained on; leakage diagnostic only, never a result [D-22]")
     return p.parse_args(argv)
 
 
 def load_model(args, device) -> torch.nn.Module:
+    """The model, with `checkpoint_args` = the training arguments stored in the checkpoint (None if absent)."""
     if not os.path.isfile(args.checkpoint):
         raise FileNotFoundError(f"checkpoint not found: {args.checkpoint}")
     if args.model == "vipseg":
         from pipeline.vipseg_baseline import VIPSegBaseline
 
-        return VIPSegBaseline(args.checkpoint).to(device)
+        model = VIPSegBaseline(args.checkpoint).to(device)
+        model.checkpoint_args = None  # VIP-Seg saves only the model, iteration and IoU [VIPSEG runs/training.py:97-100]
+        return model
     checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=True)
     from models.cascadeproto import CascadeProtoConfig
 
@@ -59,7 +72,37 @@ def load_model(args, device) -> torch.nn.Module:
     model = build_model(config).to(device)
     model.load_state_dict(checkpoint["model"], strict=True)
     model.checkpoint_epoch = checkpoint.get("epoch")
+    model.checkpoint_args = checkpoint.get("args")
     return model
+
+
+def training_fold(args, checkpoint_args) -> int:
+    """The fold the checkpoint was trained on: recorded in it, or stated with --checkpoint_cvfold [D-22]."""
+    recorded = (checkpoint_args or {}).get("cvfold")
+    if recorded is not None and args.checkpoint_cvfold is not None and recorded != args.checkpoint_cvfold:
+        raise ValueError(f"--checkpoint_cvfold {args.checkpoint_cvfold} contradicts the checkpoint, which was "
+                         f"trained with --cvfold {recorded}")
+    fold = recorded if recorded is not None else args.checkpoint_cvfold
+    if fold is None:
+        raise ValueError(f"{args.checkpoint} does not record the fold it was trained on; pass --checkpoint_cvfold "
+                         f"so that the protocol guard can check it [D-22]")
+    return fold
+
+
+def protocol_check(args, checkpoint_args) -> str:
+    """'clean', or the reason the run scores seen classes; raises unless --allow_seen_classes [D-22]."""
+    fold = training_fold(args, checkpoint_args)
+    problems = []
+    if fold != args.cvfold:
+        problems.append(f"trained on S{fold}, whose training classes are the test classes of S{args.cvfold}")
+    if (checkpoint_args or {}).get("train_classes", "split") != "split":
+        problems.append("trained with --train_classes all, i.e. on the test classes [D-21]")
+    if not problems:
+        return "clean"
+    if not args.allow_seen_classes:
+        raise ValueError("refusing to score classes the checkpoint has seen: " + "; ".join(problems) +
+                         ". Pass --allow_seen_classes true only for a leakage diagnostic [D-22]")
+    return "SEEN-CLASS DIAGNOSTIC, not a few-shot result: " + "; ".join(problems)
 
 
 def main(argv=None):
@@ -72,6 +115,9 @@ def main(argv=None):
     logger.cprint(f"args: {vars(args)}")
 
     model = load_model(args, device)
+    protocol = protocol_check(args, model.checkpoint_args)  # before any episode is scored [D-22]
+    logger.cprint(f"protocol: {protocol} (checkpoint trained on S{training_fold(args, model.checkpoint_args)}, "
+                  f"scored on S{args.cvfold})")
     if hasattr(model, "config"):
         logger.cprint(f"model config (from checkpoint): {model.config.to_dict()}")
     class_names = read_class_names(args.data_path, args.dataset)
@@ -98,6 +144,8 @@ def main(argv=None):
         with open(args.result_json, "w") as f:
             json.dump({"miou": miou, "protocol": args.eval_protocol, "episodes": n, "checkpoint": args.checkpoint,
                        "epoch": getattr(model, "checkpoint_epoch", None), "dry_run": args.dry_run,
+                       "protocol_check": protocol, "cvfold": args.cvfold,
+                       "checkpoint_cvfold": training_fold(args, model.checkpoint_args),
                        **({"extra": extra} if extra is not None else {})}, f)
     return 0
 

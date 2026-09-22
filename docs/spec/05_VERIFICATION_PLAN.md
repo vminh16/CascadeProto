@@ -312,6 +312,17 @@ Before DATA-0…4, `python preprocess/verify_s3dis.py` compares the prepared blo
 | PIPE-7 | `eval.py` rebuilds the configuration stored in the checkpoint (not its own CLI) and reproduces the logits exactly | 01 §3 |
 | PIPE-8 | With the same seed the valid and test sets see different random draws; the test set keeps the plain seed; the caller's random state is restored | 04 §6.1, D-15 |
 
+### 3.12 `tests/test_protocol_guard.py` (G1)
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| PROT-1 | A checkpoint scored on the fold it was trained on is `clean` | [DECISION D-22] |
+| PROT-2 | Scoring the other fold raises; with `--allow_seen_classes true` it runs and is labelled a seen-class diagnostic | [DECISION D-22] |
+| PROT-3 | A checkpoint trained with `--train_classes all` raises even on its own fold | [DECISION D-21] [DECISION D-22] |
+| PROT-4 | A checkpoint that records no fold needs `--checkpoint_cvfold`; a stated fold contradicting the recorded one raises; checkpoints without `train_classes` count as `split` | [DECISION D-22] |
+| PROT-5 | `eval.py` runs the check before any episode is built | [DECISION D-22] |
+| PROT-6 | `run_seen.sh` is the one script that passes `--allow_seen_classes true`; the clean re-scoring script states the VIP-Seg checkpoint's fold | [DECISION D-22] |
+
 ---
 
 ## 4. Pipeline sanity check with VIP-Seg (before G5)

@@ -1023,3 +1023,21 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **Leading hypothesis for the 15-point gap to VIP-Seg's head:** D-01 computes one correlation per
   class slot from whole support blocks, where every published member of the family effectively uses one
   correlation for the whole episode. Phase 16a-16e implement the test.
+
+### 16a - protocol guard: eval.py refuses to score seen classes (D-22)
+
+* **Why.** 15y showed that scoring a checkpoint on its own training classes adds 22-25 points, and
+  nothing stopped it: `eval.py` took `--cvfold` from the command line, independently of the fold the
+  checkpoint was trained on. Phase 16 looks for gains of a few points, so the guard comes first.
+* **What.** `eval.protocol_check` / `training_fold`: the training fold is read from the checkpoint
+  (`args.cvfold`) or stated with `--checkpoint_cvfold` (VIP-Seg's release records none); a different
+  scoring fold or `--train_classes all` raises before any episode is built, unless
+  `--allow_seen_classes true`, which labels the log and result JSON as a seen-class diagnostic. The
+  JSON now carries `protocol_check`, `cvfold` and `checkpoint_cvfold`. `run_seen.sh` (the one
+  diagnostic) passes the flag; `rescore_alt_metrics.sh` and README state the VIP-Seg checkpoint's fold.
+  D-22 also fixes the phase-16 reporting rules: `last.pt` headline, design screening on S1, S0 held out
+  until the design is frozen, no tuning on scored classes. Specs 00 (D-22), 04 6.1, 05 3.12.
+* **Verification.** `tests/test_protocol_guard.py` (PROT-1...6). Mutation check, 7 mutants, all killed:
+  fold comparison inverted, `train_classes=all` unchecked, the flag inverted, `main` skipping the check,
+  a contradicting `--checkpoint_cvfold` accepted, an unknown fold assumed equal to the scoring fold, a
+  diagnostic labelled clean.

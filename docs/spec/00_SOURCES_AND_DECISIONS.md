@@ -415,6 +415,36 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 
 ---
 
+### D-22 — Protocol guard against seen-class scoring · `PROPOSED`
+
+* **Problem.** Report §3.6 showed that scoring a checkpoint on classes it was trained on lifts the
+  baseline by 22–25 points, and that this reading reproduces the paper's level. Nothing in `eval.py`
+  prevented it: `--cvfold` was read from the command line, independently of the fold the checkpoint
+  was trained on, and S0's training classes are exactly fold 1's test classes
+  [VIPSEG dataloaders/s3dis.py:20-31]. Phase 16 compares new designs whose gains are expected to be a
+  few points, so one silent fold swap would dominate any result.
+* **Decision.** `eval.py` scores a checkpoint only on the test classes of the fold it was trained on.
+  The training fold is read from the checkpoint (`args.cvfold`, which `train.py` stores in `best.pt`
+  and `last.pt`) or, for checkpoints that record none (VIP-Seg's release saves only the model,
+  iteration and IoU [VIPSEG runs/training.py:97-100]), stated with `--checkpoint_cvfold`; a stated
+  fold that contradicts the recorded one raises. A different fold, or a checkpoint trained with
+  `--train_classes all` [DECISION D-21], raises before any episode is built.
+* **Diagnostic escape.** `--allow_seen_classes true` permits such a run; the log and the result JSON
+  then carry `protocol_check = "SEEN-CLASS DIAGNOSTIC, not a few-shot result: …"`. Clean runs carry
+  `"clean"`. `experiments/run_seen.sh` is the only script that sets the flag.
+* **Reporting rules for phase 16** (recorded here so that they bind every later run):
+  1. Headline numbers are `last.pt`. The inherited validation episodes are drawn from the test classes
+     [VIPSEG runs/training.py:52-66]; `best.pt` is selected on them and is reported only next to
+     `last.pt` [DECISION D-15].
+  2. Design choices are screened on fold S1 (the `valid` episode draw) and the S0 test episodes are
+     not looked at until the design is frozen, so S0 is a held-out fold for every phase-16 decision.
+     S1 results are reported with that caveat.
+  3. New hyper-parameters are never tuned on the classes being scored.
+* **Affects.** `eval.py`, `experiments/run_seen.sh`, `experiments/rescore_alt_metrics.sh`, 04 §6.1,
+  05 §3.12 (PROT-1…6), README §5.
+
+---
+
 ## 5. Official VIP-Seg files: restore, reuse, avoid
 
 ### 5.1 Reference implementations restored from L2
@@ -497,4 +527,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-20 | D-18 closed on three seeds per variant: `full` 0.5171 ± 0.0123 against `baseline_l2` 0.5205 ± 0.0104, i.e. the cascade adds nothing (t = −0.36). Every stage diagnostic is healthy, and the Eq.19 weight on the class-blind `P_diffuse` falls to 0.008–0.082 by itself, so D-16 is not the cause either. The `layernorm` probe stays an ablation flag, never a default. |
 | 2026-09-21 | D-12 measured against VIP-Seg's batch-1 schedule: no difference (0.4901 vs 0.4908). D-21 measured: leakage lifts baseline and full model by 12–15 points, not to the paper's level. |
 | 2026-09-22 | D-21 corrected: the 20-epoch run is a partial leak. Scored on classes seen in training, the baseline reaches 77.32 / 71.58 (S0 / S1) against the paper's 82.72 / 79.83. |
+| 2026-09-22 | Phase 16 (improvement research, beyond the paper) opened by the maintainer. D-22: `eval.py` refuses to score seen classes; phase-16 reporting rules (last.pt, screening on S1, S0 held out). |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

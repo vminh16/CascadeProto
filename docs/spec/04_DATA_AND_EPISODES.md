@@ -146,6 +146,7 @@ Primary protocol [DECISION D-08]:
   | ScanNet (10) | C(10,2)·100 = 4,500 | C(10,3)·100 = 12,000 |
 
 * Model in eval mode, z = 0, no augmentation [DECISION D-06] [VIPSEG dataloaders/loader.py:236].
+* A checkpoint is scored only on the test classes of the fold it was trained on, and never after `--train_classes all`; `eval.py` refuses otherwise unless `--allow_seen_classes true` marks the run as a leakage diagnostic [DECISION D-22].
 * Ablation `eval_protocol=random600`: 600 episodes with random class draws [PAPER §4.1] [DECISION D-08].
 
 ### 6.2 Metric

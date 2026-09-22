@@ -27,7 +27,7 @@ score () {  # name, checkpoint, extra eval flags...
 
 {
   echo "=== $(date -Is) commit $(git rev-parse --short HEAD)"
-  score vipseg_released   vipseg_S0_N2_K1.pt                                    --model vipseg
+  score vipseg_released   vipseg_S0_N2_K1.pt                                    --model vipseg --checkpoint_cvfold 0
   score baseline          log_phase14/s3dis_S0_N2_K1_point_T0/best.pt
   score baseline_l2       log_phase15_bl2/s3dis_S0_N2_K1_point_T0/best.pt
   score lma               log_phase15_t4rows/s3dis_S0_N2_K1_text_T0/best.pt
