@@ -1,0 +1,65 @@
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'train_classes': 'split', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'epochs': 50, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 10, 'batch_size': 4, 'lr_gamma': 0.5, 'valid_every': 10, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_s1', 'dry_run': False, 'resume': True}
+data: /home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+train classes [0, 3, 4, 8, 10, 11] | test classes [6, 1, 9, 7, 2, 5] | 24000 training episodes, 120 steps/epoch
+model config: {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+epoch 1/50 | loss 0.7382 | L_GMMN 0.0000 | lr 1.00e-03 | 86s
+epoch 2/50 | loss 0.4257 | L_GMMN 0.0000 | lr 1.00e-03 | 171s
+epoch 3/50 | loss 0.3795 | L_GMMN 0.0000 | lr 1.00e-03 | 256s
+epoch 4/50 | loss 0.3552 | L_GMMN 0.0000 | lr 1.00e-03 | 341s
+epoch 5/50 | loss 0.3201 | L_GMMN 0.0000 | lr 1.00e-03 | 426s
+epoch 6/50 | loss 0.3274 | L_GMMN 0.0000 | lr 1.00e-03 | 511s
+epoch 7/50 | loss 0.3029 | L_GMMN 0.0000 | lr 1.00e-03 | 596s
+epoch 8/50 | loss 0.2924 | L_GMMN 0.0000 | lr 1.00e-03 | 681s
+epoch 9/50 | loss 0.2929 | L_GMMN 0.0000 | lr 1.00e-03 | 766s
+epoch 10/50 | loss 0.2681 | L_GMMN 0.0000 | lr 5.00e-04 | 851s
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 10 | valid mIoU 0.4888
+epoch 11/50 | loss 0.2358 | L_GMMN 0.0000 | lr 5.00e-04 | 1050s
+epoch 12/50 | loss 0.2316 | L_GMMN 0.0000 | lr 5.00e-04 | 1136s
+epoch 13/50 | loss 0.2183 | L_GMMN 0.0000 | lr 5.00e-04 | 1221s
+epoch 14/50 | loss 0.2181 | L_GMMN 0.0000 | lr 5.00e-04 | 1307s
+epoch 15/50 | loss 0.2268 | L_GMMN 0.0000 | lr 5.00e-04 | 1392s
+epoch 16/50 | loss 0.2039 | L_GMMN 0.0000 | lr 5.00e-04 | 1477s
+epoch 17/50 | loss 0.2051 | L_GMMN 0.0000 | lr 5.00e-04 | 1562s
+epoch 18/50 | loss 0.2114 | L_GMMN 0.0000 | lr 5.00e-04 | 1648s
+epoch 19/50 | loss 0.1988 | L_GMMN 0.0000 | lr 5.00e-04 | 1733s
+epoch 20/50 | loss 0.1906 | L_GMMN 0.0000 | lr 2.50e-04 | 1818s
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 20 | valid mIoU 0.5072
+epoch 21/50 | loss 0.1974 | L_GMMN 0.0000 | lr 2.50e-04 | 2018s
+epoch 22/50 | loss 0.1830 | L_GMMN 0.0000 | lr 2.50e-04 | 2103s
+epoch 23/50 | loss 0.1685 | L_GMMN 0.0000 | lr 2.50e-04 | 2188s
+epoch 24/50 | loss 0.1723 | L_GMMN 0.0000 | lr 2.50e-04 | 2274s
+epoch 25/50 | loss 0.1836 | L_GMMN 0.0000 | lr 2.50e-04 | 2359s
+epoch 26/50 | loss 0.1521 | L_GMMN 0.0000 | lr 2.50e-04 | 2445s
+epoch 27/50 | loss 0.1666 | L_GMMN 0.0000 | lr 2.50e-04 | 2531s
+epoch 28/50 | loss 0.1680 | L_GMMN 0.0000 | lr 2.50e-04 | 2616s
+epoch 29/50 | loss 0.1520 | L_GMMN 0.0000 | lr 2.50e-04 | 2701s
+epoch 30/50 | loss 0.1739 | L_GMMN 0.0000 | lr 1.25e-04 | 2786s
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 30 | valid mIoU 0.5125
+epoch 31/50 | loss 0.1692 | L_GMMN 0.0000 | lr 1.25e-04 | 2983s
+epoch 32/50 | loss 0.1626 | L_GMMN 0.0000 | lr 1.25e-04 | 3068s
+epoch 33/50 | loss 0.1497 | L_GMMN 0.0000 | lr 1.25e-04 | 3154s
+epoch 34/50 | loss 0.1495 | L_GMMN 0.0000 | lr 1.25e-04 | 3239s
+epoch 35/50 | loss 0.1446 | L_GMMN 0.0000 | lr 1.25e-04 | 3325s
+epoch 36/50 | loss 0.1449 | L_GMMN 0.0000 | lr 1.25e-04 | 3411s
+epoch 37/50 | loss 0.1537 | L_GMMN 0.0000 | lr 1.25e-04 | 3496s
+epoch 38/50 | loss 0.1476 | L_GMMN 0.0000 | lr 1.25e-04 | 3581s
+epoch 39/50 | loss 0.1478 | L_GMMN 0.0000 | lr 1.25e-04 | 3666s
+epoch 40/50 | loss 0.1469 | L_GMMN 0.0000 | lr 6.25e-05 | 3751s
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 40 | valid mIoU 0.5180
+epoch 41/50 | loss 0.1407 | L_GMMN 0.0000 | lr 6.25e-05 | 3947s
+epoch 42/50 | loss 0.1477 | L_GMMN 0.0000 | lr 6.25e-05 | 4032s
+epoch 43/50 | loss 0.1402 | L_GMMN 0.0000 | lr 6.25e-05 | 4117s
+epoch 44/50 | loss 0.1390 | L_GMMN 0.0000 | lr 6.25e-05 | 4202s
+epoch 45/50 | loss 0.1334 | L_GMMN 0.0000 | lr 6.25e-05 | 4287s
+epoch 46/50 | loss 0.1294 | L_GMMN 0.0000 | lr 6.25e-05 | 4373s
+epoch 47/50 | loss 0.1419 | L_GMMN 0.0000 | lr 6.25e-05 | 4458s
+epoch 48/50 | loss 0.1210 | L_GMMN 0.0000 | lr 6.25e-05 | 4544s
+epoch 49/50 | loss 0.1301 | L_GMMN 0.0000 | lr 6.25e-05 | 4629s
+epoch 50/50 | loss 0.1427 | L_GMMN 0.0000 | lr 3.13e-05 | 4714s
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 50 | valid mIoU 0.5224
+done: best valid mIoU 0.5224; evaluate best.pt and last.pt with eval.py [D-15]

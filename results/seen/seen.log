@@ -1,0 +1,45 @@
+=== 2026-09-22T03:10:24+00:00 commit 0593ab3
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_phase14/s3dis_S0_N2_K1_point_T0/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval_seen', 'dry_run': False, 'result_json': 'results/seen/baseline_S0_on_S1.json', 'extra_metrics': True}
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+Test dataset (datasets/S3DIS/blocks_bs1_s1/vipseg_eval_S_1_N_2_K_1_test_episodes_100_pts_2048) does not exist...
+ Constructing...
+fixed100: 1500 of 1500 episodes | test classes ['door', 'floor', 'sofa', 'table', 'wall', 'window']
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+[TEST] cascadeproto s3dis S1 2-way 1-shot mIoU: 0.713992
+[EXTRA] accumulated_fg=0.713992 | accumulated_with_bg=0.730945 | episode_fg=0.723292 | episode_with_bg=0.757857 | point_accuracy=0.868426
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_phase14/s3dis_S0_N2_K1_text_T4/best.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval_seen', 'dry_run': False, 'result_json': 'results/seen/full_S0_on_S1.json', 'extra_metrics': True}
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config (from checkpoint): {'use_lma': True, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'gate_target': 'prototype', 'eq19_self': 'none', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+fixed100: 1500 of 1500 episodes | test classes ['door', 'floor', 'sofa', 'table', 'wall', 'window']
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+[TEST] cascadeproto s3dis S1 2-way 1-shot mIoU: 0.759873
+[EXTRA] accumulated_fg=0.759873 | accumulated_with_bg=0.773115 | episode_fg=0.765528 | episode_with_bg=0.791378 | point_accuracy=0.889503
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'vipseg_S0_N2_K1.pt', 'model': 'vipseg', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval_seen', 'dry_run': False, 'result_json': 'results/seen/vipseg_S0_on_S1.json', 'extra_metrics': True}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+fixed100: 1500 of 1500 episodes | test classes ['door', 'floor', 'sofa', 'table', 'wall', 'window']
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+[TEST] vipseg s3dis S1 2-way 1-shot mIoU: 0.791261
+[EXTRA] accumulated_fg=0.791261 | accumulated_with_bg=0.795639 | episode_fg=0.795823 | episode_with_bg=0.802587 | point_accuracy=0.891125
+=== ALL DONE 2026-09-22T03:17:39+00:00
