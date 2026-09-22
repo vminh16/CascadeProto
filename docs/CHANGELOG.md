@@ -958,3 +958,47 @@ B (training) after the pending VM check 13e.
 * **Incident.** The first queue for these runs waited on `pgrep -f run_b1.sh`, which matched its own
   command line and never returned; about 90 minutes of VM time were idle before it was replaced.
 
+
+### 15y - scored on classes seen in training: the paper's level within 5-8 points; project closed
+
+* **Why.** A second review of the report (`docs/research/2026-09-21_gap_diagnosis.md`) found that the
+  D-21 run of 15x is a partial leak, not the upper bound 15x called it: each test class fills
+  9,600 x 2 / 12 = 1,600 way slots against 24,000 x 2 / 6 = 8,000 for a class trained on normally, and
+  the runs had not converged. The full form needs no new model: S0's training classes are fold 1's test
+  classes, so an S0 checkpoint scored with `--cvfold 1` is scored on classes it was trained on, and
+  symmetrically for S1. Each reading rule below was written down before its run.
+* **Result** (`results/seen/`, `log_s1/`, fixed100, 1,500 episodes, one seed; VM, 2026-09-22).
+
+  | checkpoint | scored on | seen in training? | mIoU |
+  | :-- | :-- | :-- | --: |
+  | S0 baseline best (epoch 20) | fold 1 | yes | 0.7140 |
+  | S0 baseline last (epoch 50) | fold 1 | yes | **0.7732** |
+  | S0 full best / last | fold 1 | yes | 0.7599 / **0.8128** |
+  | VIP-Seg released S0 | fold 1 | yes | 0.7913 |
+  | S1 baseline last (epoch 50, new run) | fold 0 | yes | **0.7158** |
+  | S1 baseline best = last | fold 1 | no | **0.5191** |
+
+  Baseline against the paper (S0 / S1 / Avg): paper 82.72 / 79.83 / 81.28; standard protocol
+  49.08 / 51.91 / 50.50 (gap 30.8); seen classes 77.32 / 71.58 / 74.45 (gap 6.8).
+* **Reading.** Having seen the classes is worth 22-25 points on either fold; the easier fold-1
+  classes are worth 2.8 unseen. Seen-class scoring reproduces the paper's S0 > S1 order, which the
+  standard protocol reverses for us (51.91 > 49.08) and for every method in Table 2 with both folds. It
+  also explains a baseline above VIP-Seg: a seen-class 77.32 next to VIP-Seg's cited unseen 72.20. The
+  remaining 5-8 points are the size of one seed's spread, random600 against fixed100 and checkpoint
+  choice combined; not decomposed. Consistent with the paper's numbers, not proof of how they were
+  made. Predictions: `best.pt` S0 baseline >= 0.75 on fold 1 (0.714, inconclusive), `last.pt` >= 0.75
+  (0.773, met), S1 on fold 0 72-77 and below 0.773 (0.716, below by 0.4, order met), S1 unseen 52-55
+  (0.519, met within 0.1).
+* **Report corrections.** (1) The paper column of Table 4 rows 2-4 had been reconstructed as 82.72 plus
+  the cumulative Avg increments (83.93 / 85.35 / 87.41); the printed S0 values are 83.98 / 85.34 /
+  87.89, and the increments to compare with ours are the S0 ones (+1.26, +1.36, +2.55, +0.64). No
+  verdict changes; the unreproduced cascade claim grows from +2.06 to +2.55. Stale copies of the old
+  values remain in 15n and 15q above. (2) 15x's "upper bound" is withdrawn. (3) The "3.4 of +7.07 is
+  normalisation" split is marked as an analogy, not a measurement. (4) Table 6 (2.88M vs 2.76M params,
+  8.86G vs 8.48G FLOPs) is cited against an unstated stronger backbone.
+* **What.** `experiments/run_seen.sh` (seen-class probe); report sections Verdict, 2, 3, 3.5, new 3.6, 6;
+  spec 00 D-21; README and AGENTS status. New research notes: `2026-09-21_external_sources_on_gap.md`
+  (primary sources: the first author's own ablations put this baseline at 49-52; no method > 80 in this
+  protocol) and `2026-09-21_gap_diagnosis.md` (the review and the prediction log).
+* **Status.** The project is closed at this point by the maintainer. Not done: extra seeds, random600
+  rescoring, the full model on S1, other Table 2 settings, and contacting the authors.

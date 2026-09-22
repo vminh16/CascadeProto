@@ -1,6 +1,7 @@
 # CascadeProto: what an unofficial re-implementation reproduces, and what it does not
 
-Status: 2026-09-21, complete for S3DIS fold S0 at 2-way 1-shot. Every number below is a finished run.
+Status: 2026-09-22, complete for S3DIS 2-way 1-shot (every Table 4 row on fold S0; the baseline also
+on fold S1). Every number below is a finished run.
 
 ## Verdict
 
@@ -17,10 +18,16 @@ decreasing order of size:
    A baseline that removes VIP-Seg's prototype modules cannot outscore VIP-Seg with them unless
    something the paper does not state is different. Our pipeline scores VIP-Seg's released checkpoint
    at 0.7197, so it reaches the level VIP-Seg really has; our baseline at 49.08 sits below it, where
-   a stripped-down VIP-Seg should. No setting described in the paper closes this gap (§3), none of our
-   own decisions on the baseline's path does either (§3.3, including VIP-Seg's schedule), and even
-   training on the test classes leaves the full model at 69.24, below the paper's baseline (§3.5).
-2. **The cascade depth does not work as the printed equations define it** (the paper's +2.06). One
+   a stripped-down VIP-Seg should, and where the first author's own ablations of TaylorSeg and
+   DyPolySeg put the same construct (49–52). No setting described in the paper closes this gap (§3),
+   and none of our own decisions on the baseline's path does either (§3.3, including VIP-Seg's
+   schedule). **What does come close is scoring on classes seen in training** (§3.6): our baseline
+   scores 77.32 / 71.58 (S0 / S1) when each fold is scored on the other fold's classes, against the
+   paper's 82.72 / 79.83. That reading cuts the gap on the Avg column from 30.8 to 6.8 points and
+   reproduces the paper's S0 > S1 order, which every other method in Table 2 reverses. It is
+   consistent with the paper's numbers, not proof of how they were made; the authors' code is not
+   released.
+2. **The cascade depth does not work as the printed equations define it** (the paper's +2.55 on S0). One
    EPPM stage gains +7.07; stages two to four add −0.17. The mechanism: the only summands Eq.19 adds
    to the prototype are class-poor — `P_diffuse` has no class index at all (Eq.15–18) and `P_cross`
    mixes channels (Eq.14) — so a stage after the first can only pass its residual through; training
@@ -33,7 +40,7 @@ decreasing order of size:
    and the normalisation as the ablation switch `l2norm_point_proto` (D-10).
 
 What **does** reproduce: the pipeline, the total gain of the added modules (+8.07 against +5.81), and
-ADRM's increment (+0.60 against +0.56).
+ADRM's increment (+0.60 against +0.64).
 
 
 * **Paper.** "CascadeProto", Wang et al., `10069.pdf`. Method in §3 (Eq.1–27), hyper-parameters in
@@ -72,33 +79,39 @@ reproduce VIP-Seg's published behaviour. Whatever the gap below is, it is not th
 | configuration | switches | ours best | ours last | paper [Tab.4] |
 | :--- | :--- | ---: | ---: | ---: |
 | Baseline | `use_lma=false num_stages=0` | 0.4908 | 0.4907 | 0.8272 |
-| + LMA | `use_lma=true num_stages=0` | 0.4965 | 0.4832 | 0.8393 |
-| + Entropy Gate (T = 1) | `num_stages=1` | 0.5672 | 0.5672 | 0.8535 |
-| + Cascade (T = 4) | `num_stages=4 use_adrm=false` | 0.5655 | 0.5603 | 0.8741 |
+| + LMA | `use_lma=true num_stages=0` | 0.4965 | 0.4832 | 0.8398 |
+| + Entropy Gate (T = 1) | `num_stages=1` | 0.5672 | 0.5672 | 0.8534 |
+| + Cascade (T = 4) | `num_stages=4 use_adrm=false` | 0.5655 | 0.5603 | 0.8789 |
 | + ADRM, the full model | defaults | 0.5715 | 0.5670 | 0.8853 |
 | *aside*: baseline, prototypes L2-normalised | `… l2norm_point_proto=true` | 0.5244 | 0.5019 | — |
 
 ### The increments, one at a time
 
-| step | ours | paper | verdict |
+| step | ours (S0) | paper (S0) | verdict |
 | :--- | ---: | ---: | :--- |
-| Baseline → + LMA | +0.57 | +1.21 | same sign, about half the size |
-| + LMA → + Entropy Gate (T = 1) | **+7.07** | +1.42 | five times the claim |
-| + Entropy Gate → + Cascade (T = 4) | **−0.17** | +2.06 | **not reproduced; depth buys nothing** |
-| + Cascade → + ADRM | +0.60 | +0.56 | reproduced almost exactly |
+| Baseline → + LMA | +0.57 | +1.26 | same sign, about half the size |
+| + LMA → + Entropy Gate (T = 1) | **+7.07** | +1.36 | five times the claim |
+| + Entropy Gate → + Cascade (T = 4) | **−0.17** | +2.55 | **not reproduced; depth buys nothing** |
+| + Cascade → + ADRM | +0.60 | +0.64 | reproduced almost exactly |
 | Baseline → full model | +8.07 | +5.81 | larger than claimed |
+
+The paper's S0 values are the ones Table 4 prints (82.72 / 83.98 / 85.34 / 87.89 / 88.53). An earlier
+version of this report listed 83.93 / 85.35 / 87.41 for rows 2–4 and compared our S0 increments with
+§4.3's **Avg** increments (+1.21, +1.42, +2.06, +0.56, which sum to +5.25, not +5.81); corrected
+2026-09-22 (CHANGELOG 15y). No verdict changes.
 
 **The total is reproduced; the attribution is not.** The paper spreads its +5.81 over four components.
 We obtain +8.07, but almost all of it comes from the single first EPPM stage, and going from one stage
-to four costs 0.17 points instead of gaining 2.06.
+to four costs 0.17 points instead of gaining 2.55.
 
 The "+ Entropy Gate" row is `num_stages=1` under D-17, i.e. a whole EPPM stage — gate,
 cross-attention, diffusion, fusion, and the LayerNorm of Eq.21. That LayerNorm equalises the
 prototype row norms, which is what `l2norm_point_proto` does on its own for +3.36. So of the +7.07,
-roughly 3.4 points are the normalisation the paper never prints and roughly 3.7 are the stage's own
-refinement.
+roughly 3.4 points may be the normalisation the paper never prints and roughly 3.7 the stage's own
+refinement. This split is an analogy, not a measurement: it was never run as an ablation, and the
++3.36 itself is one seed (best 52.44, last 50.19).
 
-**What is reproduced:** ADRM's +0.56, to within 0.04. **What is not:** the cascade depth that gives
+**What is reproduced:** ADRM's +0.64, to within 0.04. **What is not:** the cascade depth that gives
 the paper its largest single increment, and the absolute level — 49.08 against 82.72 for the
 baseline, 57.15 against 88.53 for the full model.
 
@@ -128,6 +141,10 @@ is documented in full in `2026-09-20_paper_vs_code_audit.md`.
 * **Table 6's parameter budget is unreachable.** Four EPPM stages built exactly from Eq.10–21 cost
   317,580 parameters, already more than the ~0.31M the paper implies for LMA + EPPM + ADRM together,
   and the LMA alone (148,352) exceeds the "+0.12M" of §4.4.
+* **Table 6 leaves no room for a stronger backbone.** CascadeProto is listed at 2.88M parameters and
+  8.86G FLOPs against VIP-Seg's 2.76M and 8.48G. With LMA + EPPM + ADRM at about 0.47M, what is left
+  for the backbone is at most VIP-Seg's own (about 2.57M without PEM/PDM), so an unstated, larger or
+  heavier backbone cannot be what lifts the baseline to 82.72.
 * **Eq.11 cannot do what the abstract claims.** `g = σ(2(θ − H))` with `H ∈ [0, ln 2]` gives `g < 1`
   for every finite `θ`, so the gate can only attenuate, never "amplify low-entropy foreground
   information".
@@ -145,9 +162,9 @@ definitions (`pipeline/metrics_alt.py`, `results/rescore/`):
 | VIP-Seg, released checkpoint | 71.97 | 72.72 | 74.27 | 75.35 | 85.46 | 72.20 |
 | Baseline | 49.08 | 51.88 | 51.12 | 57.15 | 72.81 | 82.72 |
 | Baseline + L2 | 52.44 | 55.09 | 54.64 | 60.38 | 75.56 | — |
-| + LMA | 49.65 | 53.23 | 50.74 | 58.92 | 76.35 | 83.93 |
-| + Entropy Gate (T = 1) | 56.72 | 59.21 | 58.45 | 63.93 | 78.32 | 85.35 |
-| + Cascade (T = 4) | 56.55 | 59.52 | 58.04 | 64.63 | 79.84 | 87.41 |
+| + LMA | 49.65 | 53.23 | 50.74 | 58.92 | 76.35 | 83.98 |
+| + Entropy Gate (T = 1) | 56.72 | 59.21 | 58.45 | 63.93 | 78.32 | 85.34 |
+| + Cascade (T = 4) | 56.55 | 59.52 | 58.04 | 64.63 | 79.84 | 87.89 |
 | + ADRM, full model | 57.15 | 59.97 | 58.55 | 64.85 | 79.74 | 88.53 |
 
 * The re-implementation of the primary metric equals it on every row, so the other columns are
@@ -194,7 +211,7 @@ criterion:
 | decision | on the baseline's path? | status |
 | :--- | :---: | :--- |
 | D-01, D-02, D-03, D-11, D-14, D-16, D-18, D-19 (EPPM internals) | no | can only move the increments, which reproduce in total (+8.07 vs +5.81) |
-| D-04, D-05, D-06, D-13 (LMA, GMMN, CLIP) | no | LMA is +0.57 vs +1.21; the paper's three modalities differ by ≤ 2 points |
+| D-04, D-05, D-06, D-13 (LMA, GMMN, CLIP) | no | LMA is +0.57 vs +1.26; the paper's three modalities differ by ≤ 2 points |
 | D-07 split, D-08 metric | yes | verified: VIP-Seg's checkpoint scores 71.97 against 72.20; metric equals [34]'s code |
 | D-10 logit form | yes | measured: L2 prototypes +3.4, a 1/√D scale −5.5 |
 | D-15 model selection | yes | `best` and `last` both reported; they differ by < 2.3 points |
@@ -253,13 +270,16 @@ code on it matches VIP-Seg's. Nothing we decided ourselves can account for the 3
   D-07 was never implemented). The stronger form of the protocol hypothesis was tested instead
   (§3.5).
 
-### 3.5 Were the test classes seen in training? It explains part of the level, not all of it.
+### 3.5 Were the test classes seen in training? Partial leakage: 12–15 points.
 
 The gap is nearly uniform across Table 4 (28.6–34.3 points), the pattern of a data or protocol
 difference rather than a model difference. The largest such difference the paper's wording admits is
 that the category split did not take effect and the S0 test classes were trained on. D-21 trains on
 all 12 classes (`--train_classes all`, 20 epochs, past the divergence point) and scores the usual
-fixed100 test episodes. It leaks classes and possibly blocks, so it is an upper bound of that reading.
+fixed100 test episodes. It is a **partial** leak, not an upper bound (an earlier version of this
+report said upper bound; corrected in CHANGELOG 15y): each test class fills 9,600 × 2 / 12 = 1,600
+way slots, against 24,000 × 2 / 6 = 8,000 for a class the model is trained on normally, and the runs
+had not converged. §3.6 measures the full form.
 
 | row | class split (50 epochs) | test classes seen (20 epochs) | change | paper |
 | :-- | --: | --: | --: | --: |
@@ -271,8 +291,49 @@ Leakage lifts both rows by 12–15 points and leaves the gain of the added modul
 +5.81, which is what a protocol difference would do. But the leaked full model stays 13.5 points below
 the paper's *baseline* and 19.3 below its full model. The leaked runs had not plateaued at 20 epochs
 (validation rose 5–7 points between epochs 10 and 20), so the share leakage explains could be somewhat
-larger. It still cannot reach the paper's level by itself. One seed per row (`results/leak/`,
-CHANGELOG 15x).
+larger. One seed per row (`results/leak/`, CHANGELOG 15x).
+
+### 3.6 Scored on classes seen in training: the paper's level, within 5–8 points
+
+The full form of the leakage reading needs no new model: S0's training classes are exactly fold 1's
+test classes, so an S0-trained checkpoint scored with `--cvfold 1` is scored on classes it saw for 50
+epochs, and symmetrically for an S1-trained one on fold 0. If the paper's training and evaluation folds
+were swapped, these are the numbers it would print. Each prediction below was written down before its
+run (`docs/research/2026-09-21_gap_diagnosis.md` §4b); fixed100, 1,500 episodes, one seed
+(`results/seen/`, CHANGELOG 15y).
+
+**Baseline.**
+
+| classes scored | not seen in training (standard) | seen in training (`last.pt`) | effect of having seen them |
+| :--- | ---: | ---: | ---: |
+| fold 0: beam, board, bookcase, ceiling, chair, column | 49.08 (S0 model) | **71.58** (S1 model) | +22.5 |
+| fold 1: door, floor, sofa, table, wall, window | 51.91 (S1 model) | **77.32** (S0 model) | +25.4 |
+
+| baseline | S0 | S1 | Avg | gap to the paper (Avg) |
+| :--- | ---: | ---: | ---: | ---: |
+| paper, Table 4 | 82.72 | 79.83 | 81.28 | — |
+| standard protocol | 49.08 | 51.91 | 50.50 | 30.8 |
+| scored on seen classes | 77.32 | 71.58 | 74.45 | **6.8** |
+
+**Other checkpoints on fold 1 (seen classes).** Baseline `best.pt` (epoch 20) 71.40; full model
+`best.pt` 75.99 and `last.pt` **81.28** (paper S0 full 88.53); VIP-Seg's released S0 checkpoint 79.13
+(its cited, unseen-class number is 72.20).
+
+* **The jump is having seen the classes, not easier classes.** Unseen, fold 1 is only 2.8 points
+  easier than fold 0 (51.91 against 49.08; the first author's own ablations give 52.67 and 54.35 for
+  S1). Having seen the classes is worth 22–25 points on either fold.
+* **It reproduces the paper's fold order.** Under the standard protocol S1 > S0 for us (51.91 > 49.08)
+  and for every method in Table 2 with both folds (VIP-Seg 76.09 > 72.20). The paper reports S0 > S1 on
+  every row (82.72 > 79.83). Scored on seen classes, ours is S0 > S1 as well (77.32 > 71.58).
+* **It explains the baseline above VIP-Seg.** A baseline scored on seen classes (77.32) next to VIP-Seg's
+  cited unseen-class number (72.20) produces exactly the ordering of §3's first bullet.
+* **Extra training helps only on seen classes.** On the unseen S0 classes `last` and `best` agree
+  (49.07 / 49.08); on the seen fold-1 classes `last` is 5.9 points higher (77.32 / 71.40).
+* **What remains: 5–8 points** (S0 5.4, S1 8.2; full model 7.3). That is the size of one seed's spread
+  (1–3 points per run), the paper's 600 random episodes against our fixed100, and an unknown checkpoint
+  choice combined; none of these was measured separately.
+* **Consistent, not proven.** Without the authors' code this shows that the paper's numbers match
+  seen-class scoring and do not match the protocol it states, not how they were produced.
 
 ## 4. Ambiguities we resolved by measurement
 
@@ -310,12 +371,13 @@ below about two points carry no information on one seed.
 * Every full-schedule number is **one seed**. At the short budget the seed spread was 0.010–0.031.
   The increments that survive that scale are the +7.07 of the first stage and the +8.07 total; the
   +0.57 of LMA, the −0.17 of cascade depth and the +0.60 of ADRM are all inside one standard
-  deviation of it, so "ADRM reproduces the paper's +0.56" and "depth buys nothing" are both stated
+  deviation of it, so "ADRM reproduces the paper's +0.64" and "depth buys nothing" are both stated
   with that caveat.
-* Only fold S0 and only 2-way 1-shot. Table 2's other columns and ScanNet were never run.
+* Only 2-way 1-shot; fold S1 only for the baseline (§3.6). Table 2's other columns and ScanNet were
+  never run.
 * Table 6 (parameters, FLOPs, time) is not an acceptance criterion here (D-09), and its FLOPs are a
   lower bound because fvcore does not count the custom CUDA kernels.
-* What produces the remaining absolute gap is not settled. The encoder's training, the schedule
-  (D-12) and our own decisions are ruled out (§3.2, §3.3). Test-class leakage explains 12–15 points of
-  it at 20 epochs (§3.5) but not the rest, and the paper's own rows remain the only numbers not on the
-  scale that its cited rows and VIP-Seg's checkpoint are on.
+* How the paper's numbers were produced is not settled. The encoder's training, the schedule (D-12)
+  and our own decisions are ruled out (§3.2, §3.3). Scoring on classes seen in training reproduces
+  them to within 5–8 points and reproduces their fold order (§3.6); the residual was not decomposed
+  (seeds, random600, checkpoint choice). Only the authors' code or protocol can confirm the mechanism.

@@ -2,12 +2,13 @@
 
 Re-implementation of **CascadeProto: Cascaded Cross-Modal Prototype Purification via Entropy-Aware Learning for Few-Shot 3D Point Cloud Segmentation** (Changshuo Wang, Weijun Li, Fan Mo, Zhonghang Liu, Shuting He, Prayag Tiwari, Dimitrios Kanoulas).
 
-> **Status (2026-09-21): complete for S3DIS S0, 2-way 1-shot; the paper is only partly reproduced.**
+> **Status (2026-09-22): complete for S3DIS 2-way 1-shot; the paper is only partly reproduced. Project closed at this point.**
 > * This is **not** the authors' code. Their repository `github.com/changshuowang/CascadeProto` says "We will release it soon." (checked 2026-09-17).
 > * Every equation is implemented from the paper (phases 8–13), every ambiguity is a numbered decision (D-01…D-19), and every row of Table 4 has been trained on the full 50-epoch schedule on one GPU (phases 14–15). Text modality only; image and audio raise.
-> * **What reproduces:** the pipeline (VIP-Seg's released checkpoint scores 0.7197 here against its published 0.7220), the total gain of the added modules (+8.07 here, +5.81 in the paper) and ADRM's increment (+0.60 against +0.56).
-> * **What does not:** the absolute level (baseline 49.08 against 82.72, full model 57.15 against 88.53) and the cascade depth (T = 1 → 4 is −0.17 here against +2.06).
-> * No implementation bug was found. Why the rest does not reproduce, with the evidence: [docs/research/2026-09-21_reproduction_report.md](docs/research/2026-09-21_reproduction_report.md). One seed per row, one fold, one setting.
+> * **What reproduces:** the pipeline (VIP-Seg's released checkpoint scores 0.7197 here against its published 0.7220), the total gain of the added modules (+8.07 here, +5.81 in the paper) and ADRM's increment (+0.60 against +0.64).
+> * **What does not:** the absolute level (baseline 49.08 against 82.72, full model 57.15 against 88.53) and the cascade depth (T = 1 → 4 is −0.17 here against +2.55).
+> * **The paper's level is matched by scoring on classes seen in training:** our baseline scores 77.32 / 71.58 (S0 / S1) when each fold is scored on the other fold's classes, against the paper's 82.72 / 79.83 (Avg gap 30.8 → 6.8), and this reproduces the paper's unusual S0 > S1 order. Consistent with the paper's numbers, not proof of how they were made (report §3.6).
+> * No implementation bug was found. Why the rest does not reproduce, with the evidence: [docs/research/2026-09-21_reproduction_report.md](docs/research/2026-09-21_reproduction_report.md). One seed per row, one setting; fold S1 for the baseline only.
 > * The numbers in §6 are **reported by the paper**.
 
 ---

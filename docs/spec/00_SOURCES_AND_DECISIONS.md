@@ -406,6 +406,12 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   full 0.6924 (+12.09); full − baseline +5.70 against the paper's +5.81. Leakage explains part of the
   level but leaves the leaked full model below the paper's baseline (82.72), so it is not the whole
   explanation (report §3.5, CHANGELOG 15x).
+* **Correction and full form (2026-09-22).** The 20-epoch run is a partial leak, not an upper bound: each
+  test class fills 1,600 way slots against 8,000 for a normally trained class. The full form needs no
+  training: an S0-trained checkpoint scored with `--cvfold 1` (and an S1-trained one with `--cvfold 0`) is
+  scored on its own training classes. Baseline `last.pt`: 77.32 (S0 model on fold 1) and 71.58 (S1 model
+  on fold 0) against the paper's 82.72 / 79.83; unseen 49.08 / 51.91. Seen-class scoring matches the
+  paper to 5–8 points and reproduces its S0 > S1 order (report §3.6, CHANGELOG 15y). Diagnostic only.
 
 ---
 
@@ -490,4 +496,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-20 | Paper audit (`docs/research/2026-09-20_paper_vs_code_audit.md`): no implementation bug; 12 findings, 10 of them defects of the paper. D-02 revised — `gate_target=features` implemented, default unchanged, because `x_gated` is otherwise never consumed. Table 4 row 3 and Table 5 T=1 are the same configuration under D-17 yet differ by 0.63; recorded as an open conflict. |
 | 2026-09-20 | D-18 closed on three seeds per variant: `full` 0.5171 ± 0.0123 against `baseline_l2` 0.5205 ± 0.0104, i.e. the cascade adds nothing (t = −0.36). Every stage diagnostic is healthy, and the Eq.19 weight on the class-blind `P_diffuse` falls to 0.008–0.082 by itself, so D-16 is not the cause either. The `layernorm` probe stays an ablation flag, never a default. |
 | 2026-09-21 | D-12 measured against VIP-Seg's batch-1 schedule: no difference (0.4901 vs 0.4908). D-21 measured: leakage lifts baseline and full model by 12–15 points, not to the paper's level. |
+| 2026-09-22 | D-21 corrected: the 20-epoch run is a partial leak. Scored on classes seen in training, the baseline reaches 77.32 / 71.58 (S0 / S1) against the paper's 82.72 / 79.83. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |
