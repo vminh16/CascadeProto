@@ -311,6 +311,30 @@ Mutation check (2026-09-19): eight wrong variants (no % scale, dry runs counted,
 | R1-4 | A variant that has not run is reported as missing, not guessed; a log without results exits non-zero | 16e |
 | R1-5 | `run_r1.sh` screens on S1, three seeds, 9,600 episodes, and states rules R1.1…R1.5 | [DECISION D-22] |
 
+### 3.8g `tests/test_transductive.py` (G1) — query-side EM refinement and its probe [DECISION D-26]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| EM-1 | `κ = 0` or `T = 0` returns the model's logits for every weight arm | [DECISION D-26] |
+| EM-2 | The refined prototype keeps the prior's norm and changes its direction | [DECISION D-26] |
+| EM-3 | A uniform posterior (no confident mass) leaves every prototype unchanged at `κ = 16` | [DECISION D-26] |
+| EM-4 | The oracle arm at `κ = 10⁴` gives the direction of the query class's mean unit feature; `oracle` without labels raises | [DECISION D-26] |
+| EM-5 | Normalised entropy is 1 for a uniform and 0 for a one-hot posterior; the entropy weight follows | [DECISION D-26] |
+| EM-6 | SSP thresholds are per class: 0.65 keeps a background point, drops a foreground one | [DECISION D-26] |
+| EM-7 | The M-step equals the hand-written vMF MAP form; a class with 1 of 64 points moves < 10 % of one with 63 | [DECISION D-26] |
+| EM-8 | On a synthetic query whose support prototypes are perturbed, refinement raises point accuracy by > 5 points | [DECISION D-26] |
+| EM-9 | The entropy diagnostics bin points by weight and count correct argmax predictions | [DECISION D-26] |
+| EM-10 | The probe's VIP-Seg reader reproduces the gated logits of a stand-in with VIP-Seg's call pattern, removes its hooks, and fails without the outer residual | [DECISION D-26] [DECISION D-25] |
+| EM-11 | The per-episode count metric equals VIP-Seg's accumulated metric (`metrics_alt`) | [DECISION D-08] |
+| EM-12 | The paired bootstrap gives 0 for identical arms and a CI above 0 for a uniformly better arm | [DECISION D-26] |
+| EM-13 | Selection never picks an oracle arm; rules P0.1 (go), P0.2 (stop), P0.3 (S1 passes, S0 does not), P0.5, P0.6 and "incomplete" | [DECISION D-26] |
+| EM-14 | Selection refuses an S0 checkpoint before loading anything | [DECISION D-22] [DECISION D-26] |
+
+Mutation check (2026-09-23), 11 mutants: 10 killed. The go rule without its S0 condition first survived and is
+killed since EM-13 has the "S1 passes, S0 does not" case; the remaining survivor (gains computed over the oracle
+arms too) is equivalent, since the maximum is taken over non-oracle arms only. Not verified locally: the probe on the real
+checkpoints, which needs the CUDA encoder (gate G2).
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

@@ -263,3 +263,30 @@ A = torch.softmax(torch.einsum('brd,ckre->bckde', Qp, Sp) / 72 ** 0.5, dim=-1)  
 | `L^t`, `L_final` | `[B_q, 2048, N+1]` | §5.5, §6 |
 | `w_gate` | `[B_q, T]` | §6 |
 | `L_seg`, `L_GMMN`, `L_total` | scalars | §4.4, §7 |
+
+---
+
+## 11. Query-side EM refinement (beyond the paper) [DECISION D-26]
+
+Applied after a trained model's final scoring rule `L = F^q M^T`, `F^q ∈ [B_q, P, D]`, `M ∈ [B_q, N+1, D]`
+(for VIP-Seg, `M = Σ_t w_t M^t` of its gated steps [VIPSEG models/vipseg.py:152-174]). For t = 1..T, the
+prior `M` held fixed [DECISION D-26]:
+
+$$r_{ic} = \mathrm{softmax}_c(L^{t-1}_{ic}), \qquad w_i = 1 - \frac{H(r_i)}{\ln(N+1)}, \qquad
+u_c = \frac{1}{P}\sum_i w_i\, r_{ic}\, \frac{f_i}{\lVert f_i\rVert}$$
+$$\mu_c = \lVert m_c\rVert \cdot \mathrm{normalise}\!\left(\frac{m_c}{\lVert m_c\rVert} + \kappa\, u_c\right), \qquad L^t_{ic} = \langle f_i, \mu_c\rangle$$
+[DECISION D-26]
+
+* `H` is the Shannon entropy of the class posterior of one point, natural logarithm, `0·log 0 := 0`
+  (probabilities clamped at 10⁻¹²) [DECISION D-26].
+* Weight arms: `entropy` as above; `none`, `w_i = 1`; `ssp`, `w_i r_ic` replaced by the one-hot argmax of
+  points whose top probability exceeds 0.7 (foreground) or 0.6 (background) [DECISION D-26]; `oracle`,
+  the one-hot query labels, an upper bound only [DECISION D-26].
+* `‖u_c‖ ≤ Σ_i w_i r_ic / P`: a class with no confident mass is left unchanged, and `κ = 0` or `T = 0`
+  reproduces `L` exactly [DECISION D-26].
+
+| Tensor | Shape | Source |
+| :--- | :--- | :--- |
+| `r`, `w_i r_ic` | `[B_q, P, N+1]` | [DECISION D-26] |
+| `w` | `[B_q, P]` | [DECISION D-26] |
+| `u`, `μ` | `[B_q, N+1, D]` | [DECISION D-26] |

@@ -1181,3 +1181,38 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **Prediction log.** The research note predicted route A's stage 0 at 64-71 and D-23 as the leading
   cause; both are wrong. It predicted route B's stage 0 at 71-72; one PEM reaches 68.5 at 40 % of the
   schedule, on track.
+
+### 16g - D-26: query-side entropy-weighted EM refinement, probe P0 before any training
+
+* **Why.** Route B leaves VIP-Seg's head as the base; the addition has to be new and has to address the
+  remaining error. The query side carries most of it (oracle query prototypes 66.40 -> 93.89 [QGE T1],
+  against +1.5 to +4.3 for four extra support shots), class-selective aggregation of query points gains
+  +3 to +4 elsewhere (SSP, DPA, AttMPTI), and the paper's own entropy sits on an object that cannot carry
+  its meaning (D-02). Decision D-26 in 00; spec 02 §11.
+* **What.** `models/transductive.py`: T EM steps on top of a model's own scoring rule `L = F^q M^T`, the
+  MAP mean direction of a vMF mixture anchored on the model's prototype, weighted by `1 - H(r_i)/ln(N+1)`;
+  arms `none`, `ssp` and `oracle` for comparison. `experiments/p0_em_probe.py` reads the scoring rule of
+  VIP-Seg's released model through forward hooks (the inherited model is untouched, the rebuilt logits
+  are checked against the model's own on every episode) and of our `num_stages = 0` baseline; `select`
+  scores the grid on the S1 valid draw of S1 checkpoints, `test` scores the frozen setting once on the
+  fixed100 test draw (S0 for the first time) with a paired bootstrap, `decide` applies P0.1-P0.6.
+  `experiments/run_p0.sh` runs the three stages on the VM.
+* **Why a probe first.** No parameter is trained, so every arm is compared with the model on the same
+  episodes and weights; training-seed noise (3.1 points between two seeds of `r1_baseline_l2`, 16f)
+  does not enter the comparison.
+* **Bug found and fixed before any run.** The first M-step normalised the query mean to unit length
+  before weighting it by kappa. EM-3 (a uniform posterior must change nothing) failed: an entropy weight
+  of 1e-16 still gave a full unit update, so a class the query barely contains would have been pulled
+  as hard as one that fills it. Replaced by the unnormalised mean of unit features, which is what the
+  vMF derivation gives; the separate `mass` / `points` normalisations are gone with it.
+* **Verification.** EM-1...14 (`tests/test_transductive.py`, spec 05 §3.8g), 14/14 on the CPU. Mutation
+  check, 11 mutants: 10 killed, one equivalent; the go rule without its S0 condition first survived and
+  EM-13 gained the case that kills it. G1 on this machine with `.venv`: 351 passed.
+* **Not verified locally.** The probe itself: it needs the CUDA encoder and the checkpoints on the VM
+  (`VIP_S1`, `VIP_S0`, `OURS_S1`, `OURS_S0` in `run_p0.sh`; VIP-Seg's S1 checkpoint is
+  `log_s3dis_VIPSeg/log_S1_N2_K1_0.760875/checkpoint.pt` at the pinned commit).
+* **R1 re-read (no new run).** D-24 removed Eq.20's SE block together with the parts that cannot change
+  a prediction, but a class-common multiplicative gate is a query-conditioned diagonal metric and flips
+  33.5 % of the predictions in the research note's own check (2026-09-22 §2.2); EPPM-S also lacks PEM's
+  LayerNorm on the self term. So R1.3 (-3.79) does not isolate the entropy gate or `P_diffuse`, and
+  "removing the gate and the diffusion costs nothing" stays **untested**, not refuted.
