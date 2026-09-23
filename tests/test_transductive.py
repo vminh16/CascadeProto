@@ -235,6 +235,10 @@ def test_em13_selection_and_rules():
             _test_json("v0", "vipseg", 0, 0.1, unweighted_low=-0.2), _test_json("o0", "ours", 0, 0.0)]
     verdicts = dict(probe.decide(stop))
     assert "P0.2 stop" in verdicts and verdicts["P0.5 entropy weight"].startswith("not claimable")
+    assert verdicts["P0.4 held-out gain v0"].endswith("contains 0")  # [-0.4, +0.6]
+    assert verdicts["P0.4 held-out gain v0"] != dict(probe.decide(go))["P0.4 held-out gain v0"]
+    down = stop[:2] + [_test_json("v0", "vipseg", 0, -1.2), _test_json("o0", "ours", 0, 0.0)]
+    assert dict(probe.decide(down))["P0.4 held-out gain v0"].endswith("below 0")  # the P0 run printed this wrongly
     assert "features, not the prototypes" in verdicts["P0.6 oracle v1"]
     assert probe.decide(go[:2])[0][0] == "incomplete"
 

@@ -371,7 +371,7 @@ def decide(tests: List[Dict]) -> List[Tuple[str, str]]:
         ci = t["paired"]["frozen_vs_model"]
         verdicts.append(("P0.4 held-out gain " + t["checkpoint"]["name"],
                          f"{ci['gain']:+.2f} [{ci['ci_low']:+.2f}, {ci['ci_high']:+.2f}]: "
-                         + ("excludes 0" if ci["ci_low"] > 0 else "does not exclude 0")))
+                         + ("above 0" if ci["ci_low"] > 0 else "below 0" if ci["ci_high"] < 0 else "contains 0")))
     ew = [t["paired"]["frozen_vs_unweighted"] for t in s0]
     if not s0[0]["frozen"].startswith("entropy_"):
         verdicts.append(("P0.5 entropy weight", f"not claimable: selection froze {s0[0]['frozen']}"))

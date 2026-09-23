@@ -1216,3 +1216,31 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   33.5 % of the predictions in the research note's own check (2026-09-22 §2.2); EPPM-S also lacks PEM's
   LayerNorm on the self term. So R1.3 (-3.79) does not isolate the entropy gate or `P_diffuse`, and
   "removing the gate and the diffusion costs nothing" stays **untested**, not refuted.
+
+### 16h - P0 measured: query-side EM refinement stops under its own rule (D-26)
+
+* **Run.** VM 2026-09-23, 11:16-11:36 UTC, commit `50898a9`, `experiments/run_p0.sh`; VIP-Seg's S1
+  checkpoint fetched from the pinned commit (git blob `2eda6e2a`). A 5-episode smoke run of all three
+  stages preceded it; the scoring-rule identity check passed on every episode of all four checkpoints.
+  Results in `results/phase16_p0/` (`SUMMARY.md`).
+* **Result.** Frozen `ssp_k0.5_T1` (mean S1-valid gain +0.28). Test, fixed100, paired bootstrap:
+
+  | checkpoint | model | gain [95 % CI] | oracle, replace |
+  | :--- | ---: | :--- | ---: |
+  | VIP-Seg S1 | 75.36 | +0.37 [+0.24, +0.50] | +8.42 |
+  | ours S1 | 51.91 | +0.06 [-0.04, +0.16] | +20.46 |
+  | VIP-Seg S0 | 71.97 | -1.21 [-1.57, -0.87] | +15.13 |
+  | ours S0 | 49.07 | -0.16 [-0.28, -0.03] | +21.76 |
+
+* **The rules.** P0.2 stop fires (both S1 gains below +0.5); P0.5 not claimable (selection froze `ssp`,
+  not `entropy`); P0.6 mixed (oracle below 10 on VIP-Seg S1 only).
+* **What this settles.** The query-side headroom exists (+8 to +22 with the query labels), but
+  pseudo-labels from the model's own posterior do not reach it: every larger step hurts, and the small S1
+  gain turns into a loss on the held-out S0. The posterior entropy ranks points by reliability on all
+  four checkpoints (accuracy 52-73 % at w < 0.5, 88-95 % at w >= 0.9), the measurement the paper's
+  entropy claim lacks, but a soft entropy weight loses to SSP's hard thresholds.
+* **Bug found in the run's report.** `decide` printed "does not exclude 0" for the two S0 CIs, which lie
+  entirely below 0 (it only checked the lower bound). Now "above 0" / "below 0" / "contains 0", with a
+  case in EM-13; verdicts unchanged.
+* **Next.** R2 is not run. By D-26's rule the next direction is base-class calibration (research note
+  2026-09-23 §5, direction 4). The VM was stopped after the results were copied.

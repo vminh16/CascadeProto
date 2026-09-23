@@ -1,0 +1,49 @@
+=== 2026-09-23T11:16:55+00:00 commit 50898a9
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] vipseg_S1: model 0.7524 | entropy bins [0.10013688151041666, 0.29853385416666667, 0.6013292643229167] acc [0.6268486658073827, 0.8038182480351022, 0.9446971729028056]
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] ours_S1: model 0.5224 | entropy bins [0.2746433919270833, 0.34919368489583336, 0.37616292317708333] acc [0.552873666076215, 0.7594695928026154, 0.9113015410110573]
+[select] frozen: ssp_k0.5_T1 (mean valid gain +0.28)
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] vipseg_S1 S1: model 0.7536 -> 0.7573 (+0.37, 95% CI +0.24..+0.50)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] ours_S1 S1: model 0.5191 -> 0.5197 (+0.06, 95% CI -0.04..+0.16)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+[test] vipseg_S0 S0: model 0.7197 -> 0.7076 (-1.21, 95% CI -1.57..-0.87)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+[test] ours_S0 S0: model 0.4907 -> 0.4891 (-0.16, 95% CI -0.28..-0.03)
+P0.2 stop                                S1 gains [0.05602671747101384, 0.3666734605784372] all below +0.5: drop the direction
+P0.4 held-out gain ours_S0               -0.16 [-0.28, -0.03]: does not exclude 0
+P0.4 held-out gain vipseg_S0             -1.21 [-1.57, -0.87]: does not exclude 0
+P0.5 entropy weight                      not claimable: selection froze ssp_k0.5_T1
+P0.6 oracle vipseg_S0                    +15.13
+P0.6 oracle vipseg_S1                    +8.42 < 10: the features, not the prototypes, bound this model
+=== P0 FINISHED 2026-09-23T11:36:09+00:00

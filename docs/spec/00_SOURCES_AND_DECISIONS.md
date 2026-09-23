@@ -623,6 +623,14 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 * **Reporting.** A number with this refinement is VIP-Seg's head (or our baseline) plus D-26, not
   CascadeProto, and is labelled that way. Nothing trained here yet; R2 (training with the refinement
   inside the loop and per-step supervision) follows only on P0.1 or P0.3.
+* **Outcome: P0.2 stop (2026-09-23, `results/phase16_p0/SUMMARY.md`).** Selection froze `ssp_k0.5_T1`
+  (mean valid gain +0.28; every pseudo-label arm worsens as κ or T grows). Test, fixed100: VIP-Seg S1
+  +0.37 [+0.24, +0.50], ours S1 +0.06 [−0.04, +0.16], VIP-Seg S0 **−1.21 [−1.57, −0.87]**, ours S0 −0.16
+  [−0.28, −0.03]. With the query labels the same update gains +8.42 to +21.76, so the query-side headroom
+  is real but the model's own posterior cannot reach it. The posterior entropy does rank points by
+  reliability (accuracy 52–73 % at w < 0.5 against 88–95 % at w ≥ 0.9 on all four checkpoints), yet the
+  soft entropy weight lost to SSP's hard thresholds and P0.5 is not claimable. R2 is not run; the next
+  direction is base-class calibration. The module and probe stay, off every default path.
 * **Affects.** `models/transductive.py` (new), `experiments/p0_em_probe.py` (new),
   `experiments/run_p0.sh` (new), 02 §11, 05 §3.8g (EM-1…14).
 
