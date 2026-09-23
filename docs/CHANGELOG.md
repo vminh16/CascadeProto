@@ -1282,3 +1282,20 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **Doc fix.** Spec 02 §12 as committed in `126edb0` had its LaTeX mangled by string escapes in the
   editing script (`\tilde`, `\text` became a tab, `\big` a backspace, other backslashes doubled);
   rewritten from a plain file, and all edited docs checked free of control characters.
+
+### 16j - P1 measured: base-class calibration stops; D-28 fuses it with D-26 as an M-step filter
+
+* **P1 result** (`results/phase16_p1/SUMMARY.md`, VM 12:47-13:21 UTC, commit `e8801dd`). Frozen q = 0.5 %.
+  Test gains, fixed100, paired bootstrap: VIP-Seg S1 -0.16 [-0.17, -0.15], ours S1 -0.07 [-0.08, -0.06],
+  VIP-Seg S0 -0.07 [-0.09, -0.06], ours S0 -0.03 [-0.04, -0.02]. P1.2 stop; P1.4 weak (base-margin AUC for
+  false against true foreground: VIP-Seg 0.716 / 0.649, ours 0.494 / 0.629). False share of foreground
+  predictions 10-27 %, positive-margin share 58-69 %, mean raw cosine to the bank centre 0.58-0.62.
+* **D-28.** A weak signal loses as a classifier but can win as a filter of a mean: excluding a true point
+  from a prototype over hundreds costs variance, excluding a false one removes bias. D-28 drops the top
+  fraction r of each query's foreground-assigned points by base margin from D-26's foreground M-step
+  (`em_step(fg_keep=...)`, spec 02 §13). `experiments/p2_fused_probe.py` / `run_p2.sh` reuse P0 and P1
+  (P1's banks included), select on the VIP-Seg S1 checkpoint only (route B), record the false share of
+  the M-step with and without the filter, and apply P2.0-P2.5, the mechanism rule first.
+* **Verification.** FUS-1...8 (`tests/test_fused.py`, spec 05 §3.8i); FUS-8 parses every probe as
+  Python 3.10, the VM's version, after a nested f-string that only 3.12 accepts was caught in review.
+  Mutation check 7 of 8 killed, one equivalent. 37 tests of D-26...D-28 pass.

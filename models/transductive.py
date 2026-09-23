@@ -68,9 +68,16 @@ def responsibilities(logits: torch.Tensor, weight: str, labels: Optional[torch.T
 
 
 def em_step(f_q: torch.Tensor, prior: torch.Tensor, logits: torch.Tensor, kappa: float, weight: str,
-            labels: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
-    """One E/M step anchored on `prior` [B_q, N+1, D]; returns (prototypes, logits) [B_q,N+1,D], [B_q,P,N+1]."""
+            labels: Optional[torch.Tensor] = None,
+            fg_keep: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    """One E/M step anchored on `prior` [B_q, N+1, D]; returns (prototypes, logits) [B_q,N+1,D], [B_q,P,N+1].
+
+    `fg_keep` [B_q, P] (bool) removes points from the foreground M-step only, the base-class filter of
+    [DECISION D-28]; the background M-step and the E-step are unchanged.
+    """
     wr = responsibilities(logits, weight, labels)  # [B_q, P, N+1]
+    if fg_keep is not None:
+        wr = torch.cat([wr[..., :1], wr[..., 1:] * fg_keep.unsqueeze(-1).to(wr.dtype)], dim=-1)  # [B_q, P, N+1]
     u = torch.einsum("bpc,bpd->bcd", wr, F.normalize(f_q, dim=-1)) / f_q.shape[1]  # [B_q, N+1, D], |u_c| <= mass
     norm = prior.norm(dim=-1, keepdim=True)  # [B_q, N+1, 1]
     direction = F.normalize(prior / norm.clamp_min(1e-12) + kappa * u, dim=-1)  # [B_q, N+1, D]

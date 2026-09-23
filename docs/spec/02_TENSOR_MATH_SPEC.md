@@ -319,3 +319,25 @@ and `Δ_i` at least the k-th largest margin of `F_b` get `ĉ_i ← 0`; `k = 0` m
 | `μ` | `[D]` | [DECISION D-27] |
 | `b`, `u` | `[J, D]`, `[N, D]` | [DECISION D-27] |
 | `Δ` | `[B_q, P]` | [DECISION D-27] |
+
+---
+
+## 13. EM refinement with a base-margin filter (beyond the paper) [DECISION D-28]
+
+§11's EM step with the foreground responsibilities of filtered points set to zero [DECISION D-28]:
+
+$$\tilde r_{ic} = w_i\, r_{ic}\, k_i \ (c \ge 1), \qquad \tilde r_{i0} = w_i\, r_{i0}, \qquad
+u_c = \frac{1}{P}\sum_i \tilde r_{ic}\, \frac{f_i}{\lVert f_i\rVert}$$
+
+where `k_i = 0` for the points of each query flagged by §12's top-fraction rule with fraction r, the
+margin `Δ_i` computed from the current step's logits, and `k_i = 1` otherwise; `r = 0` gives §11 exactly
+[DECISION D-28].
+
+* The E-step, the background M-step and the prototype update of §11 are unchanged [DECISION D-28].
+* Diagnostic, from the query labels only: `ε = Σ_{i, c≥1} r̃_ic [y_i ≠ c] / Σ_{i, c≥1} r̃_ic` at the first
+  step [DECISION D-28].
+
+| Tensor | Shape | Source |
+| :--- | :--- | :--- |
+| `k` | `[B_q, P]` (bool) | [DECISION D-28] |
+| `r̃` | `[B_q, P, N+1]` | [DECISION D-28] |

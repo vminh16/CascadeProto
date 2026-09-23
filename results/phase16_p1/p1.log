@@ -1,0 +1,57 @@
+=== 2026-09-23T12:47:06+00:00 commit e8801dd
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] vipseg_S1: model 0.7524 | bpc_q0.005 0.7507 bpc_q0.01 0.7486 bpc_q0.02 0.7440 bpc_q0.04 0.7341 | AUC false-vs-true fg 0.7133506048723351 | false share of fg 0.103 | raw cos to centre 0.619
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] ours_S1: model 0.5224 | bpc_q0.005 0.5217 bpc_q0.01 0.5207 bpc_q0.02 0.5184 bpc_q0.04 0.5134 | AUC false-vs-true fg 0.5086082409191937 | false share of fg 0.196 | raw cos to centre 0.611
+[select] frozen: bpc_q0.005 (mean valid gain -0.12)
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] vipseg_S1 S1: model 0.7536 -> 0.7520 (-0.16, 95% CI -0.17..-0.15) | AUC false-vs-true fg 0.7156925670626377
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] ours_S1 S1: model 0.5191 -> 0.5184 (-0.07, 95% CI -0.08..-0.06) | AUC false-vs-true fg 0.4943188158472347
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+[test] vipseg_S0 S0: model 0.7197 -> 0.7189 (-0.07, 95% CI -0.09..-0.06) | AUC false-vs-true fg 0.6494684917469288
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [1 2 5 6 7 9]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+[test] ours_S0 S0: model 0.4907 -> 0.4904 (-0.03, 95% CI -0.04..-0.02) | AUC false-vs-true fg 0.6292627395724377
+P1.2 stop (training-free form)           no S1 checkpoint gains with CI above 0
+P1.1 gain ours_S0                        -0.03 [-0.04, -0.02]: below 0
+P1.1 gain ours_S1                        -0.07 [-0.08, -0.06]: below 0
+P1.1 gain vipseg_S0                      -0.07 [-0.09, -0.06]: below 0
+P1.1 gain vipseg_S1                      -0.16 [-0.17, -0.15]: below 0
+P1.4 base signal                         AUC [0.6494684917469288, 0.7156925670626377]: weak, report only
+=== P1 FINISHED 2026-09-23T13:20:53+00:00

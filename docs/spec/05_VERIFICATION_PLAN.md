@@ -354,6 +354,21 @@ checkpoints, which needs the CUDA encoder (gate G2).
 Mutation check of the revised form (2026-09-23), 16 mutants: 16 killed, after BPC-5 gained the "large foreground
 logit" case that killed the one first survivor. Not verified locally: the probe on the real checkpoints (gate G2).
 
+### 3.8i `tests/test_fused.py` (G1) — base-margin-filtered EM and its probe [DECISION D-28]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| FUS-1 | Keeping every point equals D-26's step; keeping none leaves the foreground prototypes unchanged while the background M-step still runs | [DECISION D-28] |
+| FUS-2 | The keep mask is all points at r = 0 and the complement of §12's top-fraction flips otherwise | [DECISION D-28] |
+| FUS-3 | The false share counts foreground mass on points of another label and ignores the background column | [DECISION D-28] |
+| FUS-4 | An r = 0 arm reproduces D-26's refinement exactly; the diagnostic is recorded once per (weight, r) | [DECISION D-28] |
+| FUS-5 | Selection reads the VIP-Seg S1 checkpoint only, never ours, and raises without exactly one | [DECISION D-28] [DECISION D-25] |
+| FUS-6 | Rules P2.0 (a gain without the mechanism is a stop; an unfiltered winner adds nothing), P2.1, P2.2, P2.3, P2.4, P2.5, incomplete | [DECISION D-28] |
+| FUS-7 | Selection refuses an S0 checkpoint before loading anything | [DECISION D-22] |
+| FUS-8 | The probes and their modules parse as Python 3.10, the VM's version | 00 §5.2 |
+
+Mutation check (2026-09-23), 8 mutants: 7 killed, the survivor (removing the r = 0 shortcut) is equivalent.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.
