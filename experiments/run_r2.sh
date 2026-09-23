@@ -43,7 +43,9 @@ case "${1:-}" in
     {
       echo "=== $(date -Is) commit $(git rev-parse --short HEAD) arm $2 fold S$FOLD"
       $PY train.py "${COMMON[@]}" "${HEAD[@]}" "${EXTRA[@]}" --seed 0 --save_dir "$SAVE" --resume true
-      echo "=== TRAIN $2 exit=$? $(date -Is)"
+      rc=$?
+      echo "=== TRAIN $2 exit=$rc $(date -Is)"
+      exit $rc  # a failed run stops a chained queue (train r0 && train d29 && eval)
     } >> "$LOG" 2>&1
     ;;
   eval)
