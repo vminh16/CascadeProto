@@ -1111,3 +1111,28 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **Incident.** The first run of the mutation check included VIPS-5, which always fails locally
   (`pointnet2_ops` missing), so every mutant was reported killed. The runner now requires the tests to
   pass on the unmutated file first.
+
+### 16e - the R1 queue: which head difference costs the 15 points
+
+* **What.** `experiments/diag_short.py` gains `--cvfold` (default 0, phase 16 runs S1) and the seven
+  `r1_*` variants, all at T = 1 without LMA so that only the head differs: `r1_baseline_l2` (no stage),
+  `r1_eppm` (a), `r1_pooled` (b, D-23 only), `r1_eppms` (c, D-24 with the shared `S′`),
+  `r1_eppms_slots` (c', D-24 with D-01's class slots), `r1_vippem` (d, one VIP-Seg PEM) and `r1_vip4`
+  (VIP-Seg's four modules, the 72-level reference). `attention_regime` now handles a stage without a
+  gate or a diffusion branch, and returns `nan` for `stage_type=vip`. `experiments/run_r1.sh` runs the
+  queue on the VM; `experiments/summarize_r1.py` prints seeds, mean, sd and Welch's t per variant and
+  fills the decision rules in.
+* **Protocol.** Screening trains and validates on **S1**, so the S0 test classes stay untouched until
+  the design is frozen [DECISION D-22]; validation uses the fold's `valid` draw, as every run here does
+  [DECISION D-15]. Three seeds per variant, 9,600 episodes = 2,400 steps (past the divergence point of
+  15k); differences below 2 points are noise.
+* **Decision rules, fixed before the run.** R1.1 `pooled − eppm ≥ +3` with `t > 3` makes the per-slot
+  correlation of D-01 a main cause and revises D-01; R1.2 `|eppms − vippem| ≤ 2` keeps route A;
+  R1.3 `eppms − eppm ≥ +3` while `pooled ≈ eppm` puts the cause in Eq.19-21's additions; R1.4
+  `vippem − eppm ≥ +3` with EPPM-S behind sends the work to route B; R1.5 everything within 2 points of
+  `baseline_l2` closes R1 and re-opens the oracle probe.
+* **Verification.** R1-1...5 (`tests/test_phase16.py`): every variant is the configuration it claims and
+  passes the switch guards, consecutive variants differ in exactly one switch, the summary reproduces
+  hand-computed statistics, a missing variant is reported rather than guessed, and the queue script
+  states its fold, seeds, budget and rules. Spec 05 §3.8f.
+* **Not verified locally.** The runs themselves: `diag_short.py` needs the CUDA encoder (gate G2).

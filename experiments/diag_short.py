@@ -44,8 +44,20 @@ from models.eppm import prototype_diffusion  # noqa: E402
 from models.prototypes import point_prototypes  # noqa: E402
 from pipeline.model_api import EpisodeOutput, episode_loss  # noqa: E402
 
+L2 = ["--l2norm_point_proto", "true"]  # VIP-Seg normalises the prototypes before its head [VIPSEG models/vipseg.py:142]
+NO_TEXT = ["--use_lma", "false"]  # R1 compares heads, so the modality is out of the way
+
 VARIANTS = {  # name: train.py switches (None = VIP-Seg's own model)
     "vipseg": None,
+    # Phase 16 R1 (16e): which difference to VIP-Seg's head costs the 15 points. T = 1, no LMA.
+    "r1_eppm": NO_TEXT + ["--num_stages", "1"],  # (a) the printed stage, D-01 class slots
+    "r1_pooled": NO_TEXT + ["--num_stages", "1", "--cross_attn_support", "pooled"],  # (b) D-23 only
+    "r1_eppms": NO_TEXT + ["--num_stages", "1", "--stage_type", "eppm_s",  # (c) D-24, the stripped stage
+                           "--cross_attn_support", "pooled"] + L2,
+    "r1_eppms_slots": NO_TEXT + ["--num_stages", "1", "--stage_type", "eppm_s"] + L2,  # (c') D-24 without D-23
+    "r1_vippem": NO_TEXT + ["--num_stages", "1", "--stage_type", "vip"] + L2,  # (d) one VIP-Seg PEM
+    "r1_vip4": NO_TEXT + ["--num_stages", "4", "--stage_type", "vip"] + L2,  # VIP-Seg's full head in our model
+    "r1_baseline_l2": NO_TEXT + ["--num_stages", "0"] + L2,  # the level every stage has to beat
     "baseline": ["--use_lma", "false", "--num_stages", "0"],
     "baseline_l2": ["--use_lma", "false", "--num_stages", "0", "--l2norm_point_proto", "true"],
     "full": [],
@@ -108,7 +120,7 @@ def attention_regime(model, episode, device):
     All `nan` for a model without EPPM stages.
     """
     stages = getattr(model, "stages", None)
-    if not stages:
+    if not stages or not hasattr(stages[0], "cross"):  # VIP-Seg's own model or stage_type=vip [D-25]
         return dict(NO_STAGE)
     stage, was_training = stages[0], model.training
     model.eval()  # the probe must not move the BatchNorm running statistics
@@ -116,30 +128,38 @@ def attention_regime(model, episode, device):
         ep = episode.to(device)
         f_s, f_q = model.features.encode_episode(ep.support_x, ep.query_x)
         p = point_prototypes(f_s, ep.support_y).unsqueeze(0).expand(f_q.shape[0], -1, -1)  # P^0 (Eq.3)
-        a = stage.cross.attention(f_s, f_q)
-        p_cross = stage.cross(stage.gate(p), f_s, f_q)
-        p_diffuse = prototype_diffusion(f_s, f_q)[:, None, :].expand_as(p_cross)
-        w = stage.out.weights(p_cross, p_diffuse)  # [B_q, 2] or [B_q, N+1, 2] (Eq.19)
+        if hasattr(stage, "gate"):  # the printed EPPM stage
+            a = stage.cross.attention(f_s, f_q)
+            p_cross = stage.cross(stage.gate(p), f_s, f_q)
+            p_diffuse = prototype_diffusion(f_s, f_q)[:, None, :].expand_as(p_cross)
+            w_diffuse = float(stage.out.weights(p_cross, p_diffuse)[..., 1].mean())  # Eq.19
+        else:  # EPPM-S has no gate and no diffusion branch [DECISION D-24]
+            q, s = stage.projections(f_s, f_q)
+            a = torch.softmax(torch.einsum("bri,rj->bij", q, s) / stage.scale, dim=-1) \
+                if stage.support == "pooled" else \
+                torch.softmax(torch.einsum("bri,ckrj->bckij", q, s) / stage.scale, dim=-1)
+            p_cross = stage.cross(q, s, stage.psi(p))
+            w_diffuse = float("nan")
         out = {"attn_width": float(torch.exp(-(a * (a + 1e-30).log()).sum(-1)).mean()),
                "p_cross_chan_var": float((p_cross[0].std(-1) / p_cross[0].mean(-1).abs()).max()),
-               "w_diffuse": float(w[..., 1].mean())}
+               "w_diffuse": w_diffuse}
     model.train(was_training)
     return out
 
 
-def build(variant, device):
+def build(variant, device, cvfold=0):
     if VARIANTS[variant] is None:
         return VIPSegFresh(2, 1).to(device)
-    args = train.parse_args(["--dataset", "s3dis", "--data_path", "x", "--cvfold", "0", "--n_way", "2",
+    args = train.parse_args(["--dataset", "s3dis", "--data_path", "x", "--cvfold", str(cvfold), "--n_way", "2",
                              "--k_shot", "1"] + VARIANTS[variant])
     return train.build_model(train.model_config(args)).to(device)
 
 
-def run(variant, data_path, episodes, batch, stride, seed, device):
+def run(variant, data_path, episodes, batch, stride, seed, device, cvfold=0):
     train.seed_everything(seed)
-    model = build(variant, device)
+    model = build(variant, device, cvfold)
     names = read_class_names(data_path, "s3dis")
-    data = SeededEpisodes(build_train_dataset(data_path, "s3dis", 0, 2, 1, num_episode=episodes), seed)
+    data = SeededEpisodes(build_train_dataset(data_path, "s3dis", cvfold, 2, 1, num_episode=episodes), seed)
     loader = DataLoader(data, batch_size=batch, shuffle=False, num_workers=4, collate_fn=EpisodeCollate(names))
     opt = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
     t0, losses, first = time.time(), [], None
@@ -156,10 +176,13 @@ def run(variant, data_path, episodes, batch, stride, seed, device):
         opt.step()
         losses.append(loss.item())
     end = attention_regime(model, first, device)
-    valid = build_eval_dataset(data_path, "s3dis", 0, 2, 1, mode="valid", seed=0)
+    # The valid draw of this fold's test classes; training used this fold's training classes, so the
+    # screening never touches the other fold's test set [DECISION D-22].
+    valid = build_eval_dataset(data_path, "s3dis", cvfold, 2, 1, mode="valid", seed=0)
     with torch.no_grad():
         miou = evaluate(model, StridedView(valid, stride), names, _Print(), device)
-    return {"variant": variant, "batch": batch, "seed": seed, "steps": len(losses), "episodes": episodes,
+    return {"variant": variant, "cvfold": cvfold, "batch": batch, "seed": seed, "steps": len(losses),
+            "episodes": episodes,
             "loss_last100": float(np.mean(losses[-100:])), "valid_miou": miou,
             **{f"{k}_init": v for k, v in init.items()}, **{f"{k}_end": v for k, v in end.items()},
             "seconds": time.time() - t0}
@@ -173,12 +196,14 @@ def main(argv=None):
     p.add_argument("--episodes", type=int, default=9600, help="past the divergence point; see the docstring")
     p.add_argument("--stride", type=int, default=5, help="1500 valid episodes / 5 = 300")
     p.add_argument("--seeds", nargs="+", type=int, default=[0], help="repeat each run; the spread is the noise floor")
+    p.add_argument("--cvfold", type=int, default=0, choices=[0, 1],
+                   help="fold to train and validate on; phase 16 screens on S1 so that S0 stays held out [D-22]")
     args = p.parse_args(argv)
     device = torch.device("cuda")
     for variant in args.variants:
         for batch in args.batches:
             for seed in args.seeds:
-                r = run(variant, args.data_path, args.episodes, batch, args.stride, seed, device)
+                r = run(variant, args.data_path, args.episodes, batch, args.stride, seed, device, args.cvfold)
                 print("[diag] " + " | ".join(f"{k}={v:.4f}" if isinstance(v, float) else f"{k}={v}"
                                              for k, v in r.items()), flush=True)
     return 0

@@ -301,6 +301,16 @@ Mutation check (2026-09-19): eight wrong variants (no % scale, dry runs counted,
 | CPX-2 | fvcore counts FLOPs through the episode wrapper; the full model has more than the baseline; unsupported operators are reported | D-09 |
 | CPX-3 | The synthetic episode has the loader shapes and foreground in every support block; the timing returns a positive median | D-09 |
 
+### 3.8f `tests/test_phase16.py` (G1) — the R1 queue [DECISION D-22]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| R1-1 | Every `r1_*` variant of `experiments/diag_short.py` produces the configuration it claims, and passes the switch guards | 16e, [DECISION D-23] [DECISION D-24] [DECISION D-25] |
+| R1-2 | Consecutive variants differ in exactly one switch, so R1 changes one variable at a time | 16e |
+| R1-3 | `experiments/summarize_r1.py` reproduces hand-computed mean, sd and Welch's t | 16e |
+| R1-4 | A variant that has not run is reported as missing, not guessed; a log without results exits non-zero | 16e |
+| R1-5 | `run_r1.sh` screens on S1, three seeds, 9,600 episodes, and states rules R1.1…R1.5 | [DECISION D-22] |
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.
