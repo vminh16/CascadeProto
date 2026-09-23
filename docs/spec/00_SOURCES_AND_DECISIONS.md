@@ -636,6 +636,61 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 
 ---
 
+### D-27 — Base-class calibration of the background · `PROPOSED`, beyond the paper
+
+* **Problem.** In a novel-class episode the background of a query block holds the fold's base classes
+  (S3DIS S0 tests beam, board, bookcase, ceiling, chair, column against a background of floor, wall,
+  window, door, table, sofa and clutter). A model trained on the base classes is drawn to them: COSeg
+  shows false activations of base classes such as wall and door in novel-class queries [COSeg §4.3,
+  Fig.5]. Evidence that correcting this pays:
+  1. COSeg's Base Prototypes Calibration adds **+3.44 / +2.06** (1- / 5-shot) on top of its correlation
+     model [COSeg T3], with the momentum of its base prototypes insensitive between 0.99 and 0.999
+     (47.21 / 46.91 / 47.40) [COSeg T6]. Measured in COSeg's corrected setting, on a weaker base level;
+     research note 2026-09-22 §5.6 predicts +0.5 to +2 at the 72 level.
+  2. It uses only base-class labels, which training episodes carry anyway (research note §5.6), and it
+     works on the side P0 did not touch: D-26 changed the foreground prototypes from the query's own
+     pseudo-labels and failed (P0.2); this decision uses labels the model was trained on.
+  3. P0 showed that unit-mean directions scaled to the model's prototype norm act as valid prototypes of
+     VIP-Seg's scoring rule (replacing its prototypes by the query's own unit means gains +8.4 / +15.1,
+     `results/phase16_p0/SUMMARY.md`), so base prototypes built the same way fit that rule's geometry.
+* **What it does.** `models/base_calibration.py`, spec 02 §12:
+  * **Bank.** `b_j = normalise(mean_o normalise(Σ_{i∈mask_o} f_i/‖f_i‖))` over the occurrences o of base
+    class j (support and query masks) in training episodes: the limit of COSeg's per-episode masked
+    average under its EMA [COSeg Eq.9–10] when the features are frozen.
+  * **Calibration.** `L'_i0 = max(L_i0, ω · max_j s⟨f_i, b_j⟩)` with `s` the mean norm of the model's
+    foreground prototypes: the base prototypes join the background as extra prototypes that compete
+    with the foreground ones on equal footing at ω = 1 (AttMPTI's multi-prototype background, no
+    parameter). COSeg adds the base guidance through a trained layer (Eq.12), which a probe cannot do.
+    `ω = 0` returns the model's logits exactly; only the background logit can rise.
+* **P1, the probe** (`experiments/p1_bpc_probe.py`, `experiments/run_p1.sh`), with P0's machinery:
+  the same four checkpoints, scoring rules read through hooks and checked against the model's logits on
+  every episode, paired bootstrap over episodes, eval.py's protocol guard.
+  * **Bank:** 1,000 seeded training episodes of the checkpoint's **own fold**, no augmentation, at least
+    100 occurrences per base class (else it raises); 1,000 episodes is five times the memory of COSeg's
+    EMA, 1/(1 − 0.995) = 200 updates [COSeg T6]. The bank must not contain a scored class (it raises).
+  * **Selection** of ω ∈ {0.8, 0.9, 1.0, 1.1, 1.2} on the S1 valid draw of the S1 checkpoints: ω = 1 is
+    the equal-footing point, ±20 % its sensitivity. **Test** of the frozen ω, and of ω = 1 as an
+    unselected reference, once on fixed100: S1 checkpoints on S1, S0 checkpoints on S0.
+  * **Diagnostic.** Among the model's foreground predictions, the AUC of `max_j cos(f_i, b_j)` for
+    separating false foreground (ground truth background) from true foreground. It measures whether the
+    base similarity carries the signal at all, independently of how this probe uses it.
+* **Rules, fixed before the run.** P1.1 go: gain ≥ +0.5 with a 95 % CI above 0 on all four checkpoints,
+  the low end of the predicted +0.5 to +2 and resolvable at the CI half-widths P0 measured (0.10–0.43).
+  P1.2 stop (of the training-free form): no S1 checkpoint gains with a CI above 0. P1.3 otherwise.
+  P1.4: AUC ≥ 0.70 on both VIP-Seg checkpoints means the base similarity flags false foreground and a
+  trained calibration (COSeg Eq.12) is justified even if P1.2 fires; AUC < 0.60 on both drops D-27
+  entirely; in between, report only (0.7 is the conventional threshold of acceptable discrimination,
+  0.5 is chance). P1.5 collapse watch: a positive gain with a test class falling by more than 3 points,
+  the expected failure when a novel class resembles a base class (board and column against wall).
+* **Not in P1:** training. R3, the trained form (EMA bank during training, momentum 0.995, COSeg Eq.9–12,
+  exclusion of the current ways' base prototypes during training), follows only on P1.1, P1.3 or P1.4.
+* **Reporting.** A number with this calibration is the checkpoint's model plus D-27, labelled that way.
+* **Affects.** `models/base_calibration.py` (new), `experiments/p1_bpc_probe.py` (new),
+  `experiments/run_p1.sh` (new), `experiments/p0_em_probe.py` (the scoring rules keep `F^s`), 02 §12,
+  05 §3.8h (BPC-1…9).
+
+---
+
 ## 5. Official VIP-Seg files: restore, reuse, avoid
 
 ### 5.1 Reference implementations restored from L2
@@ -720,4 +775,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-22 | D-21 corrected: the 20-epoch run is a partial leak. Scored on classes seen in training, the baseline reaches 77.32 / 71.58 (S0 / S1) against the paper's 82.72 / 79.83. |
 | 2026-09-22 | Phase 16 (improvement research, beyond the paper) opened by the maintainer. D-22: `eval.py` refuses to score seen classes; phase-16 reporting rules (last.pt, screening on S1, S0 held out). |
 | 2026-09-23 | D-26 (maintainer request): query-side entropy-weighted EM refinement on top of route B, probed on trained checkpoints (P0) before any training; rules fixed before the run. |
+| 2026-09-23 | D-26 closed by its rule P0.2. D-27 (maintainer request): base-class calibration of the background, probed on the same checkpoints (P1) before any training; rules fixed before the run. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

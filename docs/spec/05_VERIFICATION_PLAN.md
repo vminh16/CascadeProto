@@ -335,6 +335,23 @@ killed since EM-13 has the "S1 passes, S0 does not" case; the remaining survivor
 arms too) is equivalent, since the maximum is taken over non-oracle arms only. Not verified locally: the probe on the real
 checkpoints, which needs the CUDA encoder (gate G2).
 
+### 3.8h `tests/test_base_calibration.py` (G1) — base-class calibration and its probe [DECISION D-27]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| BPC-1 | An occurrence prototype is the unit mean of unit features; an empty mask gives 0 | [DECISION D-27] |
+| BPC-2 | The bank maps ways to their classes (query label way+1), skips empty occurrences, and raises below `min_count` | [DECISION D-27] |
+| BPC-3 | `ω = 0` returns the model's logits; otherwise only the background logit changes, and only upward | [DECISION D-27] |
+| BPC-4 | The base logit is `s⟨f, b⟩` with `s` the mean foreground norm (the background prototype's norm is ignored); a point on a base direction turns background | [DECISION D-27] |
+| BPC-5 | Base similarity is the maximum cosine; the histogram AUC equals the pairwise AUC on the same binning | [DECISION D-27] |
+| BPC-6 | Selection takes the ω of the best mean gain | [DECISION D-27] |
+| BPC-7 | Rules P1.1 (a large gain whose CI contains 0 is no go), P1.2, P1.3, P1.4 in both directions, P1.5 and "incomplete" | [DECISION D-27] |
+| BPC-8 | Selection refuses an S0 checkpoint before loading anything | [DECISION D-22] |
+| BPC-9 | The bank cache is keyed by its episode count, so a smoke bank never stands in for the full one | [DECISION D-27] |
+
+Mutation check (2026-09-23), 14 mutants: 14 killed, after BPC-7 gained the "gain large, CI contains 0" case that
+killed the one first survivor. Not verified locally: the probe on the real checkpoints (gate G2).
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

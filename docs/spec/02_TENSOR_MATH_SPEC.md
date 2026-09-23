@@ -290,3 +290,26 @@ $$\mu_c = \lVert m_c\rVert \cdot \mathrm{normalise}\!\left(\frac{m_c}{\lVert m_c
 | `r`, `w_i r_ic` | `[B_q, P, N+1]` | [DECISION D-26] |
 | `w` | `[B_q, P]` | [DECISION D-26] |
 | `u`, `μ` | `[B_q, N+1, D]` | [DECISION D-26] |
+
+---
+
+## 12. Base-class calibration of the background (beyond the paper) [DECISION D-27]
+
+Base prototypes from training episodes of the checkpoint's own fold, over the occurrences o (a support
+or query mask) of base class j [DECISION D-27]:
+
+$$b_j = \mathrm{normalise}\!\left(\frac{1}{|O_j|}\sum_{o\in O_j} \mathrm{normalise}\Big(\sum_{i\in o} \frac{f_i}{\lVert f_i\rVert}\Big)\right) \in \mathbb{R}^D$$
+
+On the model's scoring rule `L = F^q M^T`, with `s` the mean norm of the foreground prototypes `m_1..m_N`
+of the query [DECISION D-27]:
+
+$$L'_{i0} = \max\!\Big(L_{i0},\; \omega\, \max_j\, s\,\langle f_i, b_j\rangle\Big), \qquad L'_{ic} = L_{ic}\ (c \ge 1)$$
+
+* An occurrence with an empty mask is skipped; `ω = 0` returns `L` exactly [DECISION D-27].
+* No scored class may have a base prototype [DECISION D-27] [DECISION D-22].
+
+| Tensor | Shape | Source |
+| :--- | :--- | :--- |
+| `b` | `[J, D]`, J = number of base classes | [DECISION D-27] |
+| `s` | `[B_q]` | [DECISION D-27] |
+| `max_j cos(f_i, b_j)` | `[B_q, P]` | [DECISION D-27] |

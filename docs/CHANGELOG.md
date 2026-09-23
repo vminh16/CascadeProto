@@ -1244,3 +1244,23 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   case in EM-13; verdicts unchanged.
 * **Next.** R2 is not run. By D-26's rule the next direction is base-class calibration (research note
   2026-09-23 §5, direction 4). The VM was stopped after the results were copied.
+
+### 16i - D-27: base-class calibration of the background, probe P1 before any training
+
+* **Why.** D-26 closed under P0.2: pseudo-labels from the model's own posterior cannot purify the
+  foreground. The next direction by that rule uses labels the model was trained on: in a novel-class
+  episode the query's background holds the base classes, and COSeg's Base Prototypes Calibration adds
+  +3.44 / +2.06 (1- / 5-shot) by telling them apart [COSeg T3, §4.3, Fig.5]. Decision D-27 in 00; spec
+  02 §12.
+* **What.** `models/base_calibration.py`: a bank of unit base prototypes (the frozen-feature limit of
+  COSeg's EMA of masked averages, Eq.9-10) and `L'_0 = max(L_0, omega * max_j s <f, b_j>)`, the base
+  prototypes as extra background prototypes at the foreground prototypes' mean norm; a histogram AUC for
+  the diagnostic. `experiments/p1_bpc_probe.py` reuses P0's scoring rules, identity check, counts and
+  bootstrap; it builds each checkpoint's bank from 1,000 seeded training episodes of its own fold
+  (cached per episode count), selects omega in {0.8 ... 1.2} on the S1 valid draw, tests once on fixed100
+  and applies P1.1-P1.5. `experiments/run_p1.sh` runs it on the VM. The P0 scoring rules now also keep
+  the support features the bank reads; both run scripts default to `vipseg_S1_N2_K1.pt`, the pinned
+  checkpoint as downloaded in 16h.
+* **Verification.** BPC-1...9 (`tests/test_base_calibration.py`, spec 05 §3.8h), 9/9; EM-10 checks the
+  captured support features. Mutation check, 14 mutants: 14 killed after BPC-7 gained the "large gain,
+  CI containing 0" case that killed the one first survivor. G1 with `.venv`: 360 passed.

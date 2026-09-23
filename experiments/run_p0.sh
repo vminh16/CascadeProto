@@ -25,7 +25,7 @@ mkdir -p "$OUT"
 LOG="$OUT/p0.log"
 PY=.venv/bin/python
 
-VIP_S1=${VIP_S1:-log_s3dis_VIPSeg/log_S1_N2_K1_0.760875/checkpoint.pt}  # released, pinned commit
+VIP_S1=${VIP_S1:-vipseg_S1_N2_K1.pt}  # log_s3dis_VIPSeg/log_S1_N2_K1_0.760875/checkpoint.pt, pinned commit, blob 2eda6e2a
 VIP_S0=${VIP_S0:-vipseg_S0_N2_K1.pt}
 OURS_S1=${OURS_S1:-log_s1/s3dis_S1_N2_K1_point_T0/last.pt}                # our baseline, num_stages=0
 OURS_S0=${OURS_S0:-log_phase14/s3dis_S0_N2_K1_point_T0/last.pt}

@@ -173,7 +173,8 @@ def test_em10_vipseg_rule_reproduces_the_gated_logits():
             return call(episode)
 
     reader = probe.VIPSegScoringRule(Baseline())
-    f_q, m_eff, logits = reader(None)
+    f_q, m_eff, logits = reader(SimpleNamespace(support_x=torch.zeros(2, 1, P, 9)))  # N = 2 ways, K = 1
+    assert reader.f_s.shape == (2, 1, P, D)  # the support features D-27's bank reads
     probe.check_identity(f_q, m_eff, logits)
     reader.close()
     assert not model.fc._forward_hooks  # hooks removed, the model is left as it was

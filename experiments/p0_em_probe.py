@@ -60,7 +60,8 @@ class VIPSegScoringRule:
     """F^q and the effective prototypes of VIP-Seg's released model, read through forward hooks.
 
     VIP-Seg scores `L = sum_t w_t F^q (M^t)^T` [VIPSEG models/vipseg.py:152-174], which is `F^q M_eff^T`
-    with `M_eff = sum_t w_t M^t`. The hooks record `F^q` (the second call of `fc`, after the support),
+    with `M_eff = sum_t w_t M^t`. The hooks record `F^q` (the second call of `fc`, after the support; the
+    first call, `F^s`, is kept in `self.f_s` for D-27),
     the prototype after every step (PDM steps add the outer residual, vipseg.py:157) and the gating
     weights. The inherited model is never edited (AGENTS guardrail 2); the returned logits are checked
     against the model's own on every episode.
@@ -87,6 +88,8 @@ class VIPSegScoringRule:
             raise RuntimeError(f"unexpected VIP-Seg call pattern: fc {len(self.fc_out)}, gate {len(self.gate)}, "
                                f"steps {len(self.step_out)}")
         f_q = self.fc_out[1].permute(0, 2, 1)  # [B_q, 128, P] -> [B_q, P, 128]
+        n, k = episode.support_x.shape[:2]
+        self.f_s = self.fc_out[0].permute(0, 2, 1).unflatten(0, (n, k))  # [N*K, 128, P] -> [N, K, P, 128]
         stages = [out + inp if t % 2 == 1 else out  # [B_q, N+1, D], outer residual on PDM steps
                   for t, (inp, out) in enumerate(zip(self.step_in, self.step_out))]
         m_eff = torch.einsum("bt,tbcd->bcd", self.gate[0], torch.stack(stages))  # [B_q, N+1, D]
@@ -119,6 +122,7 @@ class CascadeProtoScoringRule:
         cfg = self.model.config
         logits = self.model(episode).logits  # [B_q, P, N+1]
         f_s, f_q = self.model.features.encode_episode(episode.support_x, episode.query_x)  # [N,K,P,D], [B_q,P,D]
+        self.f_s = f_s  # [N, K, P, D], read by the base-prototype bank of D-27
         p = point_prototypes(f_s, episode.support_y)  # [N+1, D] (Eq.3)
         if cfg.l2norm_point_proto:
             p = F.normalize(p, dim=-1)  # [N+1, D]
