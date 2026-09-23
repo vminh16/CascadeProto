@@ -29,6 +29,11 @@ from pipeline.episodes import Episode
 from pipeline.model_api import EpisodeOutput
 
 MODALITIES = ("text", "image", "audio")  # 03 §2
+STAGE_TYPES = ("eppm", "eppm_s", "vip")  # [DECISION D-24] [DECISION D-25], beyond the paper
+# Switches that only mean something for the printed EPPM stage; a non-default value with another
+# stage type would be silently ignored, so it raises instead (AGENTS guardrail 7).
+EPPM_ONLY = ("use_gate", "gate_target", "eq19_self", "cross_attn_norm", "fusion_weight", "diffusion_input")
+VIP_IGNORES = ("cross_attn_scale", "cross_attn_support")  # VIP-Seg's own modules fix both
 LOGIT_SCALES = ("none", "sqrt_D")  # [DECISION D-10]
 CROSS_ATTN = ("channel", "two_hop")  # [DECISION D-01]
 DIFFUSION_INPUTS = ("post_relu", "pre_relu")  # [DECISION D-14]
@@ -59,6 +64,7 @@ class CascadeProtoConfig:
     cross_attn_support: str = "class_slots"  # [DECISION D-23], beyond the paper's D-01 reading
     gate_target: str = "prototype"  # [DECISION D-02]
     eq19_self: str = "none"  # [DECISION D-19], beyond the paper
+    stage_type: str = "eppm"  # [DECISION D-24] [DECISION D-25], beyond the paper
     fusion_weight: str = "per_query"  # [DECISION D-11]
     diffusion_input: str = "post_relu"  # [DECISION D-14]
 
@@ -75,6 +81,7 @@ class CascadeProtoConfig:
                                      ("cross_attn_support", self.cross_attn_support, CROSS_ATTN_SUPPORTS),
                                      ("gate_target", self.gate_target, GATE_TARGETS),
                                      ("eq19_self", self.eq19_self, EQ19_SELF),
+                                     ("stage_type", self.stage_type, STAGE_TYPES),
                                      ("fusion_weight", self.fusion_weight, FUSION_WEIGHTS),
                                      ("diffusion_input", self.diffusion_input, DIFFUSION_INPUTS)):
             if value not in allowed:
@@ -83,6 +90,14 @@ class CascadeProtoConfig:
     def check_implemented(self) -> None:
         if self.use_lma and self.modality != "text":
             raise NotImplementedError(f"modality {self.modality!r} is not implemented yet (03 §2.2)")
+        if self.stage_type != "eppm":  # switches of the printed stage that another stage cannot honour
+            defaults = CascadeProtoConfig()
+            ignored = [f for f in EPPM_ONLY if getattr(self, f) != getattr(defaults, f)]
+            ignored += [f for f in VIP_IGNORES if self.stage_type == "vip" and getattr(self, f) != getattr(defaults, f)]
+            if ignored:
+                raise ValueError(f"stage_type={self.stage_type!r} ignores {ignored}; leave them at their "
+                                 f"defaults so that a run's configuration describes what it ran "
+                                 f"[DECISION D-24] [DECISION D-25]")
         for name, value, default in (("cross_attn", self.cross_attn, "channel"),
                                      ("diffusion_input", self.diffusion_input, "post_relu")):
             if value != default:
@@ -90,6 +105,26 @@ class CascadeProtoConfig:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+def build_stage(config: "CascadeProtoConfig", step: int) -> nn.Module:
+    """Stage `step` of the cascade: the printed EPPM, EPPM-S [D-24] or VIP-Seg's own module [D-25].
+
+    All three take `(P^{t-1} [B_q, N+1, D], F^s [N, K, 2048, D], F^q [B_q, 2048, D])` and return
+    `P^t [B_q, N+1, D]`, so the cascade, ADRM and the losses are untouched by the choice.
+    """
+    if config.stage_type == "eppm":
+        return EPPMStage(use_gate=config.use_gate, cross_attn_scale=config.cross_attn_scale,
+                         fusion_weight=config.fusion_weight, cross_attn_norm=config.cross_attn_norm,
+                         gate_target=config.gate_target, eq19_self=config.eq19_self,
+                         cross_attn_support=config.cross_attn_support)
+    if config.stage_type == "eppm_s":
+        from models.eppm_s import EPPMSharedStage
+
+        return EPPMSharedStage(cross_attn_scale=config.cross_attn_scale, support=config.cross_attn_support)
+    from models.vip_stage import VIPStage  # imports models.vipseg, which needs the GPU environment
+
+    return VIPStage(step)
 
 
 class CascadeProto(nn.Module):
@@ -108,12 +143,7 @@ class CascadeProto(nn.Module):
             # Frozen CLIP stays outside the module tree: not in state_dict, untouched by .to()/.double() (03 §2.1)
             self.text = text_embedding if text_embedding is not None else ClipTextEmbedding(config.clip_variant)
         # T stages with their own parameters [PAPER §3.5] [DECISION D-16]
-        self.stages = nn.ModuleList(
-            EPPMStage(use_gate=config.use_gate, cross_attn_scale=config.cross_attn_scale,
-                      fusion_weight=config.fusion_weight, cross_attn_norm=config.cross_attn_norm,
-                      gate_target=config.gate_target, eq19_self=config.eq19_self,
-                      cross_attn_support=config.cross_attn_support)
-            for _ in range(config.num_stages))
+        self.stages = nn.ModuleList(build_stage(config, step) for step in range(config.num_stages))
         # ADRM over T >= 2 stages; with T = 1 its weight is 1 and W_g could not learn [DECISION D-17]
         self.routing = DynamicRouting(config.num_stages) if config.use_adrm and config.num_stages >= 2 else None
 

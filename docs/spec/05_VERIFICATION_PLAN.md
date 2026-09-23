@@ -156,6 +156,30 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 | STAGE-2 | One EPPM stage has 79,395 parameters (79,394 without the gate), split as in 01 §4; stages do not share parameter tensors | 01 §2.4, 01 §4 |
 | STAGE-3 | Permuting the ways permutes rows 1..N of `P^t` and keeps row 0; one query's `P^t` does not depend on the others; every parameter receives a gradient; `gradcheck` in `P^{t−1}` passes | 02 §5 |
 
+### 3.4b `tests/test_eppm_s.py` (G1) — beyond the paper [DECISION D-24]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| EPS-1 | Parameter names and budget: 37,888, no gate, no fusion MLP, no SE, no biases on φ and `W_out` | 01 §4, [DECISION D-24] |
+| EPS-2 | The stage equals an explicit-loop reference (φ as a matrix, hand-written row softmax, ψ and `W_out` written out) for both `cross_attn_support` values and N, K, B_q in {1, 2, 3} | [DECISION D-24] |
+| EPS-3 | Output shape and LayerNorm statistics | [DECISION D-24] |
+| EPS-4 | With `W_out = 0` the stage returns `LN(P^{t-1})`, i.e. the residual survives | [DECISION D-24] |
+| EPS-5 | The self term is a per-channel gate in (0, 1) applied to `ψ(P^{t-1})`; `self_branch=False` removes exactly that term | [VIPSEG models/vipseg.py:370-381] |
+| EPS-6 | Queries do not mix; permuting the ways permutes the class rows | [DECISION D-24] |
+| EPS-7 | The two support readings coincide exactly at N = K = 1 and differ at N = 2 | [DECISION D-23] |
+| EPS-8 | Every parameter receives a gradient; `gradcheck` in the prototype | [DECISION D-24] |
+| EPS-9 | Shape contract and invalid switches raise | [DECISION D-24] |
+
+### 3.4c `tests/test_vip_stage.py` (G1; VIPS-5 in G2 with marker `cuda`) — reference [DECISION D-25]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| VIPS-1 | The wrapper calls `module(query, supports, prototype)` in VIP-Seg's own order | [VIPSEG models/vipseg.py:155-158] |
+| VIPS-2 | Odd steps add the outer residual, even steps do not | [VIPSEG models/vipseg.py:154-160] |
+| VIPS-3 | Shape contract, checked before the module is called | [DECISION D-25] |
+| VIPS-4 | `build_stage` alternates the modules; `stage_type=vip` rejects `cross_attn_scale` / `cross_attn_support`, and `eppm_s` rejects the EPPM-only switches | [DECISION D-24] [DECISION D-25] |
+| VIPS-5 | Four wrapped stages reproduce VIP-Seg's own reasoning loop on the real PEM/PDM (GPU) | [VIPSEG models/vipseg.py:148-160] |
+
 ### 3.5 `tests/test_adrm_loss.py` (G1)
 
 | ID | Check | Source |

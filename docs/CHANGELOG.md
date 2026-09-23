@@ -1067,3 +1067,47 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   averaged over the shots of way 0, the softmax over the wrong axis, the product transposed, the switch
   inverted in `attention` and in `forward`, the switch ignored, and the queries pooled together the way
   VIP-Seg's reshape does.
+
+### 16c - EPPM-S: the stripped stage, `stage_type=eppm_s` (D-24)
+
+* **Why.** To locate the 15 points between the printed stage and VIP-Seg's, the parts the research
+  note proved inert have to come off: `P_diffuse` (common to every class, so it cannot change a
+  prediction, and training drives its weight to 0.008-0.082 anyway), the entropy gate (an even
+  pointwise function of the prototype value with one scalar), Eq.19's fusion MLP, Eq.20's class-pooled
+  SE, `w_cls` and Eq.21's ReLU. What goes in instead is the channel-preserving self term that every
+  published member of this family carries [VIPSEG models/vipseg.py:262-277], which D-19 had measured
+  as the missing piece.
+* **What.** `models/eppm_s.py::EPPMSharedStage`:
+  `P^t = LN(W(P_cross + σ(W_3(Q'ᵀQ' − S'ᵀS')/√D) ⊙ ψ(P^{t-1})) + P^{t-1})`, either support reading
+  (D-23), 37,888 parameters against 79,395. `stage_type = {eppm (default), eppm_s, vip}` on
+  `CascadeProtoConfig`, `build_stage` and `train.py`; run directories get `_eppm_s`. Non-default
+  EPPM-only switches now raise with another stage type instead of being ignored. Specs 00 (D-24),
+  01 §3-§4, 05 §3.4b.
+* **Verification.** EPS-1...9 and CP-22 (explicit-loop reference for both support readings at N, K,
+  B_q in {1, 2, 3}; the residual; the self gate; no query mixing; class-row equivariance; the two
+  readings coinciding at N = K = 1; gradients and gradcheck; the model-level cascade written out).
+  Mutation check, 10 mutants on `models/eppm_s.py`, all killed: residual dropped, self term ungated,
+  the gate applied to `P` instead of `ψ(P)`, the softmax axis, the Gram scale inverted, the pooled
+  support taken from way 0, `ψ` skipped, the shot mean dropped, the self gate from shot 0 only, and
+  the support Gram ignored.
+
+### 16d - VIP-Seg's PEM/PDM as a reference stage, `stage_type=vip` (D-25)
+
+* **Why.** "VIP-Seg's head is worth 17 points more" was measured on its whole model, which also
+  differs in prototype normalisation, logits and gating. `stage_type=vip` puts its module in our
+  cascade with everything else held fixed, so R1 can compare stages rather than pipelines.
+* **What.** `models/vip_stage.py::VIPStage` wraps the inherited modules (imported, never edited,
+  and lazily, since `models.vipseg` needs `pointnet2_ops`), reproducing VIP-Seg's alternation and the
+  outer residual on odd steps [VIPSEG models/vipseg.py:154-160]. `cross_attn_scale` and
+  `cross_attn_support` raise with this stage type, because VIP-Seg's code fixes both. Run directories
+  get `_vip`. Specs 00 (D-25), 01 §3, 05 §3.4c.
+* **Verification.** VIPS-1...4 on the CPU with a recording stand-in module (call order, outer residual
+  per step, shape guard before the call, `build_stage` alternation and the switch guards); VIPS-5 on
+  the GPU checks four wrapped stages against VIP-Seg's own loop. Mutation check, 5 mutants: 4 killed
+  on the CPU (residual on the wrong steps, query and support swapped, residual never applied, shape
+  guard removed); the fifth - PEM and PDM exchanged in `build_vip_module` - **survives the CPU gate by
+  construction** and is killed only by VIPS-5, which needs the GPU. Recorded here so the VM run is not
+  skipped.
+* **Incident.** The first run of the mutation check included VIPS-5, which always fails locally
+  (`pointnet2_ops` missing), so every mutant was reported killed. The runner now requires the tests to
+  pass on the unmutated file first.

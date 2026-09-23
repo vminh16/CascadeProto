@@ -158,6 +158,7 @@ Required configuration options. Defaults reproduce the full model. They live in 
 | `cross_attn_scale` | sqrt_d | sqrt_d / sqrt_D | [DECISION D-01] |
 | `cross_attn_norm` | none | none / layernorm | [DECISION D-18] |
 | `cross_attn_support` | class_slots | class_slots / pooled | [DECISION D-23] |
+| `stage_type` | eppm | eppm / eppm_s / vip (the last two beyond the paper) | [DECISION D-24] [DECISION D-25] |
 | `gate_target` | prototype | prototype / features | [DECISION D-02] |
 | `eq19_self` | none | none / gated (beyond the paper) | [DECISION D-19] |
 | `gmmn_fg_mode` | joint | joint / per_class | [DECISION D-04] |
@@ -179,6 +180,7 @@ Required configuration options. Defaults reproduce the full model. They live in 
 | Feature head (900→196→128 with BN) | 204,260 | §2.1 |
 | Adapter + generator | 148,352 | §2.3 |
 | One EPPM stage | 79,395 (φ 4,608 · ψ 16,512 · f_fusion 33,154 · SE 8,352 · W_out 16,512 · LN 256 · θ 1) | §2.4 |
+| One EPPM-S stage (`stage_type=eppm_s`) | 37,888 (φ 4,608 · ψ 16,512 · W_3 128 · W_out 16,384 · LN 256) | [DECISION D-24] |
 | Cascade (T = 4) | 317,580 | §2.5 |
 | ADRM | 512 | §2.6 |
 | **Total** | ≈ 3.04M (encoder + head ≈ 2.57M, added modules 466,444) | [DECISION D-09] |

@@ -481,6 +481,57 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 
 ---
 
+### D-24 — EPPM-S, a stripped purification stage · `PROPOSED`, beyond the paper
+
+* **Problem.** The printed stage is 15 points behind VIP-Seg's on the same features (CHANGELOG 15e),
+  and the research note shows why each of its parts cannot help: `P_diffuse` is common to every class
+  and provably cannot change a prediction, so training drives its fusion weight to 0.008–0.082
+  (CHANGELOG 15e); the entropy gate is an even pointwise function of the prototype value with one
+  scalar [DECISION D-02]; Eq.20's SE gate is pooled over the classes; Eq.21's ReLU truncates the
+  update. The family this module belongs to instead carries a **channel-preserving** term beside the
+  correlation [VIPSEG models/vipseg.py:262-277], which [DECISION D-19] measured as missing.
+* **What the switch does.** `stage_type = {eppm (default), eppm_s, vip}`; `eppm_s` builds
+  `models/eppm_s.py::EPPMSharedStage`:
+  `P^t = LN(W(P_cross + σ(W_3(Q′ᵀQ′ − S′ᵀS′)/√D) ⊙ ψ(P^{t-1})) + P^{t-1})`, with `P_cross` as in
+  Eq.13–14 under either `cross_attn_support` [DECISION D-23]. Dropped: `P_diffuse`, the entropy gate,
+  Eq.19's fusion MLP, Eq.20's SE, `w_cls` and the ReLU. 37,888 parameters per stage against 79,395.
+  Like VIP-Seg's head it expects L2-normalised prototypes at the top of the cascade
+  [VIPSEG models/vipseg.py:142]; supply them with `--l2norm_point_proto true` [DECISION D-10].
+* **Honest status.** This is **not** a reading of the paper: it is the CascadeProto-shaped member of
+  the QUEST / APP / PEM / PDM family, built to locate the 15 points. Any run using it is outside the
+  paper and must be reported as such. It is measured against the printed stage and against
+  [DECISION D-25] in R1 (16e).
+* **Guard.** With `stage_type ≠ eppm` the EPPM-only switches (`use_gate`, `gate_target`, `eq19_self`,
+  `cross_attn_norm`, `fusion_weight`, `diffusion_input`) must stay at their defaults; a non-default
+  value raises rather than being ignored, so a run's configuration always describes what it ran.
+* **Affects.** `models/eppm_s.py` (new), `models/cascadeproto.py` (`build_stage`), `train.py`
+  (run directories get `_eppm_s`), 01 §3–§4, 05 §3.4b (EPS-1…9).
+
+---
+
+### D-25 — VIP-Seg's PEM/PDM as cascade stages · `PROPOSED`, reference only
+
+* **Problem.** "VIP-Seg's head is worth about 17 points more than ours through the same loop"
+  (CHANGELOG 15e) was measured by training VIP-Seg's **whole model**, which also differs in its
+  prototype normalisation, its logits and its gating. To attribute the gap to the stage itself, the
+  same pipeline must run VIP-Seg's stage and ours with everything else held fixed.
+* **What the switch does.** `stage_type = vip` wraps the inherited
+  `models/vipseg.py::PrototypeEnhancementModule` / `PrototypeDifferenceModule` in
+  `models/vip_stage.py::VIPStage`, which reproduces VIP-Seg's alternation (PEM on even steps, PDM on
+  odd ones) and the outer residual it adds to the PDM output [VIPSEG models/vipseg.py:154-160]. The
+  modules are imported, never edited (AGENTS guardrail 2), and imported lazily, because
+  `models.vipseg` needs `pointnet2_ops` (gate G2). `cross_attn_scale` and `cross_attn_support` are
+  fixed inside VIP-Seg's code, so a non-default value raises.
+* **Known property, kept on purpose.** VIP-Seg's `reshape(72, -1)` makes one query's prediction depend
+  on the other queries of the episode (research note §4.4). This is a reference configuration, not a
+  design to copy; our own stages keep the queries separate.
+* **Reporting.** A number produced with `stage_type=vip` is VIP-Seg's module inside our pipeline, not
+  CascadeProto, and must be labelled that way.
+* **Affects.** `models/vip_stage.py` (new), `models/cascadeproto.py`, `train.py` (run directories get
+  `_vip`), 01 §3, 05 §3.4c (VIPS-1…5).
+
+---
+
 ## 5. Official VIP-Seg files: restore, reuse, avoid
 
 ### 5.1 Reference implementations restored from L2

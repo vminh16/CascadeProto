@@ -65,6 +65,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--cross_attn_norm", default="none", choices=["none", "layernorm"], help="[D-18]")
     p.add_argument("--cross_attn_support", default="class_slots", choices=["class_slots", "pooled"],
                    help="one A per class slot (D-01) or one per query from all support blocks [D-23]")
+    p.add_argument("--stage_type", default="eppm", choices=["eppm", "eppm_s", "vip"],
+                   help="the printed EPPM stage, the stripped EPPM-S [D-24] or VIP-Seg's own PEM/PDM "
+                        "[D-25]; the last two are beyond the paper")
     p.add_argument("--gate_target", default="prototype", choices=["prototype", "features"], help="[D-02]")
     p.add_argument("--eq19_self", default="none", choices=["none", "gated"], help="[D-19], beyond the paper")
     p.add_argument("--train_classes", default="split", choices=["split", "all"],
@@ -120,7 +123,7 @@ def model_config(args):
                               cross_attn_scale=args.cross_attn_scale, cross_attn_norm=args.cross_attn_norm,
                               gate_target=args.gate_target, eq19_self=args.eq19_self,
                               fusion_weight=args.fusion_weight, diffusion_input=args.diffusion_input,
-                              cross_attn_support=args.cross_attn_support)
+                              cross_attn_support=args.cross_attn_support, stage_type=args.stage_type)
 
 
 def build_model(config, feature_extractor=None) -> torch.nn.Module:
@@ -135,6 +138,7 @@ def run_dir(args) -> str:
     tag = f"_T{args.num_stages}" + ("" if args.use_adrm or args.num_stages == 0 else "_noadrm")
     tag += "" if args.use_gate or args.num_stages == 0 else "_nogate"
     tag += "" if args.seed == 0 else f"_seed{args.seed}"
+    tag += "" if getattr(args, "stage_type", "eppm") == "eppm" else f"_{args.stage_type}"  # [D-24] [D-25]
     tag += "" if getattr(args, "cross_attn_support", "class_slots") == "class_slots" else "_pooled"  # [D-23]
     tag += "_vipinit" if getattr(args, "init_from_vipseg", None) else ""  # [D-20]
     tag += "_leak" if getattr(args, "train_classes", "split") == "all" else ""  # [D-21]

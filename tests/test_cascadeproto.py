@@ -437,3 +437,41 @@ def test_cp21_pooled_stage_trains_every_parameter():
     m = model(CascadeProtoConfig(num_stages=2, cross_attn_support="pooled"))
     episode_loss(m(episode()), episode()).backward()
     assert all(p.grad is not None and p.grad.abs().sum() > 0 for p in m.parameters())
+
+
+def test_cp22_stage_type_eppm_s_runs_the_whole_cascade(monkeypatch):
+    """D-24: EPPM-S inside the model; the cascade, ADRM and the losses are untouched by the choice."""
+    config = CascadeProtoConfig(num_stages=4, stage_type="eppm_s", cross_attn_support="pooled",
+                                l2norm_point_proto=True)
+    m = model(config)
+    from models.eppm_s import EPPMSharedStage
+
+    assert all(isinstance(s, EPPMSharedStage) for s in m.stages)
+    assert [s.support for s in m.stages] == ["pooled"] * 4
+    ep = episode()
+    out = m.eval()(ep)
+    assert out.logits.shape == (2, 2048, 3) and torch.isfinite(out.logits).all()
+    assert sum(p.numel() for p in m.stages.parameters()) == 4 * 37888  # 01 §4
+    m.train()
+    episode_loss(m(ep), ep).backward()
+    assert all(p.grad is not None and p.grad.abs().sum() > 0 for p in m.stages.parameters())
+
+
+def test_cp22_eppm_s_reproduces_the_written_out_cascade():
+    config = CascadeProtoConfig(use_lma=False, num_stages=2, stage_type="eppm_s",
+                                cross_attn_support="pooled", l2norm_point_proto=True)
+    m = model(config).eval()
+    ep = episode()
+    f_s, f_q = m.features.encode_episode(ep.support_x, ep.query_x)
+    p = F.normalize(point_prototypes(f_s, ep.support_y), dim=-1).unsqueeze(0).expand(f_q.shape[0], -1, -1)
+    logits = []
+    for stage in m.stages:  # Eq.22-23 with EPPM-S in place of the printed stage
+        p = stage(p, f_s, f_q)
+        logits.append(torch.einsum("bpd,bcd->bpc", f_q, p))
+    expected = m.routing(logits, f_q)  # Eq.24-25, unchanged
+    assert torch.allclose(m(ep).logits, expected, atol=ATOL, rtol=0)
+
+
+def test_cp22_unknown_stage_type_raises():
+    with pytest.raises(ValueError, match="stage_type"):
+        CascadeProtoConfig(stage_type="quest")
