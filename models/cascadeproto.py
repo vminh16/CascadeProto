@@ -9,8 +9,8 @@ All rows of Table 4 [DECISION D-17]:
 * + ADRM, the full model (defaults): `L_final = Σ_t w_gate^(t) L^t` (Eq.24-25).
 The switches of spec 01 §3 are all present; unimplemented ablation flag values raise NotImplementedError.
 
-Beyond the paper, `distill_beta > 0` adds the oracle-direction loss of [DECISION D-29] on the effective
-prototype `M_eff` (`L_final = F^q M_effᵀ`) in training mode; with 0 it is only logged, without gradient.
+Beyond the paper, `distill_beta > 0` adds the oracle-direction loss of [DECISION D-29] on the pairwise
+decision functions of `L_final` in training mode; with 0 it is only logged, without gradient.
 """
 
 import math
@@ -194,17 +194,16 @@ class CascadeProto(nn.Module):
             logits = logits / math.sqrt(f_q.shape[-1])
         if not self.training:  # the query labels are never read at evaluation [DECISION D-29]
             return EpisodeOutput(logits=logits, loss_gmmn=loss_gmmn)
-        m_eff = self.effective_prototype(f_q, prototypes, steps)  # [B_q, N+1, D]
         beta = self.config.distill_beta
         if beta > 0:
-            loss_distill = oracle_distill_loss(m_eff, f_q, episode.query_y)  # scalar (02 §14)
+            loss_distill = oracle_distill_loss(logits, f_q, episode.query_y)  # scalar (02 §14)
         else:  # logged for comparison, no gradient and no effect on training [DECISION D-29]
             with torch.no_grad():
-                loss_distill = oracle_distill_loss(m_eff.detach(), f_q, episode.query_y)  # scalar
+                loss_distill = oracle_distill_loss(logits.detach(), f_q, episode.query_y)  # scalar
         return EpisodeOutput(logits=logits, loss_gmmn=loss_gmmn, loss_distill=loss_distill, distill_weight=beta)
 
     def effective_prototype(self, f_q: torch.Tensor, p0: torch.Tensor, steps) -> torch.Tensor:
-        """M_eff [B_q, N+1, D] with `L_final = F^q M_effᵀ` (up to logit_scale) [DECISION D-29].
+        """M_eff [B_q, N+1, D] with `L_final = F^q M_effᵀ` (up to logit_scale), for diagnostics [DECISION D-29].
 
         f_q [B_q, P, D]; p0 = P^0 [N+1, D]; steps = [P^1..P^T], each [B_q, N+1, D]. ADRM weighs the stages
         (Eq.24-25), without ADRM the last stage is the prediction [DECISION D-17], without stages P^0 is.

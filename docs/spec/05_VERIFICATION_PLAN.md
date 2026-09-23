@@ -374,17 +374,17 @@ Mutation check (2026-09-23), 8 mutants: 7 killed, the survivor (removing the r =
 | ID | Check | Source |
 | :--- | :--- | :--- |
 | DIS-1 | `O` is the normalised sum of the unit features of each present class, the presence mask is exact, and `O` equals the direction of 02 §11 with the oracle weight and κ → ∞ | 02 §14, [DECISION D-29] |
-| DIS-2 | `L_distill` is 0 for any positive multiple of `O`, 2 for its opposite, and averages over present (query, class) pairs only, background included | 02 §14 |
-| DIS-3 | `O` is a stopped gradient: the loss reaches the prototype, never the features through the target | [DECISION D-29] |
+| DIS-2 | The teacher is `F^q Oᵀ`; `L_distill` is 0 for any positive multiple of the teacher plus a per-point shift, 2 for a negative one, averages over present pairs only, reads only the points of the two classes of a pair, matches the written-out cosine, and gives a graph-keeping zero without pairs; a common shift of the prototypes changes `cos(M_c, O_c)` but neither the loss nor the pairwise prototype cosine | 02 §14, [DECISION D-29] |
+| DIS-3 | The teacher is a stopped gradient: the loss reaches the logits, never the features through the target | [DECISION D-29] |
 | DIS-4 | `F^q M_effᵀ` reproduces the model's logits without stages, without ADRM, with ADRM, with `logit_scale=sqrt_D` and for the full model; the R2 rule reads the same tensors | 02 §14, 02 §6 |
 | DIS-5 | The logits do not depend on the query labels in either mode; evaluation returns no `L_distill` | [DECISION D-29] |
 | DIS-6 | β = 0 gives the paper's objective bit for bit with `L_distill` logged without gradient; β > 0 adds `β L_distill`, whose gradient reaches ADRM and the stages; a weight without the loss raises | 02 §7, 02 §14 |
 | DIS-7 | `distill_beta` must be finite and ≥ 0; the CLI passes it, `run_r2.sh`'s run directories are the ones `train.py` writes, and older checkpoints resume at the default | [DECISION D-29], 04 §5 |
-| DIS-8 | The oracle replacement keeps the norms and leaves absent classes untouched; cosine sums and counts per term | [DECISION D-29] |
-| DIS-9 | Rules R2.0–R2.5 and "incomplete"; the test refuses a checkpoint of another fold before loading it | [DECISION D-29] [DECISION D-22] |
+| DIS-8 | Both oracle rules leave absent classes untouched, one keeping each norm and one giving the present classes their mean norm; the logit-pair diagnostic is the model's cosine to the teacher; prototype-space sums and counts per term | [DECISION D-29] |
+| DIS-9 | Rules R2.0–R2.5 and "incomplete"; the rules survive several draws (the hooks are closed once); the test refuses a checkpoint of another fold before loading it | [DECISION D-29] [DECISION D-22] |
 | DIS-10 | The new and changed files parse as Python 3.10, the VM's version | 00 §5.2 |
 
-Mutation check (2026-09-23), 18 mutants over `models/oracle_distill.py`, `models/cascadeproto.py`, `pipeline/model_api.py`, `train.py` and `experiments/r2_distill_eval.py`: 18 killed.
+Mutation check (2026-09-23, revised form), 25 mutants over `models/oracle_distill.py`, `models/cascadeproto.py`, `pipeline/model_api.py`, `train.py` and `experiments/r2_distill_eval.py`: 25 killed, the last after DIS-8 gained the model-against-teacher case.
 
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 

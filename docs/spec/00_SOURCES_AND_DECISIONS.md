@@ -764,14 +764,15 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 
 ---
 
-### D-29 — Oracle-prototype distillation of the effective prototype during training · `PROPOSED`, beyond the paper
+### D-29 — Oracle-direction distillation of the pairwise decisions during training · `PROPOSED`, beyond the paper
 
 * **Problem, from the measurements of phase 16.**
-  1. **The headroom is in the direction of the prototype the head outputs.** VIP-Seg's scoring rule is
-     `L = F^q M_effᵀ` with `M_eff = Σ_t w_t M^t` [VIPSEG models/vipseg.py:152-174]. Replacing only the
+  1. **The headroom is in the directions of the prototypes the head outputs.** VIP-Seg's scoring rule is
+     `L = F^q M_effᵀ` with `M_eff = Σ_t w_t M^t` [VIPSEG models/vipseg.py:152-174]. Replacing the
      direction of `M_eff` by the query's own class mean of unit features, the norm kept, gains +8.42 (S1)
      and +15.13 (S0) on VIP-Seg's released checkpoints and +20.46 / +21.76 on ours (P0, fixed100,
-     `results/phase16_p0/SUMMARY.md`). The features carry the information; the head does not extract it.
+     `results/phase16_p0/SUMMARY.md`); with one common norm, +10.95 / +14.12 (revision below). The
+     features carry the information; the head does not extract it.
   2. **No fixed rule recovers it at test time.** The model's own posterior (D-26: +0.37 S1, −1.21 S0),
      a base-class margin (D-27: −0.16 to −0.03) and their combination (D-28: the filter was never
      selected, r = 0 froze) all fail on the same checkpoints.
@@ -779,23 +780,41 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
      (02 §7). On a training episode the target of point 1 is computable, because the query's labels
      are base-class labels of the training fold (D-22 is not touched). QGE distils toward "optimal
      query prototypes" (+3.3, T5, 1-way) and DPA distils earlier stages toward later ones (+2.65, T3).
-* **What it does.** During training only, a loss pulls the direction of the effective prototype toward
-  the oracle direction of the training query. Spec 02 §14.
-  * `O_bc = normalise(Σ_{i: y_bi = c} f_bi / ‖f_bi‖)`, stop-gradient: exactly the direction P0's oracle
-    replacement measured (`ORACLE_REPLACE` in `experiments/p0_em_probe.py`, κ → ∞ in 02 §11).
-  * `M_eff = Σ_t w_t P^t` with ADRM's weights (Eq.24-25), `P^T` without ADRM, `P^0` without stages. Then
-    `L_final = F^q M_effᵀ` exactly, because every stage logit is `F^q (P^t)ᵀ` without temperature (D-10).
-  * `L_distill = mean over (b, c) with class c present in query b of 1 − cos(M_eff_bc, O_bc)`, background
-    included (QGE's largest single gain is the background [QGE T5]; P0's oracle replaced every class).
-  * `L_total = CE + λ L_GMMN + β L_distill`, β = `distill_beta`, default 0 (the reproduction unchanged).
+* **What it does.** During training only, a loss pulls each pairwise decision function of the model
+  toward that of the oracle-direction rule of the training query. Spec 02 §14.
+  * `O_bc = normalise(Σ_{i: y_bi = c} f_bi / ‖f_bi‖)`, stop-gradient: the direction of P0's oracle
+    replacement (`ORACLE_REPLACE` in `experiments/p0_em_probe.py`, κ → ∞ in 02 §11).
+  * Teacher logits `T = F^q Oᵀ`, stop-gradient: the oracle rule with one common norm for the classes.
+  * For each query b and each pair of classes c < c' present in it, over the points labelled c or c':
+    `cos_bcc' = cos_i(L_bic − L_bic', T_bic − T_bic')`, uncentred, with `L = L_final`.
+  * `L_distill = mean over (b, c < c') present of 1 − cos_bcc'`; `L_total = CE + λ L_GMMN + β L_distill`,
+    β = `distill_beta`, default 0 (the reproduction unchanged).
+  * `L_distill = 0` exactly when every pairwise decision function of the model is a positive multiple of
+    the oracle rule's on those points, so the two rules predict the same class between c and c'.
   * Nothing changes at evaluation: `L_distill` is computed only in `train()` mode, and the logits never
     read `query_y` (test DIS-5).
+* **Revised before any run (smoke run and measurement of 2026-09-23).** The first form of this decision
+  (commit `660906a`, never trained) was `1 − cos(M_eff_c, O_c)` on the effective prototype
+  `M_eff = Σ_t w_t P^t`. The smoke run's diagnostics refuted it:
+  1. **The loss saw what the prediction cannot.** Adding one vector v to every prototype of a query adds
+     `⟨f_i, v⟩` to every class logit of point i, so softmax, CE and argmax are unchanged, and components
+     of `M` orthogonal to the features change no logit at all. `cos(M_c, O_c)` depends on both. Measured on
+     VIP-Seg's released checkpoints (fixed100, `results/phase16_r2_pre/`): `cos(M_eff, O)` is 0.43 / 0.30
+     (background / foreground) on S1 and 0.10 / 0.13 on S0, `cos(M_c − M_c', O_c − O_c')` 0.53 / 0.44, while
+     the normalised support prototypes that the head starts from score 0.83 / 0.83 raw and 0.63 / 0.66
+     pairwise. The trained head moves its prototypes away from the oracle by both measures, and the
+     first measure differs by a factor of three to four between the folds while the head scores 75.36
+     and 71.97 on them: neither tracks what decides the prediction. The logit-space form above is invariant to both effects.
+  2. **The target is the directions, not the norms.** The same measurement scored the oracle rule with
+     one common norm for the present classes at +10.95 (S1) / +14.12 (S0), against +8.41 / +15.13 with
+     each class's norm kept (P0's rule, reproduced to 0.01). The teacher therefore carries no norm and no
+     temperature, which also removes the scale choice a KL toward softmax would need.
 * **Why these choices, each from evidence.**
-  * **Cosine, not KL on logits.** P0 measured the gain of the direction with the norm kept. A KL toward
-    `softmax(F^q Oᵀ)` would also fix a norm and a temperature for the teacher, for which there is no
-    measurement; the norms stay with CE.
-  * **`M_eff` only, not every `P^t`.** P0 replaced `M_eff`. Per-step targets were never measured and would
-    constrain intermediate steps that ADRM mixes; the per-step cosines are logged as a diagnostic.
+  * **Logit space, pairwise, cosine.** Point 1 of the revision: the only quantities that decide the
+    prediction between two classes are the signs of `L_c − L_c'` on the points; a cosine over points
+    compares their orientation and ignores the common shift, the scale and the feature-orthogonal part.
+  * **Points of the two classes only.** The pairwise decision between c and c' decides the prediction
+    on points of c or c'; on a third class's points it is irrelevant when that class wins.
   * **β = 1.** No value of β has been measured here. 1 is the weight of the paper's other auxiliary term
     (λ = 1, [PAPER Eq.26]); `1 − cos` lies in [0, 2] and the CE of a full-schedule run ends near 0.13
     (`results/phase15_full/baseline_l2/log_train.txt`), so the two terms have the same order. Not tuned:
@@ -813,27 +832,29 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   * **Test, three seeds.** S1 first (D-22): fixed100 (the table's protocol, one cached draw) and three
     independent `random600` draws (seeds 0, 1, 2), with R0, D29 and VIP-Seg's released S1 checkpoint
     scored on identical episodes in each draw; paired bootstrap over episodes per draw.
-  * **Mechanism diagnostics**, labels used for diagnostics only: `cos(M_eff, O)` and `cos(P^t, O)` on the
-    test episodes, the oracle-replacement mIoU of each model (the headroom it leaves), and `L_distill`
-    per epoch in training for both arms (R0 computes it without gradient).
+  * **Mechanism diagnostics**, labels used for diagnostics only: the logit-pair cosine of 02 §14 on the
+    test episodes, the prototype-space cosines per step (descriptive only), the mIoU of both oracle rules
+    per model (the headroom it leaves), and `L_distill` per epoch in training for both arms (R0 computes
+    it without gradient).
 * **Rules, fixed before the run.**
   * R2.0 reference: R0 − VIP-Seg released on S1 fixed100 is reported. Below −2, our loop trains the head
     worse than VIP-Seg's own code and a gain over R0 is not a gain over VIP-Seg.
   * R2.1 go: D29 − R0 ≥ +1.0 on fixed100 with a paired CI above 0, positive on all three random600
-    draws, and the mean `cos(M_eff, O)` on the test episodes higher for D29 than for R0. +1.0 is twice the
+    draws, and the mean logit-pair cosine on the test episodes higher for D29 than for R0: the trained
+    objective transfers to the novel classes. +1.0 is twice the
     estimated sd of a single-run difference. Then S0: both arms once, same test; the S0 claim needs the
     same rule and "beats VIP-Seg" needs D29 > 72.20 on S0 fixed100.
   * R2.2 stop: fixed100 gain < +0.5, or the mean of the three random600 gains < +0.5.
   * R2.3 in between: anything else. One run per arm cannot separate it from training noise; report and
     ask the maintainer for a second training seed per arm.
-  * R2.4 mechanism: a gain without a higher `cos(M_eff, O)` is not a distillation result and is treated
-    as R2.3.
+  * R2.4 mechanism: a gain without a higher logit-pair cosine is not a distillation result and is
+    treated as R2.3.
   * R2.5 collapse watch: a gain with any test class below R0 by more than 3 IoU points is reported.
 * **Reporting.** VIP-Seg's head trained with an oracle-direction loss, labelled that way; not
   CascadeProto. The text prior (the paper's modality branch) is the next addition on top of the
   winner of R2, not part of it.
-* **Affects.** `models/oracle_distill.py` (new), `models/cascadeproto.py` (`distill_beta`, the effective
-  prototype), `pipeline/model_api.py` (`EpisodeOutput.loss_distill`, `distill_weight`), `train.py`
+* **Affects.** `models/oracle_distill.py` (new), `models/cascadeproto.py` (`distill_beta`, `cascade` and
+  `effective_prototype` for the diagnostics), `pipeline/model_api.py` (`EpisodeOutput.loss_distill`, `distill_weight`), `train.py`
   (`--distill_beta`, run-dir suffix `_distill<β>`, `L_distill` in the log), `experiments/r2_distill_eval.py`
   and `experiments/run_r2.sh` (new), 02 §14, 05 §3.8j (DIS-1…).
 
@@ -925,5 +946,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-23 | D-26 (maintainer request): query-side entropy-weighted EM refinement on top of route B, probed on trained checkpoints (P0) before any training; rules fixed before the run. |
 | 2026-09-23 | D-26 closed by its rule P0.2. D-27 (maintainer request): base-class calibration of the background, probed on the same checkpoints (P1) before any training; rules fixed before the run. |
 | 2026-09-23 | D-27 closed by P1.2 (P1.4 weak). D-28 (maintainer request): the two combined, the base margin filtering the foreground M-step of D-26, probed as P2; rules fixed before the run. |
-| 2026-09-23 | D-28 closed by P2.0 / P2.2. D-29 (maintainer request): oracle-direction distillation of the effective prototype during training, on route B's head; one training run per arm, three test draws (maintainer); rules fixed before the run. |
+| 2026-09-23 | D-28 closed by P2.0 / P2.2. D-29 (maintainer request): oracle-direction distillation during training, on route B's head (revised before any run to the logit-space pairwise form); one training run per arm, three test draws (maintainer); rules fixed before the run. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

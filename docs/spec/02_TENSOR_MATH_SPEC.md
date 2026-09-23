@@ -344,31 +344,38 @@ margin `Δ_i` computed from the current step's logits, and `k_i = 1` otherwise; 
 
 ---
 
-## 14. Oracle-prototype distillation during training (beyond the paper) [DECISION D-29]
+## 14. Oracle-direction distillation during training (beyond the paper) [DECISION D-29]
 
-Effective prototype of the final scoring rule, per query b [DECISION D-29]:
-
-$$M^{\mathrm{eff}}_b = \sum_{t=1}^{T} w_{gate}^{(t)}[b]\, P^t_b \ \text{(ADRM)}, \qquad M^{\mathrm{eff}}_b = P^T_b \ \text{(no ADRM)}, \qquad M^{\mathrm{eff}}_b = P^0 \ (T = 0)$$
-
-so that `L_final = F^q (M^eff)ᵀ` (§6, Eq.23 without temperature; with `logit_scale=sqrt_D` both sides
-carry the same factor, which the cosine below ignores) [DECISION D-29].
-
-Oracle direction of class c in query b, from the query labels of a **training** episode, stop-gradient
-[DECISION D-29]:
+Oracle direction of class c in query b, from the query labels of a **training** episode, and the
+teacher logits of the rule that scores with them, both stop-gradient [DECISION D-29]:
 
 $$O_{bc} = \mathrm{normalise}\!\left(\sum_{i:\, y_{bi} = c} \frac{F^q_{bi}}{\lVert F^q_{bi}\rVert}\right), \qquad
-\mathcal{C} = \{(b, c) : \exists i,\ y_{bi} = c\}$$
+T_{bic} = \langle F^q_{bi}, O_{bc}\rangle$$
 
-$$\mathcal{L}_{distill} = \frac{1}{|\mathcal{C}|}\sum_{(b,c) \in \mathcal{C}} \left(1 - \cos\!\left(M^{\mathrm{eff}}_{bc}, O_{bc}\right)\right), \qquad
+For each pair c < c' of classes present in query b, over the points labelled c or c', with `L = L_final`
+(§6, after `logit_scale`) [DECISION D-29]:
+
+$$\cos_{bcc'} = \frac{\sum_{i \in I_{bcc'}} (L_{bic} - L_{bic'})(T_{bic} - T_{bic'})}
+{\sqrt{\sum_{i \in I_{bcc'}} (L_{bic} - L_{bic'})^2}\,\sqrt{\sum_{i \in I_{bcc'}} (T_{bic} - T_{bic'})^2}}, \qquad
+I_{bcc'} = \{i : y_{bi} \in \{c, c'\}\}$$
+
+$$\mathcal{L}_{distill} = \frac{1}{|\mathcal{C}|}\sum_{(b,c,c') \in \mathcal{C}} \left(1 - \cos_{bcc'}\right), \qquad
 \mathcal{L}_{total} = \mathcal{L}_{seg} + \lambda\, \mathcal{L}_{GMMN} + \beta\, \mathcal{L}_{distill}$$
 [DECISION D-29]
 
-* `β = distill_beta`, default 0, which leaves §7 unchanged [DECISION D-29].
-* `L_distill` is computed in training mode only; the logits never depend on `y` [DECISION D-29].
+* `C` is the set of (query, c < c') with both classes present; an episode without such a pair gives
+  `L_distill = 0` [DECISION D-29].
+* The cosine is uncentred, over points, and invariant to adding one vector to every prototype, to a
+  positive scale of `L` and to prototype components orthogonal to the features; each norm in its
+  denominator is clamped at 10⁻¹² before the square root [DECISION D-29].
+* `β = distill_beta`, default 0, which leaves §7 unchanged; `L_distill` is computed in training mode only
+  and the logits never depend on `y` [DECISION D-29].
 * `O` is `ORACLE_REPLACE`'s direction of §11 (κ → ∞ with the `oracle` weight) [DECISION D-29].
-* The background class is included when present; absent classes are left out of `C` [DECISION D-29].
+* Diagnostics only: the effective prototype `M_eff = Σ_t w_gate^(t) P^t` (ADRM), `P^T` (no ADRM), `P^0`
+  (T = 0), with `L_final = F^q (M_eff)ᵀ` [DECISION D-29].
 
 | Tensor | Shape | Source |
 | :--- | :--- | :--- |
-| `M^eff`, `O` | `[B_q, N+1, D]` | [DECISION D-29] |
-| `C` (mask) | `[B_q, N+1]` (bool) | [DECISION D-29] |
+| `O` | `[B_q, N+1, D]` | [DECISION D-29] |
+| `T` | `[B_q, P, N+1]` | [DECISION D-29] |
+| `cos`, `C` (mask) | `[B_q, N+1, N+1]` | [DECISION D-29] |

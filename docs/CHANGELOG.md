@@ -1323,3 +1323,25 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   R2.0-R2.5 fixed in D-29 before the run.
 * **Verification.** DIS-1...10 (`tests/test_distill.py`, spec 05 §3.8j); LOSS-3 and PIPE-4 follow the
   extended contract. Mutation check 18 of 18 killed. G1: 394 passed.
+
+### 16l - D-29 revised before any run: the loss moves to the pairwise logit differences
+
+* **Smoke run on the VM** (64 training episodes per arm, 5 test episodes). Training and evaluation ran
+  end to end; the evaluation failed on its second draw because `score_draw` closed VIP-Seg's hooks after
+  the first (fixed in `ddd986e`, with a test that fails on the old code).
+* **What the diagnostics showed.** On VIP-Seg's released checkpoints (fixed100, `results/phase16_r2_pre/`)
+  `cos(M_eff, O)` is 0.43 / 0.30 (S1, background / foreground) and 0.10 / 0.13 (S0), below the 0.83 of the
+  normalised support prototypes the head starts from, while the head scores 75.36 / 71.97. With
+  `L = F^q Mᵀ`, a common shift of every prototype and any component orthogonal to the features leave all
+  logit differences unchanged, so CE cannot determine them and `1 − cos(M_eff, O)` (the first form of D-29,
+  `660906a`, never trained) would have trained and judged exactly those parts.
+* **Evidence for the replacement.** The oracle rule with one common norm for the present classes gains
+  +10.95 / +14.12 on the same checkpoints, as much as P0's rule with each norm kept (+8.41 / +15.13): the
+  headroom sits in the directions `O` alone.
+* **D-29 now** (spec 02 §14, `models/oracle_distill.py`): teacher `T = F^q Oᵀ` (stop-gradient); for each
+  pair of present classes, over the points of the two classes, `1 − cos_i(L_c − L_c', T_c − T_c')`; mean
+  over pairs. Invariant to the common shift, the scale and the feature-orthogonal components; zero exactly
+  when every pairwise decision agrees with the oracle rule's. The rules' mechanism check reads the same
+  logit-pair cosine on the test episodes; the evaluation also scores the equal-norm oracle rule.
+* **Verification.** DIS-1...10 rewritten for the new form (25 tests); mutation check 25 of 25 killed
+  after DIS-8 gained a model-against-teacher case. G1: 399 passed.

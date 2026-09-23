@@ -11,9 +11,11 @@ is scored on the **same episodes** of a draw, which makes each comparison paired
 episodes gives the uncertainty of the draw, not the training-seed noise (D-29 estimates that at sd ≈ 0.5
 for the difference of two single runs, from R1's `r1_vippem` seeds).
 
-Mechanism diagnostics, query labels used for diagnostics only: `cos(M_eff, O)` (02 §14) over the
-(query, class) pairs present, split background / foreground, per step `cos(P^t, O)`, and the mIoU with
-`M_eff`'s direction replaced by `O` (the headroom a model leaves, P0's `ORACLE_REPLACE`).
+Mechanism diagnostics, query labels used for diagnostics only: the logit-pair cosine to the oracle rule
+that D-29 trains (02 §14), the prototype-space cosines `cos(M_eff, O)` and `cos(M_c - M_c', O_c - O_c')`
+per step (descriptive: see `models/oracle_distill.py` for what they cannot see), and the mIoU with the
+present classes of `M_eff` replaced by `O`, norms kept (P0's `ORACLE_REPLACE`) or equal (the rule D-29
+trains toward): the headroom a model leaves.
 Every checkpoint passes eval.py's protocol guard [DECISION D-22].
 """
 
@@ -34,7 +36,8 @@ sys.path.insert(0, REPO)
 
 from experiments.p0_em_probe import (VIPSegScoringRule, check_identity, class_ious, episode_counts,  # noqa: E402
                                      miou_from_counts, paired_bootstrap, parse_checkpoint)
-from models.oracle_distill import cosine_to_oracle, oracle_directions  # noqa: E402
+from models.oracle_distill import (cosine_to_oracle, oracle_directions, oracle_logits,  # noqa: E402
+                                   pair_logit_cosine, pairwise_cosine)
 
 OUT_DIR = "results/phase16_r2"
 DRAWS = ("fixed100", "random600:0", "random600:1", "random600:2")
@@ -96,22 +99,44 @@ def load(ck: SimpleNamespace, cvfold: int, device):
 
 # ------------------------------------------------------------------ per episode
 
-def oracle_replaced(f_q: torch.Tensor, m_eff: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-    """Predictions [B_q, P] with the direction of every present class of M_eff replaced by O, norms kept."""
+def oracle_replaced(f_q: torch.Tensor, m_eff: torch.Tensor, labels: torch.Tensor, unit: bool = False) -> torch.Tensor:
+    """Predictions [B_q, P] with every present class of M_eff replaced by O; absent classes untouched.
+
+    unit=False keeps each class's norm (P0's ORACLE_REPLACE rule). unit=True gives the present classes one
+    common norm, their mean, so the rule depends on the directions O alone: the rule whose pairwise
+    hyperplanes are those of `O_c - O_c'` [DECISION D-29].
+    """
     o, present = oracle_directions(f_q, labels, m_eff.shape[1])  # [B_q, N+1, D], [B_q, N+1]
-    m = torch.where(present.unsqueeze(-1), m_eff.norm(dim=-1, keepdim=True) * o, m_eff)  # [B_q, N+1, D]
+    norm = m_eff.norm(dim=-1, keepdim=True)  # [B_q, N+1, 1]
+    if unit:
+        pres = present.unsqueeze(-1).to(norm.dtype)  # [B_q, N+1, 1]
+        norm = ((norm * pres).sum(dim=1, keepdim=True) / pres.sum(dim=1, keepdim=True)).expand_as(norm)  # [B_q,N+1,1]
+    m = torch.where(present.unsqueeze(-1), norm * o, m_eff)  # [B_q, N+1, D]
     return torch.einsum("bpd,bcd->bpc", f_q, m).argmax(dim=-1)  # [B_q, P]
 
 
-def cosine_terms(f_q, m_eff, steps, labels) -> Dict[str, np.ndarray]:
-    """Sums and counts of cos(., O) over present pairs: `bg`, `fg` for M_eff, and one entry per step."""
+def cosine_terms(f_q, m_eff, steps, labels, logits) -> Dict[str, np.ndarray]:
+    """Sums and counts over present classes / pairs.
+
+    `logit_pair`: cos_i(L_c - L_c', T_c - T_c'), the quantity D-29 trains, free of the common shift, of the
+    scale and of components orthogonal to the features; the mechanism rule reads it [DECISION D-29].
+    Prototype space, descriptive only: raw cos(., O) (`bg`, `fg`, `step<t>`), which the common shift
+    moves, and cos(m_c - m_c', O_c - O_c') (`pair`, `pair_step<t>`), which the orthogonal components move.
+    """
+    lc, lm = pair_logit_cosine(logits, oracle_logits(f_q, labels, logits.shape[-1]), labels)  # [B_q,N+1,N+1]
     cos, present = cosine_to_oracle(m_eff, f_q, labels)  # [B_q, N+1], [B_q, N+1]
+    o, _ = oracle_directions(f_q, labels, m_eff.shape[1])  # [B_q, N+1, D]
     bg, fg = present[:, 0], present[:, 1:]  # [B_q], [B_q, N]
-    out = {"bg": np.array([float(cos[:, 0][bg].sum()), float(bg.sum())]),
+    out = {"logit_pair": np.array([float(lc[lm].sum()), float(lm.sum())]),
+           "bg": np.array([float(cos[:, 0][bg].sum()), float(bg.sum())]),
            "fg": np.array([float(cos[:, 1:][fg].sum()), float(fg.sum())])}
+    pc, pm = pairwise_cosine(m_eff, o, present)  # [B_q, N+1, N+1]
+    out["pair"] = np.array([float(pc[pm].sum()), float(pm.sum())])
     for t, p in enumerate(steps):
         c, _ = cosine_to_oracle(p, f_q, labels)  # [B_q, N+1]
         out[f"step{t}"] = np.array([float(c[present].sum()), float(present.sum())])
+        pc, pm = pairwise_cosine(p, o, present)  # [B_q, N+1, N+1]
+        out[f"pair_step{t}"] = np.array([float(pc[pm].sum()), float(pm.sum())])
     return out
 
 
@@ -156,9 +181,10 @@ def score_draw(rules: Dict[str, object], draw: str, data_path: str, cvfold: int,
             check_identity(f_q, m_eff, logits)  # the rule read the tensors the model scores with
             pred = logits.argmax(dim=-1).cpu().numpy()  # [B_q, P]
             preds_of[name].append(pred)
-            for key, p in ((name, pred), (name + "_oracle", oracle_replaced(f_q, m_eff, labels).cpu().numpy())):
+            for key, p in ((name, pred), (name + "_oracle", oracle_replaced(f_q, m_eff, labels).cpu().numpy()),
+                           (name + "_oracle_unit", oracle_replaced(f_q, m_eff, labels, unit=True).cpu().numpy())):
                 counts.setdefault(key, []).append(episode_counts(p, gt, episode.sampled_classes, test_classes))
-            for key, v in cosine_terms(f_q, m_eff, steps, labels).items():
+            for key, v in cosine_terms(f_q, m_eff, steps, labels, logits).items():
                 cos[name][key] = cos[name].get(key, 0.0) + v
         gts.append(gt), l2c.append(episode.sampled_classes)
     stacked = {k: np.stack(v) for k, v in counts.items()}  # name -> [E, 3, C+1]
@@ -176,13 +202,11 @@ def score_draw(rules: Dict[str, object], draw: str, data_path: str, cvfold: int,
     result = {"draw": draw, "cvfold": cvfold, "episodes": len(view), "test_classes": test_classes,
               "miou": {k: float(miou_from_counts(v.sum(0))) for k, v in stacked.items()},
               "class_iou": {k: class_ious(v.sum(0)).tolist() for k, v in stacked.items()},
-              "cos": {n: {k: float(v[0] / max(v[1], 1.0)) for k, v in c.items()} for n, c in cos.items()},
-              "cos_all": {n: float((c["bg"][0] + c["fg"][0]) / max(c["bg"][1] + c["fg"][1], 1.0))
-                          for n, c in cos.items()}}
+              "cos": {n: {k: float(v[0] / max(v[1], 1.0)) for k, v in c.items()} for n, c in cos.items()}}
     pairs = [(a, b) for a, b in ((REFERENCE, ARM), (RELEASED, REFERENCE), (RELEASED, ARM)) if a in rules and b in rules]
     result["paired"] = {f"{b}_vs_{a}": paired_bootstrap(stacked[a], stacked[b]) for a, b in pairs}
-    result["paired"].update({f"{n}_oracle_vs_{n}": paired_bootstrap(stacked[n], stacked[n + "_oracle"])
-                             for n in rules})
+    result["paired"].update({f"{n}{o}_vs_{n}": paired_bootstrap(stacked[n], stacked[n + o])
+                             for n in rules for o in ("_oracle", "_oracle_unit")})
     return result, stacked
 
 
@@ -198,8 +222,6 @@ def cmd_test(args, device) -> int:
             raise ValueError(f"{ck.name} was trained on S{ck.fold}; this run scores S{args.cvfold} [DECISION D-22]")
         rules[ck.name], protocol, config = load(ck, args.cvfold, device)
         meta[ck.name] = {"checkpoint": vars(ck), "protocol": protocol, "config": config}
-    if REFERENCE not in rules or ARM not in rules:
-        raise ValueError(f"R2 compares {ARM!r} with {REFERENCE!r}; pass both as checkpoint names")
     os.makedirs(OUT_DIR, exist_ok=True)
     try:  # the rules (VIP-Seg's hooks) serve every draw and are closed once, at the end
         for draw in args.draws:
@@ -209,10 +231,11 @@ def cmd_test(args, device) -> int:
             with open(os.path.join(OUT_DIR, stem + ".json"), "w") as f:
                 json.dump(result, f, indent=1)
             np.savez_compressed(os.path.join(OUT_DIR, stem + "_counts.npz"), **stacked)
-            p = result["paired"][f"{ARM}_vs_{REFERENCE}"]
+            p = result["paired"].get(f"{ARM}_vs_{REFERENCE}")
             print(f"[test] S{args.cvfold} {draw}: " + " | ".join(
-                f"{n} {result['miou'][n]:.4f} (cos {result['cos_all'][n]:.3f}, oracle {result['miou'][n + '_oracle']:.4f})"
-                for n in rules) + f" | {ARM} - {REFERENCE} {p['gain']:+.2f} [{p['ci_low']:+.2f}, {p['ci_high']:+.2f}]",
+                f"{n} {result['miou'][n]:.4f} (logit-pair cos {result['cos'][n]['logit_pair']:.3f}, oracle "
+                f"{result['miou'][n + '_oracle']:.4f} / unit {result['miou'][n + '_oracle_unit']:.4f})" for n in rules)
+                + (f" | {ARM} - {REFERENCE} {p['gain']:+.2f} [{p['ci_low']:+.2f}, {p['ci_high']:+.2f}]" if p else ""),
                 flush=True)
     finally:
         for rule in rules.values():
@@ -244,8 +267,9 @@ def decide(results: List[Dict], cvfold: int) -> List[Tuple[str, str]]:
                           if gap < REFERENCE_GAP else "comparable")))
     p = fixed["paired"][f"{ARM}_vs_{REFERENCE}"]
     rand = [100.0 * (by_draw[d]["miou"][ARM] - by_draw[d]["miou"][REFERENCE]) for d in DRAWS[1:]]
-    mech = fixed["cos_all"][ARM] > fixed["cos_all"][REFERENCE]
-    mech_text = f"cos(M_eff, O) {fixed['cos_all'][REFERENCE]:.4f} -> {fixed['cos_all'][ARM]:.4f}"
+    lp = {n: fixed["cos"][n]["logit_pair"] for n in (REFERENCE, ARM)}
+    mech = lp[ARM] > lp[REFERENCE]
+    mech_text = f"logit-pair cosine to the oracle rule {lp[REFERENCE]:.4f} -> {lp[ARM]:.4f}"
     gain_text = f"fixed100 {ci_text(p)}; random600 {[round(g, 2) for g in rand]}; {mech_text}"
     if p["gain"] < STOP_GAIN or float(np.mean(rand)) < STOP_GAIN:
         verdicts.append(("R2.2 stop", gain_text))
@@ -254,8 +278,8 @@ def decide(results: List[Dict], cvfold: int) -> List[Tuple[str, str]]:
                f"S0 confirmed; beats VIP-Seg's 72.20: {'yes' if 100.0 * fixed['miou'][ARM] > 72.20 else 'no'}")
         verdicts.append(("R2.1 go", f"{gain_text}: {nxt}"))
     elif p["gain"] >= GO_GAIN and p["ci_low"] > 0 and min(rand) > 0:
-        verdicts.append(("R2.4 mechanism", f"{gain_text}: a gain without a higher cosine is not a distillation "
-                                           f"result; treated as R2.3"))
+        verdicts.append(("R2.4 mechanism", f"{gain_text}: a gain without a higher logit-pair cosine is not a "
+                                           f"distillation result; treated as R2.3"))
     else:
         verdicts.append(("R2.3 in between", f"{gain_text}: one run per arm cannot separate this from training "
                                             f"noise; a second training seed per arm is needed"))
@@ -264,8 +288,9 @@ def decide(results: List[Dict], cvfold: int) -> List[Tuple[str, str]]:
         verdicts.append(("R2.5 collapse watch", f"per-class change {drop} (classes {fixed['test_classes']})"))
     for name in (REFERENCE, ARM, RELEASED):
         if name in fixed["miou"]:
-            o = fixed["paired"][f"{name}_oracle_vs_{name}"]["gain"]
-            verdicts.append((f"headroom {name}", f"oracle replacement {o:+.2f} on fixed100"))
+            o, u = (fixed["paired"][f"{name}{k}_vs_{name}"]["gain"] for k in ("_oracle", "_oracle_unit"))
+            verdicts.append((f"headroom {name}", f"oracle replacement {o:+.2f}, oracle directions {u:+.2f} "
+                                                 f"on fixed100; logit-pair cosine {fixed['cos'][name]['logit_pair']:.4f}"))
     return verdicts
 
 

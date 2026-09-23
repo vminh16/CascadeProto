@@ -1,4 +1,4 @@
-"""DIS-1..10 (05 §3.8j): oracle-direction distillation of the effective prototype [DECISION D-29]. Beyond the paper, CPU.
+"""DIS-1..10 (05 §3.8j): oracle-direction distillation of the pairwise decisions [DECISION D-29]. Beyond the paper, CPU.
 
 The model tests use CascadeProto with the per-point stand-in encoder of test_cascadeproto.py and the
 printed EPPM stages, which run on the CPU; the distillation does not depend on the stage type.
@@ -15,7 +15,8 @@ import torch.nn.functional as F
 import train
 from experiments import r2_distill_eval as r2
 from models.cascadeproto import CascadeProtoConfig
-from models.oracle_distill import cosine_to_oracle, oracle_directions, oracle_distill_loss
+from models.oracle_distill import (cosine_to_oracle, oracle_directions, oracle_distill_loss, oracle_logits,
+                                   pair_logit_cosine, pairwise_cosine)
 from pipeline.model_api import EpisodeOutput, episode_loss
 from tests.test_cascadeproto import episode, model
 
@@ -51,27 +52,70 @@ def test_dis1_oracle_is_p0s_oracle_replace_direction():
     assert torch.allclose(F.normalize(mu, dim=-1)[present], o[present], atol=1e-6)
 
 
-def test_dis2_loss_is_the_mean_of_one_minus_cosine_over_present_pairs():
-    f_q = rand(2, 6, D, seed=4)
-    labels = torch.tensor([[0, 1, 1, 0, 0, 1], [0, 2, 2, 0, 0, 0]])
+LABELS = torch.tensor([[0, 1, 2, 0, 1, 2, 0, 0, 1, 2], [0, 0, 1, 1, 0, 0, 1, 0, 0, 1]])  # pairs: 3 + 1
+
+
+def teacher(seed=10):
+    f_q = rand(2, 10, D, seed=seed)
+    return f_q, oracle_logits(f_q, LABELS, 3)
+
+
+def test_dis2_teacher_is_the_oracle_direction_rule():
+    f_q, t = teacher()
+    o, _ = oracle_directions(f_q, LABELS, 3)
+    assert torch.allclose(t, torch.einsum("bpd,bcd->bpc", f_q, o), atol=1e-12)
+
+
+def test_dis2_loss_ignores_shift_and_scale_and_sees_orientation():
+    f_q, t = teacher()
+    shift = rand(2, 10, 1, seed=11) * 5  # one value per point, added to every class logit
+    assert oracle_distill_loss(3.0 * t + shift, f_q, LABELS).item() == pytest.approx(0.0, abs=1e-12)
+    assert oracle_distill_loss(-2.0 * t + shift, f_q, LABELS).item() == pytest.approx(2.0, abs=1e-12)
+    flipped = t.clone()
+    flipped[1] = -flipped[1]  # query 1 holds one pair of the four: 2 / 4
+    assert oracle_distill_loss(flipped, f_q, LABELS).item() == pytest.approx(0.5, abs=1e-12)
+
+
+def test_dis2_pair_cosine_uses_the_points_of_the_two_classes_only():
+    f_q, t = teacher()
+    logits = t + 0.3 * rand(2, 10, 3, seed=12)
+    cos, mask = pair_logit_cosine(logits, t, LABELS)
+    assert mask.tolist() == [[[False, True, True], [False, False, True], [False, False, False]],
+                             [[False, True, False], [False, False, False], [False, False, False]]]
+    idx = (LABELS[0] == 0) | (LABELS[0] == 1)  # the pair (0, 1) of query 0, written out
+    a, b = logits[0, idx, 0] - logits[0, idx, 1], t[0, idx, 0] - t[0, idx, 1]
+    assert cos[0, 0, 1].item() == pytest.approx(float(a @ b / (a.norm() * b.norm())), abs=1e-12)
+    moved = logits.clone()
+    moved[0, LABELS[0] == 2, :2] += 7.0  # points of class 2 do not enter the pair (0, 1)
+    assert pair_logit_cosine(moved, t, LABELS)[0][0, 0, 1].item() == pytest.approx(cos[0, 0, 1].item(), abs=1e-12)
+
+
+def test_dis2_prototype_shift_moves_the_prototype_cosine_not_the_loss():
+    """The refuted first form (D-29 revision, point 1): a common shift of M changes cos(M_c, O_c)."""
+    f_q = rand(1, 10, D, seed=13)
+    m = torch.randn(1, 3, D, generator=torch.Generator().manual_seed(14), dtype=torch.float64)
+    labels = LABELS[:1]
+    shifted = m + 4.0 * rand(1, 1, D, seed=15)
+    la, lb = (torch.einsum("bpd,bcd->bpc", f_q, x) for x in (m, shifted))
+    assert oracle_distill_loss(la, f_q, labels).item() == pytest.approx(
+        oracle_distill_loss(lb, f_q, labels).item(), abs=1e-12)
+    assert not torch.allclose(cosine_to_oracle(m, f_q, labels)[0], cosine_to_oracle(shifted, f_q, labels)[0])
     o, present = oracle_directions(f_q, labels, 3)
-    m = 3.7 * o + (~present).unsqueeze(-1) * rand(2, 3, D, seed=5)  # any positive scale, garbage when absent
-    assert oracle_distill_loss(m, f_q, labels).item() == pytest.approx(0.0, abs=1e-12)
-    assert oracle_distill_loss(-m, f_q, labels).item() == pytest.approx(2.0, abs=1e-12)
-    m2 = m.clone()
-    m2[0, 0] = -m2[0, 0]  # only the background of query 0 turned around: 2 / (4 present pairs)
-    assert oracle_distill_loss(m2, f_q, labels).item() == pytest.approx(0.5, abs=1e-12)
-    cos, pres = cosine_to_oracle(m2, f_q, labels)
-    assert torch.equal(pres, present) and cos[0, 0].item() == pytest.approx(-1.0)
+    assert torch.allclose(pairwise_cosine(m, o, present)[0], pairwise_cosine(shifted, o, present)[0], atol=1e-12)
+
+
+def test_dis2_no_pair_gives_a_zero_that_keeps_the_graph():
+    logits = rand(1, 10, 3, seed=16).requires_grad_(True)
+    loss = oracle_distill_loss(logits, rand(1, 10, D, seed=17), torch.zeros(1, 10, dtype=torch.long))
+    assert loss.item() == 0.0 and loss.requires_grad
 
 
 def test_dis3_the_target_is_a_stopped_gradient():
-    f_q = rand(2, 6, D, seed=6).requires_grad_(True)
-    m = rand(2, 3, D, seed=7).requires_grad_(True)
-    labels = torch.tensor([[0, 1, 2, 0, 1, 2], [0, 1, 1, 0, 0, 0]])
-    oracle_distill_loss(m, f_q, labels).backward()
-    assert f_q.grad is None  # O carries no gradient to the features
-    assert m.grad is not None and m.grad.abs().sum() > 0
+    f_q = rand(2, 10, D, seed=6).requires_grad_(True)
+    logits = rand(2, 10, 3, seed=7).requires_grad_(True)
+    oracle_distill_loss(logits, f_q, LABELS).backward()
+    assert f_q.grad is None  # the teacher carries no gradient to the features
+    assert logits.grad is not None and logits.grad.abs().sum() > 0
 
 
 CONFIGS = [CascadeProtoConfig(use_lma=False, num_stages=0),
@@ -118,8 +162,8 @@ def test_dis6_objective_with_and_without_the_weight():
     assert out.distill_weight == 0.0 and not out.loss_distill.requires_grad  # logged, no gradient
     ce = F.cross_entropy(out.logits.reshape(-1, 3), ep.query_y.reshape(-1))
     assert torch.equal(episode_loss(out, ep), ce + out.loss_gmmn)  # the paper's objective, bit for bit
-    f_q, p0, steps, _ = off.cascade(ep)
-    want = oracle_distill_loss(off.effective_prototype(f_q, p0, steps), f_q, ep.query_y)
+    f_q, _, _, _ = off.cascade(ep)
+    want = oracle_distill_loss(out.logits, f_q, ep.query_y)
     assert out.loss_distill.item() == pytest.approx(want.item(), abs=1e-12)
     on = model(CascadeProtoConfig(use_lma=False, num_stages=3, distill_beta=0.5)).train()
     out = on(ep)
@@ -148,14 +192,24 @@ def test_dis7_configuration_and_cli():
     assert train.resume_mismatch(saved, train.comparable_args(a1)) == ["distill_beta"]
 
 
-def test_dis8_oracle_replacement_keeps_norms_and_absent_classes():
+def test_dis8_oracle_rules_keep_absent_classes_and_set_the_norms():
     f_q, m = rand(1, 6, D, seed=8), rand(1, 3, D, seed=9)
     labels = torch.tensor([[0, 0, 1, 1, 1, 0]])  # class 2 absent: its prototype is untouched
     o, _ = oracle_directions(f_q, labels, 3)
-    want = torch.stack([m[0, 0].norm() * o[0, 0], m[0, 1].norm() * o[0, 1], m[0, 2]])
-    assert torch.equal(r2.oracle_replaced(f_q, m, labels), torch.einsum("pd,cd->pc", f_q[0], want).argmax(-1)[None])
-    terms = r2.cosine_terms(f_q, m, [m, o], labels)
+    kept = torch.stack([m[0, 0].norm() * o[0, 0], m[0, 1].norm() * o[0, 1], m[0, 2]])
+    assert torch.equal(r2.oracle_replaced(f_q, m, labels), torch.einsum("pd,cd->pc", f_q[0], kept).argmax(-1)[None])
+    s = (m[0, 0].norm() + m[0, 1].norm()) / 2  # one common norm for the present classes
+    unit = torch.stack([s * o[0, 0], s * o[0, 1], m[0, 2]])
+    assert torch.equal(r2.oracle_replaced(f_q, m, labels, unit=True),
+                       torch.einsum("pd,cd->pc", f_q[0], unit).argmax(-1)[None])
+    logits = torch.einsum("bpd,bcd->bpc", f_q, m)
+    terms = r2.cosine_terms(f_q, m, [m, o], labels, logits)
     assert terms["bg"][1] == 1 and terms["fg"][1] == 1 and terms["step1"][0] == pytest.approx(2.0)
+    assert terms["logit_pair"][1] == 1 and terms["pair"][1] == 1 and terms["pair_step1"][0] == pytest.approx(1.0)
+    want = pair_logit_cosine(logits, oracle_logits(f_q, labels, 3), labels)[0][0, 0, 1].item()
+    assert terms["logit_pair"][0] == pytest.approx(want, abs=1e-12) and abs(want) < 0.999  # model vs teacher
+    own = r2.cosine_terms(f_q, m, [m], labels, oracle_logits(f_q, labels, 3))
+    assert own["logit_pair"][0] == pytest.approx(1.0)  # the teacher agrees with itself
 
 
 def _draws(gain_fixed, ci_low, rand_gains, cos_r0=0.80, cos_d29=0.85, r0=0.70, vip=0.7536, fold=1, drop=0.0):
@@ -164,10 +218,12 @@ def _draws(gain_fixed, ci_low, rand_gains, cos_r0=0.80, cos_d29=0.85, r0=0.70, v
         d29 = r0 + g / 100
         out.append({"draw": draw, "cvfold": fold, "test_classes": [6, 1, 9, 7, 2, 5],
                     "miou": {"r0": r0, "d29": d29, "vipseg": vip},
-                    "cos_all": {"r0": cos_r0, "d29": cos_d29, "vipseg": 0.8},
+                    "cos": {"r0": {"logit_pair": cos_r0}, "d29": {"logit_pair": cos_d29},
+                            "vipseg": {"logit_pair": 0.8}},
                     "class_iou": {"r0": [0.9] + [0.7] * 6, "d29": [0.9, 0.7 + drop / 100] + [0.7 + g / 100] * 5},
                     "paired": {"d29_vs_r0": {"gain": g, "ci_low": ci_low, "ci_high": g + 0.5},
-                               **{f"{n}_oracle_vs_{n}": {"gain": 8.0} for n in ("r0", "d29", "vipseg")}}})
+                               **{f"{n}{o}_vs_{n}": {"gain": 8.0} for n in ("r0", "d29", "vipseg")
+                                  for o in ("_oracle", "_oracle_unit")}}})
     return out
 
 
@@ -233,8 +289,8 @@ def test_dis9_rules_survive_every_draw(monkeypatch):
              "d29": _Closing(model(CascadeProtoConfig(use_lma=False, num_stages=3)).eval().float())}
     for draw in r2.DRAWS[1:]:
         result, stacked = r2.score_draw(rules, draw, "x", 1, torch.device("cpu"))
-        assert result["episodes"] == 2 and set(result["paired"]) == {"d29_vs_r0", "r0_oracle_vs_r0",
-                                                                     "d29_oracle_vs_d29"}
+        assert result["episodes"] == 2 and set(result["paired"]) == {
+            "d29_vs_r0", "r0_oracle_vs_r0", "d29_oracle_vs_d29", "r0_oracle_unit_vs_r0", "d29_oracle_unit_vs_d29"}
     assert all(rule.closed == 0 for rule in rules.values())
 
 
