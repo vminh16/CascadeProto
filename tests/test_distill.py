@@ -197,6 +197,47 @@ def test_dis9_test_refuses_a_checkpoint_of_the_other_fold():
         r2.cmd_test(args, torch.device("cpu"))
 
 
+class _Closing:
+    """An OursRule that records `close()`; after it, a real hook-based rule would read nothing."""
+
+    def __init__(self, m):
+        self.rule, self.closed = r2.OursRule(m), 0
+
+    def __call__(self, ep):
+        assert not self.closed, "rule used after close()"
+        return self.rule(ep)
+
+    def close(self):
+        self.closed += 1
+
+
+def test_dis9_rules_survive_every_draw(monkeypatch):
+    """The smoke run of 2026-09-23 caught score_draw closing VIP-Seg's hooks after the first draw."""
+    import numpy as np
+
+    import pipeline.episodes as episodes
+    from tests.test_cascadeproto import CLASS_NAMES
+
+    def items(seed):
+        rng = np.random.default_rng(seed)
+        return (rng.random((2, 1, 2048, 9)), rng.integers(0, 2, (2, 1, 2048)).astype(np.int32),
+                rng.random((2, 2048, 9)), rng.integers(0, 3, (2, 2048)), np.array([3, 4]))
+
+    class Draw(list):
+        classes = np.array([3, 4, 5])
+
+    monkeypatch.setattr(r2, "episodes_of", lambda draw, path, fold: (Draw([items(0), items(1)]), [3, 4, 5]))
+    monkeypatch.setattr(episodes, "read_class_names", lambda path, name: CLASS_NAMES)
+
+    rules = {"r0": _Closing(model(CascadeProtoConfig(use_lma=False, num_stages=2)).eval().float()),
+             "d29": _Closing(model(CascadeProtoConfig(use_lma=False, num_stages=3)).eval().float())}
+    for draw in r2.DRAWS[1:]:
+        result, stacked = r2.score_draw(rules, draw, "x", 1, torch.device("cpu"))
+        assert result["episodes"] == 2 and set(result["paired"]) == {"d29_vs_r0", "r0_oracle_vs_r0",
+                                                                     "d29_oracle_vs_d29"}
+    assert all(rule.closed == 0 for rule in rules.values())
+
+
 @pytest.mark.parametrize("path", ["experiments/r2_distill_eval.py", "models/oracle_distill.py",
                                   "models/cascadeproto.py", "pipeline/model_api.py", "train.py"])
 def test_dis10_parses_as_python_3_10(path):

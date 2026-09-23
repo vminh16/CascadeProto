@@ -161,8 +161,6 @@ def score_draw(rules: Dict[str, object], draw: str, data_path: str, cvfold: int,
             for key, v in cosine_terms(f_q, m_eff, steps, labels).items():
                 cos[name][key] = cos[name].get(key, 0.0) + v
         gts.append(gt), l2c.append(episode.sampled_classes)
-    for rule in rules.values():
-        rule.close()
     stacked = {k: np.stack(v) for k, v in counts.items()}  # name -> [E, 3, C+1]
     if draw == "fixed100":  # the count-based mIoU must be VIP-Seg's own metric [D-08]
         from pipeline.evaluation import accumulated_miou
@@ -203,17 +201,22 @@ def cmd_test(args, device) -> int:
     if REFERENCE not in rules or ARM not in rules:
         raise ValueError(f"R2 compares {ARM!r} with {REFERENCE!r}; pass both as checkpoint names")
     os.makedirs(OUT_DIR, exist_ok=True)
-    for draw in args.draws:
-        result, stacked = score_draw(rules, draw, args.data_path, args.cvfold, device, args.max_episodes)
-        result["models"] = meta
-        stem = draw_stem(args.cvfold, draw)
-        with open(os.path.join(OUT_DIR, stem + ".json"), "w") as f:
-            json.dump(result, f, indent=1)
-        np.savez_compressed(os.path.join(OUT_DIR, stem + "_counts.npz"), **stacked)
-        p = result["paired"][f"{ARM}_vs_{REFERENCE}"]
-        print(f"[test] S{args.cvfold} {draw}: " + " | ".join(f"{n} {result['miou'][n]:.4f} (cos {result['cos_all'][n]:.3f}, "
-                                                           f"oracle {result['miou'][n + '_oracle']:.4f})" for n in rules)
-              + f" | {ARM} - {REFERENCE} {p['gain']:+.2f} [{p['ci_low']:+.2f}, {p['ci_high']:+.2f}]", flush=True)
+    try:  # the rules (VIP-Seg's hooks) serve every draw and are closed once, at the end
+        for draw in args.draws:
+            result, stacked = score_draw(rules, draw, args.data_path, args.cvfold, device, args.max_episodes)
+            result["models"] = meta
+            stem = draw_stem(args.cvfold, draw)
+            with open(os.path.join(OUT_DIR, stem + ".json"), "w") as f:
+                json.dump(result, f, indent=1)
+            np.savez_compressed(os.path.join(OUT_DIR, stem + "_counts.npz"), **stacked)
+            p = result["paired"][f"{ARM}_vs_{REFERENCE}"]
+            print(f"[test] S{args.cvfold} {draw}: " + " | ".join(
+                f"{n} {result['miou'][n]:.4f} (cos {result['cos_all'][n]:.3f}, oracle {result['miou'][n + '_oracle']:.4f})"
+                for n in rules) + f" | {ARM} - {REFERENCE} {p['gain']:+.2f} [{p['ci_low']:+.2f}, {p['ci_high']:+.2f}]",
+                flush=True)
+    finally:
+        for rule in rules.values():
+            rule.close()
     return 0
 
 
