@@ -343,9 +343,10 @@ checkpoints, which needs the CUDA encoder (gate G2).
 | BPC-2 | The bank needs its centre first; the centre is the mean of every support and query point; ways map to their classes (query label way+1); empty occurrences are skipped; below `min_count` it raises | [DECISION D-27] |
 | BPC-3 | Support prototypes are built like the bank's | [DECISION D-27] |
 | BPC-4 | The margin is the base cosine minus the cosine to the predicted class's support prototype, `−∞` on background predictions | [DECISION D-27] |
-| BPC-5 | `δ = ∞` returns the logits; only points with margin > δ move, all to the background, even under a large foreground logit; foreground logits are unchanged | [DECISION D-27] |
+| BPC-5 | No flip returns the logits; only flipped points move, all to the background, even under a large foreground logit; foreground logits are unchanged | [DECISION D-27] |
+| BPC-5b | The top fraction q of a query's foreground predictions flips, never a point with a non-positive margin; `⌊q·n⌋ = 0` flips nothing | [DECISION D-27] |
 | BPC-6 | The histogram AUC equals the pairwise AUC on the same binning | [DECISION D-27] |
-| BPC-7 | Selection takes the δ of the best mean gain | [DECISION D-27] |
+| BPC-7 | Selection takes the q of the best mean gain | [DECISION D-27] |
 | BPC-8 | Rules P1.1 (a large gain whose CI contains 0 is no go), P1.2, P1.3, P1.4 both ways, P1.5 and "incomplete" | [DECISION D-27] |
 | BPC-9 | Selection refuses an S0 checkpoint before loading anything | [DECISION D-22] |
 | BPC-10 | The bank cache is keyed by its episode count, so a smoke bank never stands in for the full one | [DECISION D-27] |

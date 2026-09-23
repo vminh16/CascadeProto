@@ -299,12 +299,15 @@ CL2N geometry: `f̃ = normalise(f − μ)`, μ the mean feature of every support
 bank's training episodes [DECISION D-27]. Base prototypes over the occurrences o (a support or query
 mask) of base class j, and the episode's support prototypes over the K shots of way c [DECISION D-27]:
 
-$$b_j = \mathrm{normalise}\Big(\sum_{o\in O_j} \mathrm{normalise}ig(\sum_{i\in o} 	ilde f_iig)\Big), \qquad
-u_c = \mathrm{normalise}\Big(\sum_{k=1}^{K} \mathrm{normalise}ig(\sum_{i:\,Y^s_{c,k,i}=1} 	ilde f_iig)\Big)$$
+$$b_j = \mathrm{normalise}\Big(\sum_{o\in O_j} \mathrm{normalise}\big(\sum_{i\in o} \tilde f_i\big)\Big), \qquad
+u_c = \mathrm{normalise}\Big(\sum_{k=1}^{K} \mathrm{normalise}\big(\sum_{i:\,Y^s_{c,k,i}=1} \tilde f_i\big)\Big)$$
 
 For a query point whose model prediction is `ĉ_i = argmax_c L_ic ≥ 1` [DECISION D-27]:
 
-$$\Delta_i = \max_j \cos(	ilde f_i, b_j) - \cos(	ilde f_i, u_{\hat c_i}), \qquad \hat c_i \leftarrow 0 \ 	ext{ if } \Delta_i > \delta$$
+$$\Delta_i = \max_j \cos(\tilde f_i, b_j) - \cos(\tilde f_i, u_{\hat c_i})$$
+
+Per query, with `F_b` its foreground predictions and `k = ⌊q |F_b|⌋`, the points of `F_b` with `Δ_i > 0`
+and `Δ_i` at least the k-th largest margin of `F_b` get `ĉ_i ← 0`; `k = 0` moves nothing [DECISION D-27].
 
 * Background predictions are never changed; `Δ_i = −∞` there. Foreground logits are never changed; the
   background logit of a moved point is set above the maximum [DECISION D-27].

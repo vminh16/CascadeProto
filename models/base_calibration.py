@@ -12,13 +12,15 @@ class is background in a novel-class episode [COSeg §4.3].
   occurrences o (support and query masks) in training episodes: the frozen-feature limit of COSeg's EMA
   of masked averages [COSeg Eq.9-10].
 * **Calibration.** The support's foreground prototypes are built the same way, `u_c` from the episode's
-  support masks. A point the model assigns to foreground class c is moved to the background when
+  support masks. The base margin of a point the model assigns to foreground class c is
 
-      max_j cos(f~_i, b_j) - cos(f~_i, u_c) > delta        (delta >= 0)
+      m_i = max_j cos(f~_i, b_j) - cos(f~_i, u_c)
 
-  i.e. when, in one common geometry, it is nearer to a base class than to its own foreground class by a
-  margin. Points the model assigns to the background are never touched, and the foreground logits are
-  never changed; `delta = inf` returns the model's logits.
+  and, per query, the points with m_i > 0 among the top fraction q of its foreground predictions by m_i
+  are moved to the background. q is anchored to the measured share of false foreground: an absolute
+  threshold on m_i flipped 33-73 % of VIP-Seg's foreground predictions in the second smoke run, where
+  3.7 % were false (D-27). Points the model assigns to the background are never touched, the foreground
+  logits are never changed, and q = 0 returns the model's logits.
 """
 
 from typing import Dict, Optional
@@ -108,9 +110,22 @@ def base_margin(f_q: torch.Tensor, logits: torch.Tensor, support: torch.Tensor, 
     return torch.where(pred > 0, to_base - own, torch.full_like(own, float("-inf")))  # [B_q, P]
 
 
-def calibrate_background(logits: torch.Tensor, margin: torch.Tensor, delta: float) -> torch.Tensor:
-    """Move to the background every point whose base margin exceeds delta; logits [B_q, P, N+1] -> same."""
-    flip = margin > delta  # [B_q, P]; margin is -inf on background predictions
+def top_fraction_flips(margin: torch.Tensor, q: float) -> torch.Tensor:
+    """Per query, the foreground predictions with a positive margin in the top fraction q of its foreground
+    predictions: margin [B_q, P] (-inf on background predictions) -> bool [B_q, P]."""
+    flip = torch.zeros_like(margin, dtype=torch.bool)  # [B_q, P]
+    for b in range(margin.shape[0]):
+        fg = torch.isfinite(margin[b])  # [P]
+        k = int(q * int(fg.sum()))  # number of flips allowed in this query
+        if k == 0:
+            continue
+        thr = torch.topk(margin[b][fg], k).values[-1].clamp_min(0.0)  # k-th largest margin, and > 0 below
+        flip[b] = fg & (margin[b] >= thr) & (margin[b] > 0)  # [P]
+    return flip
+
+
+def calibrate_background(logits: torch.Tensor, flip: torch.Tensor) -> torch.Tensor:
+    """Move the flipped points to the background: logits [B_q, P, N+1], flip [B_q, P] -> [B_q, P, N+1]."""
     out = logits.clone()  # [B_q, P, N+1]
     out[..., 0] = torch.where(flip, logits.max(dim=-1).values + 1.0, logits[..., 0])  # [B_q, P]
     return out

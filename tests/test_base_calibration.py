@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from experiments import p1_bpc_probe as probe
 from models.base_calibration import (BasePrototypeBank, auc_from_histogram, base_margin, calibrate_background,
                                      centred_unit, occurrence_prototypes, separability_histogram,
-                                     support_prototypes)
+                                     support_prototypes, top_fraction_flips)
 
 D, P = 8, 32
 
@@ -74,18 +74,27 @@ def test_bpc4_margin_is_base_minus_own_class_and_undefined_on_background():
     assert m[0, 2].item() == float("-inf")  # predicted background
 
 
-def test_bpc5_calibration_only_moves_foreground_to_background():
+def test_bpc5_calibration_only_moves_flipped_points_to_background():
     logits = rand(2, P, 3, seed=7)
-    margin = rand(2, P, seed=8) - 0.5
-    margin[logits.argmax(-1) == 0] = float("-inf")
-    assert torch.equal(calibrate_background(logits, margin, float("inf")), logits)
-    out = calibrate_background(logits, margin, 0.1)
-    flip = margin > 0.1
+    flip = rand(2, P, seed=8) > 0.7
+    assert torch.equal(calibrate_background(logits, torch.zeros_like(flip)), logits)
+    out = calibrate_background(logits, flip)
     assert (out.argmax(-1)[flip] == 0).all()
     assert torch.equal(out.argmax(-1)[~flip], logits.argmax(-1)[~flip])
     assert torch.equal(out[..., 1:], logits[..., 1:])
     far = torch.tensor([[[0.0, 50.0, 3.0]]], dtype=torch.float64)  # foreground far above the background
-    assert calibrate_background(far, torch.tensor([[1.0]], dtype=torch.float64), 0.0).argmax(-1).item() == 0
+    assert calibrate_background(far, torch.tensor([[True]])).argmax(-1).item() == 0
+
+
+def test_bpc5b_top_fraction_flips_positive_margins_only():
+    margin = torch.full((2, 100), float("-inf"), dtype=torch.float64)
+    margin[0, :50] = torch.linspace(-0.5, 0.49, 50, dtype=torch.float64)  # 50 foreground predictions
+    margin[1, :10] = -0.1  # 10 foreground predictions, none nearer to a base class
+    flip = top_fraction_flips(margin, 0.1)
+    assert flip[0].sum().item() == 5 and flip[0, 45:50].all()  # the 5 largest of 50
+    assert flip[1].sum().item() == 0  # a negative margin never flips
+    assert top_fraction_flips(margin, 0.0).sum().item() == 0
+    assert top_fraction_flips(margin, 0.01)[0].sum().item() == 0  # 1 % of 50 rounds down to none
 
 
 def test_bpc6_histogram_auc_equals_pairwise_auc():
@@ -100,14 +109,14 @@ def test_bpc6_histogram_auc_equals_pairwise_auc():
     assert auc_from_histogram(torch.zeros(2, 200)) is None
 
 
-def test_bpc7_selection_picks_the_best_mean_delta():
-    results = [{"miou": {"model": 0.5} | {probe.arm(d): 0.5 for d in probe.DELTAS}} for _ in range(2)]
-    results[0]["miou"][probe.arm(0.05)] = 0.52
-    results[1]["miou"][probe.arm(0.2)] = 0.515
-    assert probe.select_delta(results)["delta"] == 0.05
+def test_bpc7_selection_picks_the_best_mean_fraction():
+    results = [{"miou": {"model": 0.5} | {probe.arm(q): 0.5 for q in probe.FRACTIONS}} for _ in range(2)]
+    results[0]["miou"][probe.arm(0.01)] = 0.52
+    results[1]["miou"][probe.arm(0.04)] = 0.515
+    assert probe.select_fraction(results)["fraction"] == 0.01
 
 
-def _t(name, kind, fold, gain, low, auc=0.75, frozen="bpc_d0"):
+def _t(name, kind, fold, gain, low, auc=0.75, frozen="bpc_q0.01"):
     return {"checkpoint": {"name": name, "kind": kind, "fold": fold}, "cvfold": fold, "frozen": frozen,
             "paired": {"frozen_vs_model": {"gain": gain, "ci_low": low, "ci_high": gain + 0.3}},
             "separability": {"auc_false_fg_vs_true_fg": auc},

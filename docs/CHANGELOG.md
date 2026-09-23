@@ -1274,3 +1274,11 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   prediction to the background only when it lies nearer to a base prototype than to its own support
   prototype by a margin delta in {0, 0.05, 0.1, 0.2}. BPC-1...10, 10/10; mutation check 16 of 16 killed
   after BPC-5 gained a large-foreground-logit case.
+* **Second revision before any real run.** The second smoke run (20 episodes) of the CL2N form ran
+  cleanly (no collapse; VIP-Seg's margin AUC 0.58-0.71 on the smoke draws) but its absolute margin grid
+  moved 33-73 % of VIP-Seg's S1 foreground predictions to the background, where 3.7 % were false. The
+  grid is now the fraction q in {0.5, 1, 2, 4} % of each query's foreground predictions with the largest
+  positive margins, anchored on that measured share. BPC-5b added; 25 tests of D-26/D-27 pass.
+* **Doc fix.** Spec 02 §12 as committed in `126edb0` had its LaTeX mangled by string escapes in the
+  editing script (`\tilde`, `\text` became a tab, `\big` a backspace, other backslashes doubled);
+  rewritten from a plain file, and all edited docs checked free of control characters.

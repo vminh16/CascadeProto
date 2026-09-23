@@ -2,21 +2,22 @@
 
     python experiments/p1_bpc_probe.py select --data_path datasets/S3DIS/blocks_bs1_s1 \
         --checkpoint vipseg_S1:vipseg:1:vipseg_S1_N2_K1.pt --checkpoint ours_S1:ours:1:log_s1/.../last.pt
-    python experiments/p1_bpc_probe.py test --data_path ... --checkpoint ...              # frozen delta
+    python experiments/p1_bpc_probe.py test --data_path ... --checkpoint ...              # frozen q
     python experiments/p1_bpc_probe.py decide                                             # rules P1.1-P1.5
 
 Question: a query point that resembles a base (training) class is background in a novel-class episode
-[COSeg §4.3]. Does moving to the background the foreground predictions that lie nearer to a base class
-than to their own support class, in CL2N geometry (models/base_calibration.py), raise the mIoU, and does
-that base margin separate the model's false foreground from its true foreground at all?
+[COSeg §4.3]. Does moving to the background the foreground predictions that lie most clearly nearer to a
+base class than to their own support class, in CL2N geometry (models/base_calibration.py), raise the
+mIoU, and does that base margin separate the model's false foreground from its true foreground at all?
 
 Protocol, fixed before any run [DECISION D-27], the same as P0 [DECISION D-26]:
 * the bank of each checkpoint is built from 1,000 seeded training episodes of **its own fold**
   (training classes only, no augmentation), with the checkpoint's frozen features, in two passes (the
   CL2N centre, then the base prototypes);
-* `select` scores delta on the S1 **valid** draw of the S1 checkpoints only and freezes the best mean gain;
-* `test` scores the frozen delta (and delta = 0, the unselected reference) once on fixed100: S1
-  checkpoints on S1, S0 checkpoints on S0; paired bootstrap over episodes;
+* `select` scores the flip fraction q on the S1 **valid** draw of the S1 checkpoints only and freezes
+  the best mean gain;
+* `test` scores the frozen q once on fixed100: S1 checkpoints on S1, S0 checkpoints on S0; paired
+  bootstrap over episodes;
 * `decide` applies the rules of D-27.
 Every checkpoint passes eval.py's protocol guard for the episodes it is scored on.
 """
@@ -36,19 +37,20 @@ sys.path.insert(0, REPO)
 
 from experiments import p0_em_probe as p0  # noqa: E402
 from models.base_calibration import (BasePrototypeBank, auc_from_histogram, base_margin,  # noqa: E402
-                                     calibrate_background, separability_histogram, support_prototypes)
+                                     calibrate_background, separability_histogram, support_prototypes,
+                                     top_fraction_flips)
 
 OUT_DIR = "results/phase16_p1"
-# delta = 0: plain nearest prototype between the base classes and the point's own support class in one
-# geometry; delta > 0 asks for a margin, the conservative side, since the failure of the first smoke run
-# was over-suppression [DECISION D-27].
-DELTAS = (0.0, 0.05, 0.1, 0.2)
+# Fraction of a query's foreground predictions that may be moved to the background, around the share of
+# false foreground measured in the second smoke run (3.7 % of VIP-Seg's S1 foreground predictions), where
+# absolute margin thresholds flipped 33-73 % [DECISION D-27].
+FRACTIONS = (0.005, 0.01, 0.02, 0.04)
 BANK_EPISODES = 1000  # >= 5x COSeg's EMA memory, 1 / (1 - 0.995) = 200 updates [COSeg Eq.10, T6]
 MIN_OCCURRENCES = 100
 
 
-def arm(delta: float) -> str:
-    return f"bpc_d{delta:g}"
+def arm(q: float) -> str:
+    return f"bpc_q{q:g}"
 
 
 # ------------------------------------------------------------------ bank
@@ -112,7 +114,7 @@ def load_or_build_bank(ck, rule, data_path, device, n) -> Tuple[torch.Tensor, to
 # ------------------------------------------------------------------ scoring
 
 @torch.no_grad()
-def score_checkpoint(ck, data_path: str, cvfold: int, mode: str, deltas, device, max_episodes=None,
+def score_checkpoint(ck, data_path: str, cvfold: int, mode: str, fractions, device, max_episodes=None,
                      bank_episodes: int = BANK_EPISODES) -> Tuple[Dict, Dict[str, np.ndarray]]:
     from torch.utils.data import DataLoader, Subset
 
@@ -132,8 +134,8 @@ def score_checkpoint(ck, data_path: str, cvfold: int, mode: str, deltas, device,
     counts: Dict[str, List[np.ndarray]] = {}
     base_preds, gts, l2c = [], [], []
     hist_fp_tp = torch.zeros(2, 200, dtype=torch.long)
-    flips = {arm(d): 0 for d in deltas}
-    fg_total = 0
+    flips = {arm(q): 0 for q in fractions}
+    fg_total, positive_margin = 0, 0
     for (episode,) in loader:
         episode = episode.to(device)
         f_q, prior, logits0 = rule(episode)  # [B_q,P,D], [B_q,N+1,D], [B_q,P,N+1]
@@ -142,9 +144,10 @@ def score_checkpoint(ck, data_path: str, cvfold: int, mode: str, deltas, device,
         preds = {"model": logits0.argmax(dim=-1)}  # [B_q, P]
         support = support_prototypes(rule.f_s, episode.support_y, mu)  # [N, D]
         margin = base_margin(f_q, logits0, support, base, mu)  # [B_q, P]
-        for d in deltas:
-            preds[arm(d)] = calibrate_background(logits0, margin, d).argmax(dim=-1)  # [B_q, P]
-            flips[arm(d)] += int((margin > d).sum())
+        for q in fractions:
+            flip = top_fraction_flips(margin, q)  # [B_q, P]
+            preds[arm(q)] = calibrate_background(logits0, flip).argmax(dim=-1)  # [B_q, P]
+            flips[arm(q)] += int(flip.sum())
         gt = labels.cpu().numpy()
         for name, pred in preds.items():
             counts.setdefault(name, []).append(p0.episode_counts(pred.cpu().numpy(), gt, episode.sampled_classes,
@@ -152,6 +155,7 @@ def score_checkpoint(ck, data_path: str, cvfold: int, mode: str, deltas, device,
         base_preds.append(preds["model"].cpu().numpy()), gts.append(gt), l2c.append(episode.sampled_classes)
         fg_pred = preds["model"] > 0  # [B_q, P]
         fg_total += int(fg_pred.sum())
+        positive_margin += int((margin > 0).sum())
         hist_fp_tp += separability_histogram(margin, fg_pred & (labels == 0), fg_pred & (labels > 0)).cpu()
     rule.close()
 
@@ -172,17 +176,18 @@ def score_checkpoint(ck, data_path: str, cvfold: int, mode: str, deltas, device,
         "separability": {"auc_false_fg_vs_true_fg": auc_from_histogram(hist_fp_tp),
                          "false_fraction_of_fg_predictions": fp / max(fp + tp, 1)},
         "flipped_fraction_of_fg_predictions": {k: v / max(fg_total, 1) for k, v in flips.items()},
+        "positive_margin_fraction_of_fg_predictions": positive_margin / max(fg_total, 1),
     }, stacked
 
 
 # ------------------------------------------------------------------ stages
 
-def select_delta(results: List[Dict]) -> Dict:
-    gains = {d: float(np.mean([100.0 * (r["miou"][arm(d)] - r["miou"]["model"]) for r in results]))
-             for d in DELTAS}
-    best = max(DELTAS, key=lambda d: gains[d])
-    return {"delta": best, "name": arm(best), "mean_valid_gain": gains[best],
-            "all_gains": {arm(d): g for d, g in gains.items()}}
+def select_fraction(results: List[Dict]) -> Dict:
+    gains = {q: float(np.mean([100.0 * (r["miou"][arm(q)] - r["miou"]["model"]) for r in results]))
+             for q in FRACTIONS}
+    best = max(FRACTIONS, key=lambda q: gains[q])
+    return {"fraction": best, "name": arm(best), "mean_valid_gain": gains[best],
+            "all_gains": {arm(q): g for q, g in gains.items()}}
 
 
 def cmd_select(args, device) -> int:
@@ -191,16 +196,17 @@ def cmd_select(args, device) -> int:
         ck = p0.parse_checkpoint(spec)
         if ck.fold != 1:
             raise ValueError(f"{ck.name}: selection uses S1 checkpoints only, S0 stays held out [DECISION D-22]")
-        result, stacked = score_checkpoint(ck, args.data_path, 1, "valid", DELTAS, device, args.max_episodes,
+        result, stacked = score_checkpoint(ck, args.data_path, 1, "valid", FRACTIONS, device, args.max_episodes,
                                            args.bank_episodes)
         save(result, stacked, f"select_{ck.name}")
         results.append(result)
         sep = result["separability"]
         print(f"[select] {ck.name}: model {result['miou']['model']:.4f} | "
-              + " ".join(f"{arm(d)} {result['miou'][arm(d)]:.4f}" for d in DELTAS)
+              + " ".join(f"{arm(q)} {result['miou'][arm(q)]:.4f}" for q in FRACTIONS)
               + f" | AUC false-vs-true fg {sep['auc_false_fg_vs_true_fg']}"
+              + f" | false share of fg {sep['false_fraction_of_fg_predictions']:.3f}"
               + f" | raw cos to centre {result['bank']['mean_raw_cos_to_centre']:.3f}", flush=True)
-    choice = select_delta(results)
+    choice = select_fraction(results)
     with open(os.path.join(OUT_DIR, "selection.json"), "w") as f:
         json.dump(choice, f, indent=1)
     print(f"[select] frozen: {choice['name']} (mean valid gain {choice['mean_valid_gain']:+.2f})", flush=True)
@@ -209,19 +215,17 @@ def cmd_select(args, device) -> int:
 
 def cmd_test(args, device) -> int:
     with open(os.path.join(OUT_DIR, "selection.json")) as f:
-        delta = json.load(f)["delta"]
-    deltas = sorted({delta, 0.0})
+        q = json.load(f)["fraction"]
     for spec in args.checkpoint:
         ck = p0.parse_checkpoint(spec)
-        result, stacked = score_checkpoint(ck, args.data_path, ck.fold, "test", deltas, device, args.max_episodes,
+        result, stacked = score_checkpoint(ck, args.data_path, ck.fold, "test", [q], device, args.max_episodes,
                                            args.bank_episodes)
-        result["frozen"] = arm(delta)
-        result["paired"] = {"frozen_vs_model": p0.paired_bootstrap(stacked["model"], stacked[arm(delta)]),
-                            "delta0_vs_model": p0.paired_bootstrap(stacked["model"], stacked[arm(0.0)])}
+        result["frozen"] = arm(q)
+        result["paired"] = {"frozen_vs_model": p0.paired_bootstrap(stacked["model"], stacked[arm(q)])}
         save(result, stacked, f"test_{ck.name}")
         p = result["paired"]["frozen_vs_model"]
         print(f"[test] {ck.name} S{ck.fold}: model {result['miou']['model']:.4f} -> "
-              f"{result['miou'][arm(delta)]:.4f} ({p['gain']:+.2f}, 95% CI {p['ci_low']:+.2f}..{p['ci_high']:+.2f})"
+              f"{result['miou'][arm(q)]:.4f} ({p['gain']:+.2f}, 95% CI {p['ci_low']:+.2f}..{p['ci_high']:+.2f})"
               f" | AUC false-vs-true fg {result['separability']['auc_false_fg_vs_true_fg']}", flush=True)
     return 0
 

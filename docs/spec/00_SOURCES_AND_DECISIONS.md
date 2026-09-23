@@ -658,11 +658,11 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   * **Bank.** `b_j = normalise(mean_o normalise(Σ_{i∈o} f̃_i))` over the occurrences o of base class j
     (support and query masks) in training episodes: the limit of COSeg's per-episode masked average
     under its EMA [COSeg Eq.9–10] when the features are frozen.
-  * **Calibration.** The episode's support prototypes `u_c` are built the same way. A point the model
-    assigns to foreground class c is moved to the background when
-    `max_j cos(f̃_i, b_j) − cos(f̃_i, u_c) > δ`, δ ≥ 0: in one common geometry it lies nearer to a base
-    class than to its own support class by a margin. Background predictions and foreground logits are
-    never changed. COSeg adds the base guidance through a trained layer (Eq.12), which a probe cannot do.
+  * **Calibration.** The episode's support prototypes `u_c` are built the same way. The base margin of a
+    point the model assigns to foreground class c is `m_i = max_j cos(f̃_i, b_j) − cos(f̃_i, u_c)`; per
+    query, the points with `m_i > 0` among the top fraction q of its foreground predictions by `m_i` move
+    to the background. Background predictions and foreground logits are never changed. COSeg adds the
+    base guidance through a trained layer (Eq.12), which a probe cannot do.
 * **Revised before any real run (2026-09-23).** The first version added `ω · max_j s⟨f_i, b_j⟩` (raw
   unit-mean base directions at the foreground prototypes' norm) to the background logit of the model's
   own rule, arguing from P0's oracle that such directions are valid prototypes of that rule. The P1
@@ -673,6 +673,11 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   against each other. The revision compares like with like (CL2N; base against the episode's own
   support prototypes) and only ever removes foreground. The bank records the mean raw cosine of the
   query features to the centre, which quantifies the shared component.
+* **Second revision before any real run (same day).** The second smoke run (20 episodes) of the CL2N
+  form ran cleanly but showed the absolute margin grid mis-scaled: δ = 0 / 0.05 / 0.1 / 0.2 moved
+  73 / 63 / 51 / 33 % of VIP-Seg's S1 foreground predictions to the background, while only 3.7 % were
+  false. Any flip beyond the false share removes mostly true foreground, so the grid became the fraction
+  q of foreground predictions, anchored on that measured share and independent of the margin's scale.
 * **P1, the probe** (`experiments/p1_bpc_probe.py`, `experiments/run_p1.sh`), with P0's machinery:
   the same four checkpoints, scoring rules read through hooks and checked against the model's logits on
   every episode, paired bootstrap over episodes, eval.py's protocol guard.
@@ -680,10 +685,11 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
     passes (the centre μ, then the prototypes), at least 100 occurrences per base class (else it
     raises); 1,000 episodes is five times the memory of COSeg's EMA, 1/(1 − 0.995) = 200 updates
     [COSeg T6]. The bank must not contain a scored class (it raises).
-  * **Selection** of δ ∈ {0, 0.05, 0.1, 0.2} on the S1 valid draw of the S1 checkpoints: δ = 0 is the
-    plain nearest prototype, δ > 0 the conservative side, since the failure seen in the smoke run was
-    over-suppression. **Test** of the frozen δ, and of δ = 0 as an unselected reference, once on
-    fixed100: S1 checkpoints on S1, S0 checkpoints on S0.
+  * **Selection** of q ∈ {0.5, 1, 2, 4} % on the S1 valid draw of the S1 checkpoints, a range around the
+    share of false foreground measured in the second smoke run (3.7 % of VIP-Seg's S1 foreground
+    predictions). **Test** of the frozen q once on fixed100: S1 checkpoints on S1, S0 checkpoints on S0.
+    The probe reports, per checkpoint, the share of false foreground and the share of foreground
+    predictions with a positive margin, which bound what any threshold on the margin can do.
   * **Diagnostic.** Among the model's foreground predictions, the AUC of the base margin for separating
     false foreground (ground truth background) from true foreground. It measures whether the base
     margin carries the signal at all, independently of the threshold.

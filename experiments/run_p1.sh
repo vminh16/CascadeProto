@@ -4,8 +4,8 @@
 #
 # PROTOCOL, fixed before the run.
 #   select  S1 checkpoints only, S1 *valid* draw (1,500 episodes) [DECISION D-15] [DECISION D-22]:
-#           margin delta {0, 0.05, 0.1, 0.2}; freezes the delta with the largest mean gain.
-#   test    the frozen delta (and delta = 0 as reference) once, fixed100 *test* draw: S1 checkpoints on S1,
+#           flip fraction q {0.5, 1, 2, 4} % of foreground predictions; freezes the best mean gain.
+#   test    the frozen q once, fixed100 *test* draw: S1 checkpoints on S1,
 #           S0 checkpoints on S0. Paired bootstrap over episodes, 2,000 resamples.
 #   decide  the rules of D-27:
 #     P1.1 go          gain >= +0.5 with 95% CI above 0 on all four checkpoints: train the calibration (R3)
