@@ -144,5 +144,7 @@ def test_loss2_total_is_seg_plus_one_times_gmmn():
 
 
 def test_loss3_the_objective_sees_only_final_logits_and_gmmn():
-    """No per-stage loss: the model contract carries L_final and L_GMMN only (Eq.27)."""
-    assert EpisodeOutput._fields == ("logits", "loss_gmmn")
+    """No per-stage loss: the model contract carries L_final and L_GMMN (Eq.27), plus the optional
+    L_distill of [DECISION D-29], which is off unless a weight is set."""
+    assert EpisodeOutput._fields == ("logits", "loss_gmmn", "loss_distill", "distill_weight")
+    assert EpisodeOutput._field_defaults == {"loss_distill": None, "distill_weight": 0.0}

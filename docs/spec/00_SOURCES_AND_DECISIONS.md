@@ -755,6 +755,87 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 * **Reporting.** VIP-Seg's head plus D-28, labelled that way; not CascadeProto.
 * **Affects.** `models/transductive.py` (`fg_keep`), `experiments/p2_fused_probe.py` (new),
   `experiments/run_p2.sh` (new), 02 §13, 05 §3.8i (FUS-1…8).
+* **Outcome: P2.0 fails, P2.2 stop (2026-09-23, `results/phase16_p2/SUMMARY.md`).** Selection froze the
+  unfiltered arm (`ssp_k0.5_T1_r0`, +0.51 valid); the best arm per r falls monotonically, +0.51 / +0.50 /
+  +0.49 / +0.47 for r = 0 / 0.1 / 0.2 / 0.3. The false share of VIP-Seg S1's first foreground M-step falls
+  only to 0.85× at r = 0.3 (0.095 → 0.080) with `ssp` and not at all with `entropy` (0.116 → 0.114). The
+  test reproduces P0's frozen numbers exactly. A base margin of AUC 0.65–0.72 removes false and true
+  mass at nearly the same rate, so the filter's asymmetry never applies. Closed.
+
+---
+
+### D-29 — Oracle-prototype distillation of the effective prototype during training · `PROPOSED`, beyond the paper
+
+* **Problem, from the measurements of phase 16.**
+  1. **The headroom is in the direction of the prototype the head outputs.** VIP-Seg's scoring rule is
+     `L = F^q M_effᵀ` with `M_eff = Σ_t w_t M^t` [VIPSEG models/vipseg.py:152-174]. Replacing only the
+     direction of `M_eff` by the query's own class mean of unit features, the norm kept, gains +8.42 (S1)
+     and +15.13 (S0) on VIP-Seg's released checkpoints and +20.46 / +21.76 on ours (P0, fixed100,
+     `results/phase16_p0/SUMMARY.md`). The features carry the information; the head does not extract it.
+  2. **No fixed rule recovers it at test time.** The model's own posterior (D-26: +0.37 S1, −1.21 S0),
+     a base-class margin (D-27: −0.16 to −0.03) and their combination (D-28: the filter was never
+     selected, r = 0 froze) all fail on the same checkpoints.
+  3. **The head is never told where the target is.** It is trained by CE on the final logits only
+     (02 §7). On a training episode the target of point 1 is computable, because the query's labels
+     are base-class labels of the training fold (D-22 is not touched). QGE distils toward "optimal
+     query prototypes" (+3.3, T5, 1-way) and DPA distils earlier stages toward later ones (+2.65, T3).
+* **What it does.** During training only, a loss pulls the direction of the effective prototype toward
+  the oracle direction of the training query. Spec 02 §14.
+  * `O_bc = normalise(Σ_{i: y_bi = c} f_bi / ‖f_bi‖)`, stop-gradient: exactly the direction P0's oracle
+    replacement measured (`ORACLE_REPLACE` in `experiments/p0_em_probe.py`, κ → ∞ in 02 §11).
+  * `M_eff = Σ_t w_t P^t` with ADRM's weights (Eq.24-25), `P^T` without ADRM, `P^0` without stages. Then
+    `L_final = F^q M_effᵀ` exactly, because every stage logit is `F^q (P^t)ᵀ` without temperature (D-10).
+  * `L_distill = mean over (b, c) with class c present in query b of 1 − cos(M_eff_bc, O_bc)`, background
+    included (QGE's largest single gain is the background [QGE T5]; P0's oracle replaced every class).
+  * `L_total = CE + λ L_GMMN + β L_distill`, β = `distill_beta`, default 0 (the reproduction unchanged).
+  * Nothing changes at evaluation: `L_distill` is computed only in `train()` mode, and the logits never
+    read `query_y` (test DIS-5).
+* **Why these choices, each from evidence.**
+  * **Cosine, not KL on logits.** P0 measured the gain of the direction with the norm kept. A KL toward
+    `softmax(F^q Oᵀ)` would also fix a norm and a temperature for the teacher, for which there is no
+    measurement; the norms stay with CE.
+  * **`M_eff` only, not every `P^t`.** P0 replaced `M_eff`. Per-step targets were never measured and would
+    constrain intermediate steps that ADRM mixes; the per-step cosines are logged as a diagnostic.
+  * **β = 1.** No value of β has been measured here. 1 is the weight of the paper's other auxiliary term
+    (λ = 1, [PAPER Eq.26]); `1 − cos` lies in [0, 2] and the CE of a full-schedule run ends near 0.13
+    (`results/phase15_full/baseline_l2/log_train.txt`), so the two terms have the same order. Not tuned:
+    one value, because each arm is trained once (maintainer, 2026-09-23).
+* **R2, the measurement.**
+  * **Arms.** R0 = VIP-Seg's four alternating modules in our loop (`stage_type=vip`, `num_stages=4`,
+    `l2norm_point_proto=true`, `use_lma=false`, ADRM), the `r1_vip4` configuration of R1; D29 = R0 with
+    β = 1. R0 is the reference that R1 lacked: route B's base trained by our loop.
+  * **Schedule.** The full schedule of D-12 (50 × 480 episodes, batch 4, StepLR), seed 0, because R1 has
+    no learning curve for VIP-Seg's head and R0 has to be a level comparable with VIP-Seg's released
+    S1 checkpoint (75.36 fixed100, P0), not a 40 % screen. `last.pt` is the headline (D-22).
+  * **One training run per arm** (maintainer). Training-seed noise is therefore not measured by R2; the
+    estimate is R1's: `r1_vippem` seeds 0.6827 / 0.6878, sd 0.36, so the difference of two single runs
+    has sd ≈ 0.36 · √2 ≈ 0.5 [inferred from two seeds].
+  * **Test, three seeds.** S1 first (D-22): fixed100 (the table's protocol, one cached draw) and three
+    independent `random600` draws (seeds 0, 1, 2), with R0, D29 and VIP-Seg's released S1 checkpoint
+    scored on identical episodes in each draw; paired bootstrap over episodes per draw.
+  * **Mechanism diagnostics**, labels used for diagnostics only: `cos(M_eff, O)` and `cos(P^t, O)` on the
+    test episodes, the oracle-replacement mIoU of each model (the headroom it leaves), and `L_distill`
+    per epoch in training for both arms (R0 computes it without gradient).
+* **Rules, fixed before the run.**
+  * R2.0 reference: R0 − VIP-Seg released on S1 fixed100 is reported. Below −2, our loop trains the head
+    worse than VIP-Seg's own code and a gain over R0 is not a gain over VIP-Seg.
+  * R2.1 go: D29 − R0 ≥ +1.0 on fixed100 with a paired CI above 0, positive on all three random600
+    draws, and the mean `cos(M_eff, O)` on the test episodes higher for D29 than for R0. +1.0 is twice the
+    estimated sd of a single-run difference. Then S0: both arms once, same test; the S0 claim needs the
+    same rule and "beats VIP-Seg" needs D29 > 72.20 on S0 fixed100.
+  * R2.2 stop: fixed100 gain < +0.5, or the mean of the three random600 gains < +0.5.
+  * R2.3 in between: anything else. One run per arm cannot separate it from training noise; report and
+    ask the maintainer for a second training seed per arm.
+  * R2.4 mechanism: a gain without a higher `cos(M_eff, O)` is not a distillation result and is treated
+    as R2.3.
+  * R2.5 collapse watch: a gain with any test class below R0 by more than 3 IoU points is reported.
+* **Reporting.** VIP-Seg's head trained with an oracle-direction loss, labelled that way; not
+  CascadeProto. The text prior (the paper's modality branch) is the next addition on top of the
+  winner of R2, not part of it.
+* **Affects.** `models/oracle_distill.py` (new), `models/cascadeproto.py` (`distill_beta`, the effective
+  prototype), `pipeline/model_api.py` (`EpisodeOutput.loss_distill`, `distill_weight`), `train.py`
+  (`--distill_beta`, run-dir suffix `_distill<β>`, `L_distill` in the log), `experiments/r2_distill_eval.py`
+  and `experiments/run_r2.sh` (new), 02 §14, 05 §3.8j (DIS-1…).
 
 ---
 
@@ -844,4 +925,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-23 | D-26 (maintainer request): query-side entropy-weighted EM refinement on top of route B, probed on trained checkpoints (P0) before any training; rules fixed before the run. |
 | 2026-09-23 | D-26 closed by its rule P0.2. D-27 (maintainer request): base-class calibration of the background, probed on the same checkpoints (P1) before any training; rules fixed before the run. |
 | 2026-09-23 | D-27 closed by P1.2 (P1.4 weak). D-28 (maintainer request): the two combined, the base margin filtering the foreground M-step of D-26, probed as P2; rules fixed before the run. |
+| 2026-09-23 | D-28 closed by P2.0 / P2.2. D-29 (maintainer request): oracle-direction distillation of the effective prototype during training, on route B's head; one training run per arm, three test draws (maintainer); rules fixed before the run. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

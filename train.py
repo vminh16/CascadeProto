@@ -77,6 +77,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "diagnostic only, breaks guardrail #1 [D-20]")
     p.add_argument("--fusion_weight", default="per_query", choices=["per_query", "per_class"], help="[D-11]")
     p.add_argument("--diffusion_input", default="post_relu", choices=["post_relu", "pre_relu"], help="[D-14]")
+    p.add_argument("--distill_beta", type=float, default=0.0,
+                   help="weight of the oracle-direction loss on the effective prototype; 0 = the paper's "
+                        "objective [D-29], beyond the paper")
     p.add_argument("--epochs", type=int, default=None, help="default: 50 (S3DIS) / 30 (ScanNet) [D-12]")
     p.add_argument("--episodes_per_epoch", type=int, default=None, help="default: 480 / 800 [D-12]")
     p.add_argument("--lr", type=float, default=1e-3)
@@ -123,7 +126,8 @@ def model_config(args):
                               cross_attn_scale=args.cross_attn_scale, cross_attn_norm=args.cross_attn_norm,
                               gate_target=args.gate_target, eq19_self=args.eq19_self,
                               fusion_weight=args.fusion_weight, diffusion_input=args.diffusion_input,
-                              cross_attn_support=args.cross_attn_support, stage_type=args.stage_type)
+                              cross_attn_support=args.cross_attn_support, stage_type=args.stage_type,
+                              distill_beta=args.distill_beta)
 
 
 def build_model(config, feature_extractor=None) -> torch.nn.Module:
@@ -143,13 +147,15 @@ def run_dir(args) -> str:
     tag += "_vipinit" if getattr(args, "init_from_vipseg", None) else ""  # [D-20]
     tag += "_leak" if getattr(args, "train_classes", "split") == "all" else ""  # [D-21]
     tag += "" if getattr(args, "batch_size", EPISODES_PER_BATCH) == EPISODES_PER_BATCH else f"_b{args.batch_size}"
+    tag += "" if not getattr(args, "distill_beta", 0.0) else f"_distill{args.distill_beta:g}"  # [D-29]
     return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 
 
 def train_steps(model, optimizer, batches, device):
     """One optimiser step per batch of episodes; the loss is the mean over the batch (02 §7, D-12).
 
-    Yields (L_total, L_GMMN) of the batch, both averaged over its episodes.
+    Yields (L_total, L_GMMN, L_distill) of the batch, each averaged over its episodes; L_distill
+    (02 §14) is logged even when its weight is 0 [DECISION D-29], and nan for models without it.
     """
     model.train()
     for episodes in batches:
@@ -159,7 +165,9 @@ def train_steps(model, optimizer, batches, device):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        yield loss.item(), torch.stack([out.loss_gmmn.detach() for out in outputs]).mean().item()
+        distill = [out.loss_distill for out in outputs if out.loss_distill is not None]
+        yield (loss.item(), torch.stack([out.loss_gmmn.detach() for out in outputs]).mean().item(),
+               torch.stack(distill).detach().mean().item() if len(distill) == len(outputs) else math.nan)
 
 
 def random_states() -> dict:
@@ -225,9 +233,9 @@ def train_loop(args, model, optimizer, scheduler, train_set, class_names, valida
         losses = list(train_steps(model, optimizer, loader, device))
         state["epoch"] += 1
         scheduler.step()
-        logger.cprint(f"epoch {state['epoch']}/{args.epochs} | loss {np.mean([l for l, _ in losses]):.4f} | "
-                      f"L_GMMN {np.mean([g for _, g in losses]):.4f} | lr {scheduler.get_last_lr()[0]:.2e} | "
-                      f"{time.time() - t0:.0f}s")
+        logger.cprint(f"epoch {state['epoch']}/{args.epochs} | loss {np.mean([l for l, _, _ in losses]):.4f} | "
+                      f"L_GMMN {np.mean([g for _, g, _ in losses]):.4f} | lr {scheduler.get_last_lr()[0]:.2e} | "
+                      f"{time.time() - t0:.0f}s | L_distill {np.mean([d for _, _, d in losses]):.4f}")
         if state["epoch"] % args.valid_every == 0 or state["epoch"] == args.epochs:
             miou = validate(model)
             logger.cprint(f"epoch {state['epoch']} | valid mIoU {miou:.4f}")
@@ -281,7 +289,7 @@ def main(argv=None):
     if args.dry_run:
         loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers,
                             collate_fn=EpisodeCollate(class_names), drop_last=True)
-        loss, gmmn = next(train_steps(model, optimizer, loader, device))
+        loss, gmmn, _ = next(train_steps(model, optimizer, loader, device))
         logger.cprint(f"[dry run] one step on {args.batch_size} real episodes, loss {loss:.4f} "
                       f"(L_GMMN {gmmn:.4f})")
         miou = evaluate(model, valid_set, class_names, logger, device, max_episodes=DRY_RUN_VALID_EPISODES)

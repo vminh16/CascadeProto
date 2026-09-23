@@ -3,6 +3,8 @@
 Synthetic arrays only (05 §1 principle 3); real data is covered by tests/test_data.py.
 """
 
+import math
+
 import numpy as np
 import pytest
 import torch
@@ -93,8 +95,8 @@ def test_pipe4_one_step_uses_the_batch_mean_loss():
     expected = torch.stack([episode_loss(model(ep), ep) for ep in episodes]).mean().item()
     before = model.head.weight.detach().clone()
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
-    ((loss, gmmn),) = list(train_steps(model, optimizer, [episodes], torch.device("cpu")))
-    assert loss == pytest.approx(expected, rel=1e-6) and gmmn == 0.0
+    ((loss, gmmn, distill),) = list(train_steps(model, optimizer, [episodes], torch.device("cpu")))
+    assert loss == pytest.approx(expected, rel=1e-6) and gmmn == 0.0 and math.isnan(distill)  # no L_distill [D-29]
     assert not torch.equal(before, model.head.weight)
 
 

@@ -190,7 +190,7 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 | ADRM-4 | `∂L_final/∂L^t = w_gate[t]` per query (checked with a random upstream gradient); `W_g` receives a gradient; `gradcheck` passes (on 16 points: ADRM does not depend on the point count); queries do not mix; T = 1 and a wrong stage count raise. Mutation check (2026-09-19): twelve wrong variants (bias, softmax over queries, sigmoid, max pooling, channel pooling, pooling over all queries, uniform weights, reversed stages, last stage only, detached weights, T = 1 allowed, no count check) all fail | 02 §6 |
 | LOSS-1 | `L_seg` equals Eq.27 written with Python floats, i.e. `F.cross_entropy(L_final, Y_q)` **without** `weight` (differs from the `w_cls`-weighted CE) | 02 §7, [PAPER Eq.27] |
 | LOSS-2 | `L_total = L_seg + 1.0 · L_GMMN` | 02 §7 |
-| LOSS-3 | No loss term uses stage logits `L^1..L^{T−1}` directly: the model contract carries only `logits` and `loss_gmmn` | 02 §7 |
+| LOSS-3 | No loss term uses stage logits `L^1..L^{T−1}` directly: the model contract carries `logits` and `loss_gmmn`, plus D-29's optional `loss_distill` / `distill_weight` (on `M_eff`, default weight 0) | 02 §7, [DECISION D-29] |
 
 ### 3.6 `tests/test_ablation_switches.py` (G1)
 
@@ -368,6 +368,23 @@ logit" case that killed the one first survivor. Not verified locally: the probe 
 | FUS-8 | The probes and their modules parse as Python 3.10, the VM's version | 00 §5.2 |
 
 Mutation check (2026-09-23), 8 mutants: 7 killed, the survivor (removing the r = 0 shortcut) is equivalent.
+
+### 3.8j `tests/test_distill.py` (G1) — oracle-direction distillation and the R2 evaluation [DECISION D-29]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| DIS-1 | `O` is the normalised sum of the unit features of each present class, the presence mask is exact, and `O` equals the direction of 02 §11 with the oracle weight and κ → ∞ | 02 §14, [DECISION D-29] |
+| DIS-2 | `L_distill` is 0 for any positive multiple of `O`, 2 for its opposite, and averages over present (query, class) pairs only, background included | 02 §14 |
+| DIS-3 | `O` is a stopped gradient: the loss reaches the prototype, never the features through the target | [DECISION D-29] |
+| DIS-4 | `F^q M_effᵀ` reproduces the model's logits without stages, without ADRM, with ADRM, with `logit_scale=sqrt_D` and for the full model; the R2 rule reads the same tensors | 02 §14, 02 §6 |
+| DIS-5 | The logits do not depend on the query labels in either mode; evaluation returns no `L_distill` | [DECISION D-29] |
+| DIS-6 | β = 0 gives the paper's objective bit for bit with `L_distill` logged without gradient; β > 0 adds `β L_distill`, whose gradient reaches ADRM and the stages; a weight without the loss raises | 02 §7, 02 §14 |
+| DIS-7 | `distill_beta` must be finite and ≥ 0; the CLI passes it, `run_r2.sh`'s run directories are the ones `train.py` writes, and older checkpoints resume at the default | [DECISION D-29], 04 §5 |
+| DIS-8 | The oracle replacement keeps the norms and leaves absent classes untouched; cosine sums and counts per term | [DECISION D-29] |
+| DIS-9 | Rules R2.0–R2.5 and "incomplete"; the test refuses a checkpoint of another fold before loading it | [DECISION D-29] [DECISION D-22] |
+| DIS-10 | The new and changed files parse as Python 3.10, the VM's version | 00 §5.2 |
+
+Mutation check (2026-09-23), 18 mutants over `models/oracle_distill.py`, `models/cascadeproto.py`, `pipeline/model_api.py`, `train.py` and `experiments/r2_distill_eval.py`: 18 killed.
 
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 

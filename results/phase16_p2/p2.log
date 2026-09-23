@@ -1,0 +1,50 @@
+=== 2026-09-23T13:38:29+00:00 commit 4dc1ebd
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] vipseg_S1: model 0.7524 | false share ssp r0/.1/.2/.3 0.095 0.089 0.085 0.080
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] ours_S1: model 0.5224 | false share ssp r0/.1/.2/.3 0.268 0.265 0.263 0.260
+[select] frozen: ssp_k0.5_T1_r0 (VIP-Seg S1 valid gain +0.51)
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] vipseg_S1 S1: model 0.7536 -> 0.7573 (+0.37, 95% CI +0.24..+0.50) | false share 0.093 -> 0.093
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] ours_S1 S1: model 0.5191 -> 0.5197 (+0.06, 95% CI -0.04..+0.16) | false share 0.268 -> 0.268
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+[test] vipseg_S0 S0: model 0.7197 -> 0.7076 (-1.21, 95% CI -1.57..-0.87) | false share 0.130 -> 0.130
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [ 3 11 10  0  8  4]
+[test] ours_S0 S0: model 0.4907 -> 0.4891 (-0.16, 95% CI -0.28..-0.03) | false share 0.337 -> 0.337
+P2.0 mechanism                           selection froze an unfiltered arm: the filter adds nothing
+P2.2 stop                                VIP-Seg S1 does not gain with CI above 0, or the mechanism fails
+P2 gain ours_S0                          -0.16 [-0.28, -0.03]: below 0
+P2 gain ours_S1                          +0.06 [-0.04, +0.16]: contains 0
+P2 gain vipseg_S0                        -1.21 [-1.57, -0.87]: below 0
+P2 gain vipseg_S1                        +0.37 [+0.24, +0.50]: above 0
+P2.4 filter on held-out S0               +0.00 [+0.00, +0.00]: not claimable
+=== P2 FINISHED 2026-09-23T14:02:34+00:00

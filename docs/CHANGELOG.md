@@ -1299,3 +1299,27 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **Verification.** FUS-1...8 (`tests/test_fused.py`, spec 05 §3.8i); FUS-8 parses every probe as
   Python 3.10, the VM's version, after a nested f-string that only 3.12 accepts was caught in review.
   Mutation check 7 of 8 killed, one equivalent. 37 tests of D-26...D-28 pass.
+
+### 16k - P2 measured: the base-margin filter adds nothing; D-29 moves the target into training
+
+* **P2 result** (`results/phase16_p2/SUMMARY.md`, VM 13:38-14:02 UTC, commit `4dc1ebd`). Selection froze
+  the unfiltered arm `ssp_k0.5_T1_r0` (+0.51 valid); the best arm per filter fraction falls with r
+  (+0.51 / +0.50 / +0.49 / +0.47). The false share of VIP-Seg S1's first foreground M-step falls only to
+  0.85x at r = 0.3 with `ssp` and not at all with `entropy`, against the 0.75x of P2.0. The test repeats
+  P0's frozen numbers to the last digit. P2.0 fails, P2.2 stop; three training-free routes are closed.
+* **D-29.** P0's oracle replacement (+8.42 / +15.13 on VIP-Seg) says the error sits in the direction
+  of the effective prototype `M_eff`, and on a training episode that direction is computable from the
+  query's base-class labels. D-29 adds, in training only, `beta * mean(1 - cos(M_eff, O))` with `O` the
+  stop-gradient normalised sum of the query's unit features per class (P0's `ORACLE_REPLACE` direction),
+  `M_eff = sum_t w_t P^t` under ADRM (spec 02 §14). beta = 1, default 0; the logits never read the query
+  labels. `models/oracle_distill.py` (new); `CascadeProto.cascade` / `effective_prototype` (the forward
+  now runs through them, same arithmetic); `EpisodeOutput.loss_distill` / `distill_weight`;
+  `train.py --distill_beta`, run-dir suffix `_distill<beta>`, and `L_distill` in every epoch line, also
+  when beta = 0 (computed without gradient) so the reference arm reports it too.
+* **R2 plan** (`experiments/run_r2.sh`, `experiments/r2_distill_eval.py`). r0 = VIP-Seg's four modules in
+  our loop (`r1_vip4`), d29 = r0 + beta 1; S1, full schedule, seed 0, one run per arm (maintainer). Test on
+  fixed100 and three random600 draws with r0, d29 and VIP-Seg's released S1 checkpoint on identical
+  episodes; diagnostics `cos(M_eff, O)` per model and step, oracle-replacement headroom per model. Rules
+  R2.0-R2.5 fixed in D-29 before the run.
+* **Verification.** DIS-1...10 (`tests/test_distill.py`, spec 05 §3.8j); LOSS-3 and PIPE-4 follow the
+  extended contract. Mutation check 18 of 18 killed. G1: 394 passed.

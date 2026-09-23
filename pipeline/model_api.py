@@ -5,7 +5,7 @@ evaluation never touch model internals, so the model can change (phases 10-13) w
 train.py / eval.py.
 """
 
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 import torch
 import torch.nn.functional as F
@@ -18,16 +18,27 @@ GMMN_WEIGHT = 1.0  # lambda of Eq.26 [PAPER §4.1] (02 §7)
 class EpisodeOutput(NamedTuple):
     logits: torch.Tensor  # [B_q, 2048, N+1] final logits L_final (02 §6)
     loss_gmmn: torch.Tensor  # scalar L_GMMN (02 §4.4); a zero tensor for models without it
+    # Beyond the paper [DECISION D-29]: L_distill (02 §14) in training mode, None otherwise, and its weight β.
+    loss_distill: Optional[torch.Tensor] = None
+    distill_weight: float = 0.0
 
 
 def episode_loss(output: EpisodeOutput, episode: Episode) -> torch.Tensor:
-    """L_total = CE(L_final, Y_q) + lambda * L_GMMN, unweighted CE averaged over all query points (02 §7)."""
+    """L_total = CE(L_final, Y_q) + lambda * L_GMMN, unweighted CE averaged over all query points (02 §7).
+
+    With `distill_weight` β > 0, `+ β L_distill` [DECISION D-29] (02 §14); β = 0 is the paper's objective.
+    """
     n_classes = episode.n_way + 1
     logits = output.logits  # [B_q, 2048, N+1]
     if logits.shape != (*episode.query_y.shape, n_classes):
         raise ValueError(f"logits {tuple(logits.shape)} != {(*episode.query_y.shape, n_classes)}")
     seg = F.cross_entropy(logits.reshape(-1, n_classes), episode.query_y.reshape(-1))  # scalar
-    return seg + GMMN_WEIGHT * output.loss_gmmn
+    total = seg + GMMN_WEIGHT * output.loss_gmmn
+    if output.distill_weight > 0:
+        if output.loss_distill is None:
+            raise ValueError("distill_weight > 0 without L_distill: the model was not in training mode [D-29]")
+        total = total + output.distill_weight * output.loss_distill
+    return total
 
 
 def predict(output: EpisodeOutput) -> torch.Tensor:
