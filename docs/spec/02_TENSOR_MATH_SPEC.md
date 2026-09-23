@@ -295,21 +295,24 @@ $$\mu_c = \lVert m_c\rVert \cdot \mathrm{normalise}\!\left(\frac{m_c}{\lVert m_c
 
 ## 12. Base-class calibration of the background (beyond the paper) [DECISION D-27]
 
-Base prototypes from training episodes of the checkpoint's own fold, over the occurrences o (a support
-or query mask) of base class j [DECISION D-27]:
+CL2N geometry: `f̃ = normalise(f − μ)`, μ the mean feature of every support and query point of the
+bank's training episodes [DECISION D-27]. Base prototypes over the occurrences o (a support or query
+mask) of base class j, and the episode's support prototypes over the K shots of way c [DECISION D-27]:
 
-$$b_j = \mathrm{normalise}\!\left(\frac{1}{|O_j|}\sum_{o\in O_j} \mathrm{normalise}\Big(\sum_{i\in o} \frac{f_i}{\lVert f_i\rVert}\Big)\right) \in \mathbb{R}^D$$
+$$b_j = \mathrm{normalise}\Big(\sum_{o\in O_j} \mathrm{normalise}ig(\sum_{i\in o} 	ilde f_iig)\Big), \qquad
+u_c = \mathrm{normalise}\Big(\sum_{k=1}^{K} \mathrm{normalise}ig(\sum_{i:\,Y^s_{c,k,i}=1} 	ilde f_iig)\Big)$$
 
-On the model's scoring rule `L = F^q M^T`, with `s` the mean norm of the foreground prototypes `m_1..m_N`
-of the query [DECISION D-27]:
+For a query point whose model prediction is `ĉ_i = argmax_c L_ic ≥ 1` [DECISION D-27]:
 
-$$L'_{i0} = \max\!\Big(L_{i0},\; \omega\, \max_j\, s\,\langle f_i, b_j\rangle\Big), \qquad L'_{ic} = L_{ic}\ (c \ge 1)$$
+$$\Delta_i = \max_j \cos(	ilde f_i, b_j) - \cos(	ilde f_i, u_{\hat c_i}), \qquad \hat c_i \leftarrow 0 \ 	ext{ if } \Delta_i > \delta$$
 
-* An occurrence with an empty mask is skipped; `ω = 0` returns `L` exactly [DECISION D-27].
-* No scored class may have a base prototype [DECISION D-27] [DECISION D-22].
+* Background predictions are never changed; `Δ_i = −∞` there. Foreground logits are never changed; the
+  background logit of a moved point is set above the maximum [DECISION D-27].
+* An occurrence with an empty mask is skipped. No scored class may have a base prototype
+  [DECISION D-27] [DECISION D-22].
 
 | Tensor | Shape | Source |
 | :--- | :--- | :--- |
-| `b` | `[J, D]`, J = number of base classes | [DECISION D-27] |
-| `s` | `[B_q]` | [DECISION D-27] |
-| `max_j cos(f_i, b_j)` | `[B_q, P]` | [DECISION D-27] |
+| `μ` | `[D]` | [DECISION D-27] |
+| `b`, `u` | `[J, D]`, `[N, D]` | [DECISION D-27] |
+| `Δ` | `[B_q, P]` | [DECISION D-27] |

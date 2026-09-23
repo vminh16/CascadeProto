@@ -339,18 +339,19 @@ checkpoints, which needs the CUDA encoder (gate G2).
 
 | ID | Check | Source |
 | :--- | :--- | :--- |
-| BPC-1 | An occurrence prototype is the unit mean of unit features; an empty mask gives 0 | [DECISION D-27] |
-| BPC-2 | The bank maps ways to their classes (query label way+1), skips empty occurrences, and raises below `min_count` | [DECISION D-27] |
-| BPC-3 | `ω = 0` returns the model's logits; otherwise only the background logit changes, and only upward | [DECISION D-27] |
-| BPC-4 | The base logit is `s⟨f, b⟩` with `s` the mean foreground norm (the background prototype's norm is ignored); a point on a base direction turns background | [DECISION D-27] |
-| BPC-5 | Base similarity is the maximum cosine; the histogram AUC equals the pairwise AUC on the same binning | [DECISION D-27] |
-| BPC-6 | Selection takes the ω of the best mean gain | [DECISION D-27] |
-| BPC-7 | Rules P1.1 (a large gain whose CI contains 0 is no go), P1.2, P1.3, P1.4 in both directions, P1.5 and "incomplete" | [DECISION D-27] |
-| BPC-8 | Selection refuses an S0 checkpoint before loading anything | [DECISION D-22] |
-| BPC-9 | The bank cache is keyed by its episode count, so a smoke bank never stands in for the full one | [DECISION D-27] |
+| BPC-1 | An occurrence prototype is the unit mean of CL2N features; an empty mask gives 0 | [DECISION D-27] |
+| BPC-2 | The bank needs its centre first; the centre is the mean of every support and query point; ways map to their classes (query label way+1); empty occurrences are skipped; below `min_count` it raises | [DECISION D-27] |
+| BPC-3 | Support prototypes are built like the bank's | [DECISION D-27] |
+| BPC-4 | The margin is the base cosine minus the cosine to the predicted class's support prototype, `−∞` on background predictions | [DECISION D-27] |
+| BPC-5 | `δ = ∞` returns the logits; only points with margin > δ move, all to the background, even under a large foreground logit; foreground logits are unchanged | [DECISION D-27] |
+| BPC-6 | The histogram AUC equals the pairwise AUC on the same binning | [DECISION D-27] |
+| BPC-7 | Selection takes the δ of the best mean gain | [DECISION D-27] |
+| BPC-8 | Rules P1.1 (a large gain whose CI contains 0 is no go), P1.2, P1.3, P1.4 both ways, P1.5 and "incomplete" | [DECISION D-27] |
+| BPC-9 | Selection refuses an S0 checkpoint before loading anything | [DECISION D-22] |
+| BPC-10 | The bank cache is keyed by its episode count, so a smoke bank never stands in for the full one | [DECISION D-27] |
 
-Mutation check (2026-09-23), 14 mutants: 14 killed, after BPC-7 gained the "gain large, CI contains 0" case that
-killed the one first survivor. Not verified locally: the probe on the real checkpoints (gate G2).
+Mutation check of the revised form (2026-09-23), 16 mutants: 16 killed, after BPC-5 gained the "large foreground
+logit" case that killed the one first survivor. Not verified locally: the probe on the real checkpoints (gate G2).
 
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 

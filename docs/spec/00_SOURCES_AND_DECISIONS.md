@@ -650,30 +650,43 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   2. It uses only base-class labels, which training episodes carry anyway (research note §5.6), and it
      works on the side P0 did not touch: D-26 changed the foreground prototypes from the query's own
      pseudo-labels and failed (P0.2); this decision uses labels the model was trained on.
-  3. P0 showed that unit-mean directions scaled to the model's prototype norm act as valid prototypes of
-     VIP-Seg's scoring rule (replacing its prototypes by the query's own unit means gains +8.4 / +15.1,
-     `results/phase16_p0/SUMMARY.md`), so base prototypes built the same way fit that rule's geometry.
 * **What it does.** `models/base_calibration.py`, spec 02 §12:
-  * **Bank.** `b_j = normalise(mean_o normalise(Σ_{i∈mask_o} f_i/‖f_i‖))` over the occurrences o of base
-    class j (support and query masks) in training episodes: the limit of COSeg's per-episode masked
-    average under its EMA [COSeg Eq.9–10] when the features are frozen.
-  * **Calibration.** `L'_i0 = max(L_i0, ω · max_j s⟨f_i, b_j⟩)` with `s` the mean norm of the model's
-    foreground prototypes: the base prototypes join the background as extra prototypes that compete
-    with the foreground ones on equal footing at ω = 1 (AttMPTI's multi-prototype background, no
-    parameter). COSeg adds the base guidance through a trained layer (Eq.12), which a probe cannot do.
-    `ω = 0` returns the model's logits exactly; only the background logit can rise.
+  * **Geometry.** Base, support and query features are compared after centring on the mean feature of
+    the base training episodes and L2 normalisation, `f̃ = normalise(f − μ)`: SimpleShot's CL2N, which it
+    reports to improve nearest-centroid few-shot classification over unnormalised and L2-normalised
+    features [SimpleShot §3].
+  * **Bank.** `b_j = normalise(mean_o normalise(Σ_{i∈o} f̃_i))` over the occurrences o of base class j
+    (support and query masks) in training episodes: the limit of COSeg's per-episode masked average
+    under its EMA [COSeg Eq.9–10] when the features are frozen.
+  * **Calibration.** The episode's support prototypes `u_c` are built the same way. A point the model
+    assigns to foreground class c is moved to the background when
+    `max_j cos(f̃_i, b_j) − cos(f̃_i, u_c) > δ`, δ ≥ 0: in one common geometry it lies nearer to a base
+    class than to its own support class by a margin. Background predictions and foreground logits are
+    never changed. COSeg adds the base guidance through a trained layer (Eq.12), which a probe cannot do.
+* **Revised before any real run (2026-09-23).** The first version added `ω · max_j s⟨f_i, b_j⟩` (raw
+  unit-mean base directions at the foreground prototypes' norm) to the background logit of the model's
+  own rule, arguing from P0's oracle that such directions are valid prototypes of that rule. The P1
+  smoke run (5 episodes) refuted it: VIP-Seg fell from 84 to about 0 mIoU at every ω ≥ 0.8, everything
+  turned background, and the AUC of the base similarity was 0.14–0.39, below chance. Two causes:
+  post-ReLU features are non-negative, so any point's cosine with a raw mean direction is high; and
+  P0's oracle had replaced *all* prototypes, background included, so it never set the two geometries
+  against each other. The revision compares like with like (CL2N; base against the episode's own
+  support prototypes) and only ever removes foreground. The bank records the mean raw cosine of the
+  query features to the centre, which quantifies the shared component.
 * **P1, the probe** (`experiments/p1_bpc_probe.py`, `experiments/run_p1.sh`), with P0's machinery:
   the same four checkpoints, scoring rules read through hooks and checked against the model's logits on
   every episode, paired bootstrap over episodes, eval.py's protocol guard.
-  * **Bank:** 1,000 seeded training episodes of the checkpoint's **own fold**, no augmentation, at least
-    100 occurrences per base class (else it raises); 1,000 episodes is five times the memory of COSeg's
-    EMA, 1/(1 − 0.995) = 200 updates [COSeg T6]. The bank must not contain a scored class (it raises).
-  * **Selection** of ω ∈ {0.8, 0.9, 1.0, 1.1, 1.2} on the S1 valid draw of the S1 checkpoints: ω = 1 is
-    the equal-footing point, ±20 % its sensitivity. **Test** of the frozen ω, and of ω = 1 as an
-    unselected reference, once on fixed100: S1 checkpoints on S1, S0 checkpoints on S0.
-  * **Diagnostic.** Among the model's foreground predictions, the AUC of `max_j cos(f_i, b_j)` for
-    separating false foreground (ground truth background) from true foreground. It measures whether the
-    base similarity carries the signal at all, independently of how this probe uses it.
+  * **Bank:** 1,000 seeded training episodes of the checkpoint's **own fold**, no augmentation, two
+    passes (the centre μ, then the prototypes), at least 100 occurrences per base class (else it
+    raises); 1,000 episodes is five times the memory of COSeg's EMA, 1/(1 − 0.995) = 200 updates
+    [COSeg T6]. The bank must not contain a scored class (it raises).
+  * **Selection** of δ ∈ {0, 0.05, 0.1, 0.2} on the S1 valid draw of the S1 checkpoints: δ = 0 is the
+    plain nearest prototype, δ > 0 the conservative side, since the failure seen in the smoke run was
+    over-suppression. **Test** of the frozen δ, and of δ = 0 as an unselected reference, once on
+    fixed100: S1 checkpoints on S1, S0 checkpoints on S0.
+  * **Diagnostic.** Among the model's foreground predictions, the AUC of the base margin for separating
+    false foreground (ground truth background) from true foreground. It measures whether the base
+    margin carries the signal at all, independently of the threshold.
 * **Rules, fixed before the run.** P1.1 go: gain ≥ +0.5 with a 95 % CI above 0 on all four checkpoints,
   the low end of the predicted +0.5 to +2 and resolvable at the CI half-widths P0 measured (0.10–0.43).
   P1.2 stop (of the training-free form): no S1 checkpoint gains with a CI above 0. P1.3 otherwise.
@@ -687,7 +700,7 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 * **Reporting.** A number with this calibration is the checkpoint's model plus D-27, labelled that way.
 * **Affects.** `models/base_calibration.py` (new), `experiments/p1_bpc_probe.py` (new),
   `experiments/run_p1.sh` (new), `experiments/p0_em_probe.py` (the scoring rules keep `F^s`), 02 §12,
-  05 §3.8h (BPC-1…9).
+  05 §3.8h (BPC-1…10).
 
 ---
 

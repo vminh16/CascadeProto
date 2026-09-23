@@ -1264,3 +1264,13 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **Verification.** BPC-1...9 (`tests/test_base_calibration.py`, spec 05 §3.8h), 9/9; EM-10 checks the
   captured support features. Mutation check, 14 mutants: 14 killed after BPC-7 gained the "large gain,
   CI containing 0" case that killed the one first survivor. G1 with `.venv`: 360 passed.
+* **Revised before any real run (same day).** The P1 smoke run (5 episodes per checkpoint) refuted the
+  first calibration, `max(L_0, omega * max_j s <f, b_j>)`: VIP-Seg fell from 84 to about 0 mIoU at every
+  omega >= 0.8 and the base similarity's AUC was 0.14-0.39. Post-ReLU features are non-negative, so a
+  raw mean direction has a high cosine with every point, while VIP-Seg's LayerNorm'd prototypes do not;
+  P0's oracle, cited as evidence that such directions fit VIP-Seg's rule, had replaced all prototypes
+  and never set the two geometries against each other. The revision (D-27, spec 02 §12) compares in
+  SimpleShot's CL2N geometry (centre from the bank's training episodes) and moves a foreground
+  prediction to the background only when it lies nearer to a base prototype than to its own support
+  prototype by a margin delta in {0, 0.05, 0.1, 0.2}. BPC-1...10, 10/10; mutation check 16 of 16 killed
+  after BPC-5 gained a large-foreground-logit case.

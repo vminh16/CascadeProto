@@ -4,14 +4,14 @@
 #
 # PROTOCOL, fixed before the run.
 #   select  S1 checkpoints only, S1 *valid* draw (1,500 episodes) [DECISION D-15] [DECISION D-22]:
-#           omega {0.8, 0.9, 1.0, 1.1, 1.2}; freezes the omega with the largest mean gain.
-#   test    the frozen omega (and omega = 1 as reference) once, fixed100 *test* draw: S1 checkpoints on S1,
+#           margin delta {0, 0.05, 0.1, 0.2}; freezes the delta with the largest mean gain.
+#   test    the frozen delta (and delta = 0 as reference) once, fixed100 *test* draw: S1 checkpoints on S1,
 #           S0 checkpoints on S0. Paired bootstrap over episodes, 2,000 resamples.
 #   decide  the rules of D-27:
 #     P1.1 go          gain >= +0.5 with 95% CI above 0 on all four checkpoints: train the calibration (R3)
 #     P1.2 stop        no S1 checkpoint gains with CI above 0 (training-free form)
 #     P1.3 in between  otherwise
-#     P1.4             AUC(false vs true foreground by base similarity) >= 0.70 on both VIP-Seg checkpoints:
+#     P1.4             AUC(false vs true foreground by base margin) >= 0.70 on both VIP-Seg checkpoints:
 #                      a trained calibration is justified; < 0.60 on both: drop D-27
 #     P1.5             collapse watch: a positive gain with a test class falling by > 3 points
 # Every checkpoint passes eval.py's protocol guard (own fold only); no scored class may be in the bank.

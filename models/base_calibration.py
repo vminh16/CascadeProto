@@ -1,22 +1,24 @@
 """Base-class calibration of the background [DECISION D-27]. **Beyond the paper.**
 
 COSeg's Base Prototypes Calibration [COSeg §4.3, Eq.9-12] in a form that needs no training, so it can
-be probed on trained checkpoints first (P1 of D-27):
+be probed on trained checkpoints first (P1 of D-27). A query point that resembles a base (training)
+class is background in a novel-class episode [COSeg §4.3].
 
-* **Bank.** For every base (training) class j, the prototype `b_j` is the mean over its occurrences in
-  training episodes of the per-occurrence masked average of unit features, normalised:
-  `b_j = normalise(mean_o normalise(sum_{i in mask_o} f_i/||f_i||))`. COSeg keeps an EMA of per-episode
-  masked averages over support and query (Eq.9-10, momentum 0.995, insensitive between 0.99 and 0.999,
-  COSeg T6); with frozen features that EMA converges to this mean. Only base-class labels are read.
-* **Calibration.** A query point that looks like a base class belongs to the background of a novel-class
-  episode [COSeg §4.3]. The base prototypes join the background as extra prototypes of the model's own
-  scoring rule, at the mean norm `s` of its foreground prototypes:
+* **Geometry.** Base, support and query features are compared after centring on the mean feature of
+  the base training data and L2 normalisation, SimpleShot's CL2N [SimpleShot §3]: `f~ = normalise(f - mu)`.
+  Without the centring, post-ReLU features share a positive component that dominates every cosine (the
+  first smoke run of P1 turned every point of VIP-Seg into background, D-27).
+* **Bank.** For every base class j, `b_j = normalise(mean_o normalise(sum_{i in mask_o} f~_i))` over its
+  occurrences o (support and query masks) in training episodes: the frozen-feature limit of COSeg's EMA
+  of masked averages [COSeg Eq.9-10].
+* **Calibration.** The support's foreground prototypes are built the same way, `u_c` from the episode's
+  support masks. A point the model assigns to foreground class c is moved to the background when
 
-      L'_i0 = max(L_i0, omega * max_j s <f_i, b_j>)       [B_q, P]
+      max_j cos(f~_i, b_j) - cos(f~_i, u_c) > delta        (delta >= 0)
 
-  COSeg instead adds the base guidance to the background correlation through a trained layer (Eq.12);
-  the max over prototypes is the multi-prototype background of AttMPTI, which needs no parameter.
-  `omega = 0` returns the model's logits unchanged (for a positive rule the max can only raise L_i0).
+  i.e. when, in one common geometry, it is nearer to a base class than to its own foreground class by a
+  margin. Points the model assigns to the background are never touched, and the foreground logits are
+  never changed; `delta = inf` returns the model's logits.
 """
 
 from typing import Dict, Optional
@@ -25,26 +27,58 @@ import torch
 import torch.nn.functional as F
 
 
-def occurrence_prototypes(f: torch.Tensor, masks: torch.Tensor) -> torch.Tensor:
-    """Unit masked averages of unit features: f [M, P, D], masks [M, P] in {0,1} -> [M, D] (0 rows if empty)."""
-    s = torch.einsum("mp,mpd->md", masks.to(f.dtype), F.normalize(f, dim=-1))  # [M, D]
+def centred_unit(f: torch.Tensor, mu: torch.Tensor) -> torch.Tensor:
+    """CL2N [SimpleShot §3]: normalise(f - mu) for f [..., D], mu [D]."""
+    return F.normalize(f - mu, dim=-1)  # [..., D]
+
+
+def occurrence_prototypes(f: torch.Tensor, masks: torch.Tensor, mu: torch.Tensor) -> torch.Tensor:
+    """Unit masked averages of CL2N features: f [M, P, D], masks [M, P] in {0,1} -> [M, D] (0 rows if empty)."""
+    s = torch.einsum("mp,mpd->md", masks.to(f.dtype), centred_unit(f, mu))  # [M, D]
     return F.normalize(s, dim=-1)  # [M, D]; an empty mask stays 0
 
 
+def support_prototypes(f_s: torch.Tensor, support_y: torch.Tensor, mu: torch.Tensor) -> torch.Tensor:
+    """u_c of the episode's ways, built like the bank: f_s [N, K, P, D], support_y [N, K, P] -> [N, D]."""
+    occ = torch.stack([occurrence_prototypes(f_s[n], support_y[n], mu) for n in range(f_s.shape[0])])  # [N,K,D]
+    return F.normalize(occ.sum(dim=1), dim=-1)  # [N, D]
+
+
 class BasePrototypeBank:
-    """Accumulates per-occurrence prototypes of the base classes of training episodes (COSeg Eq.9-10)."""
+    """Two passes over training episodes: the CL2N centre, then per-occurrence base prototypes (COSeg Eq.9-10)."""
 
     def __init__(self, dim: int):
         self.dim = dim
+        self.feature_sum = torch.zeros(dim, dtype=torch.float64)
+        self.feature_count = 0
+        self.mu: Optional[torch.Tensor] = None
         self.sums: Dict[int, torch.Tensor] = {}
         self.counts: Dict[int, int] = {}
+        self.common_cos_sum, self.common_cos_count = 0.0, 0  # mean cos(f_i, mu) of the raw features
+
+    def add_centre(self, f_s: torch.Tensor, f_q: torch.Tensor) -> None:
+        """Pass 1: every support and query point, f_s [N, K, P, D], f_q [B_q, P, D]."""
+        self.feature_sum += f_s.double().sum(dim=(0, 1, 2)).cpu() + f_q.double().sum(dim=(0, 1)).cpu()  # [D]
+        self.feature_count += f_s[..., 0].numel() + f_q[..., 0].numel()
+
+    def freeze_centre(self) -> torch.Tensor:
+        if self.feature_count == 0:
+            raise RuntimeError("no feature seen in pass 1")
+        self.mu = self.feature_sum / self.feature_count  # [D]
+        return self.mu
 
     def add_episode(self, f_s: torch.Tensor, support_y: torch.Tensor, f_q: torch.Tensor, query_y: torch.Tensor,
                     sampled_classes) -> None:
-        """f_s [N, K, P, D], support_y [N, K, P] in {0,1}, f_q [B_q, P, D], query_y [B_q, P] in {0..N}."""
+        """Pass 2: f_s [N, K, P, D], support_y [N, K, P] in {0,1}, f_q [B_q, P, D], query_y [B_q, P] in {0..N}."""
+        if self.mu is None:
+            raise RuntimeError("freeze_centre() before add_episode()")
+        mu = self.mu.to(f_q.device, f_q.dtype)  # [D]
+        cos = torch.einsum("bpd,d->bp", F.normalize(f_q, dim=-1), F.normalize(mu, dim=0))  # [B_q, P]
+        self.common_cos_sum += float(cos.sum())
+        self.common_cos_count += cos.numel()
         for way, cls in enumerate(sampled_classes):
-            sup = occurrence_prototypes(f_s[way], support_y[way])  # [K, D]
-            qry = occurrence_prototypes(f_q, (query_y == way + 1).to(f_q.dtype))  # [B_q, D]
+            sup = occurrence_prototypes(f_s[way], support_y[way], mu)  # [K, D]
+            qry = occurrence_prototypes(f_q, (query_y == way + 1).to(f_q.dtype), mu)  # [B_q, D]
             occ = torch.cat([sup, qry])  # [K + B_q, D]
             keep = occ.norm(dim=-1) > 0  # [K + B_q], occurrences with at least one point
             cls = int(cls)
@@ -60,30 +94,32 @@ class BasePrototypeBank:
         return {c: F.normalize(s, dim=0) for c, s in sorted(self.sums.items())}
 
 
-def base_similarity(f_q: torch.Tensor, base: torch.Tensor) -> torch.Tensor:
-    """g_i = max_j cos(f_i, b_j): f_q [B_q, P, D], base [J, D] (unit) -> [B_q, P]."""
-    return torch.einsum("bpd,jd->bpj", F.normalize(f_q, dim=-1), base).max(dim=-1).values  # [B_q, P]
+def base_margin(f_q: torch.Tensor, logits: torch.Tensor, support: torch.Tensor, base: torch.Tensor,
+                mu: torch.Tensor) -> torch.Tensor:
+    """max_j cos(f~_i, b_j) - cos(f~_i, u_{c_i}) for the model's class c_i >= 1; -inf where c_i = 0.
 
-
-def calibrate_background(f_q: torch.Tensor, prior: torch.Tensor, logits: torch.Tensor, base: torch.Tensor,
-                         omega: float) -> torch.Tensor:
-    """L'_i0 = max(L_i0, omega * max_j s <f_i, b_j>), s = mean foreground prototype norm; -> [B_q, P, N+1].
-
-    f_q [B_q, P, D] and prior [B_q, N+1, D] are the model's scoring rule, logits = F^q prior^T.
+    f_q [B_q, P, D], logits [B_q, P, N+1], support u [N, D], base [J, D], mu [D] -> [B_q, P].
     """
-    if omega == 0:
-        return logits
-    s = prior[:, 1:].norm(dim=-1).mean(dim=1)  # [B_q], mean foreground prototype norm
-    base_logit = torch.einsum("bpd,jd->bpj", f_q, base).max(dim=-1).values * s[:, None]  # [B_q, P]
+    f = centred_unit(f_q, mu)  # [B_q, P, D]
+    to_base = torch.einsum("bpd,jd->bpj", f, base).max(dim=-1).values  # [B_q, P]
+    to_fg = torch.einsum("bpd,nd->bpn", f, support)  # [B_q, P, N]
+    pred = logits.argmax(dim=-1)  # [B_q, P]
+    own = torch.gather(to_fg, -1, (pred - 1).clamp_min(0).unsqueeze(-1)).squeeze(-1)  # [B_q, P]
+    return torch.where(pred > 0, to_base - own, torch.full_like(own, float("-inf")))  # [B_q, P]
+
+
+def calibrate_background(logits: torch.Tensor, margin: torch.Tensor, delta: float) -> torch.Tensor:
+    """Move to the background every point whose base margin exceeds delta; logits [B_q, P, N+1] -> same."""
+    flip = margin > delta  # [B_q, P]; margin is -inf on background predictions
     out = logits.clone()  # [B_q, P, N+1]
-    out[..., 0] = torch.maximum(logits[..., 0], omega * base_logit)  # [B_q, P]
+    out[..., 0] = torch.where(flip, logits.max(dim=-1).values + 1.0, logits[..., 0])  # [B_q, P]
     return out
 
 
 def separability_histogram(g: torch.Tensor, positive: torch.Tensor, negative: torch.Tensor,
-                           bins: int = 200) -> torch.Tensor:
-    """Histograms [2, bins] over [-1, 1] of g for the positive and the negative points (for an AUC)."""
-    idx = ((g.clamp(-1, 1) + 1) / 2 * (bins - 1)).round().long()  # [B_q, P]
+                           bins: int = 200, lo: float = -2.0, hi: float = 2.0) -> torch.Tensor:
+    """Histograms [2, bins] over [lo, hi] of g for the positive and the negative points (for an AUC)."""
+    idx = ((g.clamp(lo, hi) - lo) / (hi - lo) * (bins - 1)).round().long()  # [B_q, P]
     pos = torch.bincount(idx[positive], minlength=bins)  # [bins]
     neg = torch.bincount(idx[negative], minlength=bins)  # [bins]
     return torch.stack([pos, neg])  # [2, bins]
