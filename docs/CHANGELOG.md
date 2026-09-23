@@ -1136,3 +1136,48 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   hand-computed statistics, a missing variant is reported rather than guessed, and the queue script
   states its fold, seeds, budget and rules. Spec 05 §3.8f.
 * **Not verified locally.** The runs themselves: `diag_short.py` needs the CUDA encoder (gate G2).
+
+### 16f - R1 measured: the support reading is not the cause, VIP-Seg's stage is +15.5, route B
+
+* **Result** (`results/phase16_r1/SUMMARY.md`, VM 2026-09-23; S1, T = 1, no LMA, 2,400 steps, two
+  seeds, 300 valid episodes; **not** comparable with the S0 fixed100 numbers of the report).
+
+  | variant | mean | sd | vs `r1_baseline_l2` |
+  | :--- | ---: | ---: | ---: |
+  | `r1_baseline_l2` | 0.5602 | 0.0222 | - |
+  | `r1_eppm` (the printed stage) | 0.5305 | 0.0070 | -2.97 |
+  | `r1_pooled` (D-23) | 0.5339 | 0.0015 | -2.63 |
+  | `r1_eppms` (D-24) | 0.4927 | 0.0115 | -6.75 |
+  | `r1_vippem` (D-25) | **0.6852** | 0.0036 | **+12.50** (t = +7.86) |
+
+* **The rules, as fixed before the run.** R1.1 `pooled - eppm` = **+0.33**, t = +0.65: not met, the
+  leading hypothesis is refuted. R1.2 `eppms - vippem` = -19.26: not met. R1.3 `eppms - eppm` =
+  **-3.79**, t = -3.97: not met and negative, stripping the inert parts made the stage worse. R1.4
+  `vippem - eppm` = **+15.47**, t = +27.78: **met**, so phase 16 continues on route B.
+* **What this settles.** (i) D-23 is measured and negative: reading Eq.13 with one `S′` for the episode,
+  the form every published member of this family effectively computes, is worth a third of a point
+  here. (ii) D-24 is negative: removing `P_diffuse`, the entropy gate, the SE block, `w_cls` and
+  Eq.21's ReLU does not produce a stage that helps; the static argument that those parts cannot change
+  a prediction does not imply that a stage without them can. (iii) D-25 reproduces the 15-point gap
+  **inside one pipeline with only the stage changed**, where 15e had compared two training scripts.
+* **The budget is not the explanation.** `r1_vippem` resolves +12.50 with t = +7.86 at this very
+  budget, and the full-schedule validation curves already in the repository move by at most 1.1 points
+  between epoch 20 and epoch 50 on six configurations (baseline .4949 -> .4931, baseline_l2 .5057 ->
+  .5048, +LMA .4809 -> .4807, T = 1 .5670 -> .5767, T = 4 .5710 -> .5599, full .5803 -> .5741). A
+  15-point verdict cannot be a budget artefact, and a 0.33-point one cannot become a 3-point one.
+* **The L2 confound, raised by `docs/research/2026-09-23_gap_and_upgrade_research.md` §4.5 and verified
+  here.** (a) and (b) run without `l2norm_point_proto`, (c), (d) and the baseline with it, and L2 alone
+  measured +3.36 on the S0 baseline. R1.1 is unaffected (both arms without L2). R1.3 is confounded in
+  EPPM-S's favour, so like for like it is worse by up to about 7 points. R1.4 is confounded in PEM's
+  favour by up to 3.4, so the stage-only gap is about 12-15 and route B still fires. `eppms` against
+  `baseline_l2` is like for like; `eppm` and `pooled` against `baseline_l2` are not, and need the
+  missing `r1_eppm_l2` run (1.1-1.6 GPU-hours) before anything is concluded from them.
+* **Not settled.** Two seeds, not three (at this seed spread three seeds resolve about 5 points, not
+  the 3 the rules assume, and R1.2 cannot establish equivalence); no curve for EPPM-S or PEM; `r1_eppms_slots` and `r1_vip4`
+  not run; S1 valid draw only, no fixed100 and no S0. Why PEM wins is untested: the LayerNorm on the
+  self term that 15i named and 16c omitted, PEM's two separate gates against the difference gate, and
+  the query mixing that VIP-Seg's reshape performs and our stages avoid - the last one would be
+  evidence for the transductive direction of the research note.
+* **Prediction log.** The research note predicted route A's stage 0 at 64-71 and D-23 as the leading
+  cause; both are wrong. It predicted route B's stage 0 at 71-72; one PEM reaches 68.5 at 40 % of the
+  schedule, on track.

@@ -526,6 +526,36 @@ its own test classes) and applied unchanged to S0, never tuned on the classes be
   CHANGELOG entry per sub-phase. VIP-Seg's modules are imported, never edited (AGENTS.md §4, guardrail 2). The probes
   P0.x belong in `experiments/`, next to `vipseg_init_probe.py`.
 
+## 6.4 Outcome of R1 (2026-09-23)
+
+Measured on S1, T = 1, no LMA, 2,400 steps, two seeds (`results/phase16_r1/SUMMARY.md`, CHANGELOG 16f);
+these are S1 valid-draw numbers, not the S0 fixed100 scale used elsewhere in this note.
+
+| variant | mean | vs no stage (`baseline_l2` 0.5602) |
+| :--- | ---: | ---: |
+| the printed stage | 0.5305 | −2.97 |
+| + Eq.13's single `S′` (§5.1, the leading hypothesis) | 0.5339 | −2.63 |
+| EPPM-S, stripped (§5.1) | 0.4927 | −6.75 |
+| one VIP-Seg PEM (route B's stage 0) | **0.6852** | **+12.50** |
+
+* **§4.4's hypothesis is refuted.** The shared correlation is worth **+0.33 points** (t = +0.65), not the
+  +13.7 to +15.4 that the family's own ablations credit to that branch. Whatever those ablations
+  measured, it is not the support reading on its own.
+* **§5.1's prediction (57 → 64–71) fails.** Stripping the stage of the parts §3 proved inert made it
+  worse than the stage it replaces and worse than using no stage at all. The proofs in §2.2 and §3
+  stand as statements about what those parts *cannot* do; they do not license the conclusion that a
+  stage without them works.
+* **§5.8's route B is on track.** One VIP-Seg module reaches 0.6852 at 40 % of the schedule against a
+  cited 0.7609 for VIP-Seg's S1 checkpoint, and it is +15.47 over the printed stage inside the same
+  pipeline (t = +27.78).
+* **Not a budget artefact.** The same run resolves +12.50 with t = +7.86, and the repository's
+  full-schedule curves move by at most 1.1 points between epoch 20 and epoch 50.
+* **What this changes for §5.2–5.6.** The transductive stage, the base-class calibration and the text
+  prior are unaffected — they were always meant to sit on top of a working stage 0, and that stage 0 is
+  now VIP-Seg's module rather than one of ours. The open question moves to *why* PEM wins (§6.4 of the
+  summary lists the three candidates), and the query-mixing candidate would be direct evidence for the
+  transductive reading of §5.2.
+
 ## 7. Risks, falsifiers, and what not to do
 
 * **Falsifiers.** An oracle below 65 in P0.1 (the encoder, not the prototype, is the limit); R1 with (b) ≈ (a) and

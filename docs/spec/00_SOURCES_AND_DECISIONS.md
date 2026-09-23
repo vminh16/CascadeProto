@@ -474,8 +474,12 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   `F̄^s`, `S̄′ = φ(F̄^s)`, and `A_b = softmax_row(Q′_bᵀ S̄′ / √d) ∈ R^{D×D}` is applied to every class
   row, `P_cross[b,c] = A_b ψ(P_gated[b,c])`. Unlike the published reshape it keeps the queries
   separate, so one query's prediction never depends on another's. No parameter changes.
-* **Status.** The default stays `class_slots` until the comparison of 16e (R1) is run; if `pooled`
-  wins by more than the seed spread, D-01 item 5 is revised with that evidence and the default moves.
+* **Status: measured and negative (2026-09-23, R1, `results/phase16_r1/SUMMARY.md`).** On S1, T = 1,
+  no LMA, 2,400 steps, two seeds, everything else fixed: `pooled` 0.5339 ± 0.0015 against
+  `class_slots` 0.5305 ± 0.0070, i.e. **+0.33 points, t = +0.65**, against the rule's +3 with t > 3.
+  The same run resolves a 12.50-point difference between a VIP-Seg module and no stage at all
+  (t = +7.86), so the budget is not what hides it. The support reading is **not** the cause of the gap
+  to VIP-Seg's head. D-01 item 5 stands; the flag stays as an ablation with default `class_slots`.
 * **Affects.** `models/eppm.py` (`CrossAttention`), `models/cascadeproto.py`, `train.py`
   (run directories get `_pooled`), 01 §3, 02 §5.2, 05 §3.4 (XATT-11…15).
 
@@ -501,6 +505,15 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   the QUEST / APP / PEM / PDM family, built to locate the 15 points. Any run using it is outside the
   paper and must be reported as such. It is measured against the printed stage and against
   [DECISION D-25] in R1 (16e).
+* **Outcome: negative (2026-09-23, R1, `results/phase16_r1/SUMMARY.md`).** EPPM-S scores 0.4927 ± 0.0115
+  against the printed stage's 0.5305 ± 0.0070 and plain L2 prototype matching's 0.5602 ± 0.0222, i.e.
+  **−3.79 points against the stage it replaces and −6.75 against using no stage at all**, and 19.26
+  below one VIP-Seg PEM on the same run. Removing the parts that provably cannot change a prediction
+  does not produce a stage that helps: the static argument of this decision is not sufficient. The
+  switch stays as an ablation, off by default. Three candidates for the difference to PEM remain
+  untested: the LayerNorm on the self term (named in CHANGELOG 15i, omitted here), PEM's separate
+  query and support gates against the difference gate used here, and the query mixing of VIP-Seg's
+  reshape, which this stage deliberately avoids.
 * **Guard.** With `stage_type ≠ eppm` the EPPM-only switches (`use_gate`, `gate_target`, `eq19_self`,
   `cross_attn_norm`, `fusion_weight`, `diffusion_input`) must stay at their defaults; a non-default
   value raises rather than being ignored, so a run's configuration always describes what it ran.
@@ -527,6 +540,15 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   design to copy; our own stages keep the queries separate.
 * **Reporting.** A number produced with `stage_type=vip` is VIP-Seg's module inside our pipeline, not
   CascadeProto, and must be labelled that way.
+* **Measured (2026-09-23, R1, `results/phase16_r1/SUMMARY.md`).** One PEM on our prototypes:
+  **0.6852 ± 0.0036** on S1 after 2,400 steps, **+15.47 over the printed stage (t = +27.78)** and
+  +12.50 over no stage at all. The 15 points that CHANGELOG 15e measured between two training scripts
+  are reproduced inside one pipeline with only the stage changed, with the caveat that the printed
+  stage runs without the L2 input that VIP-Seg's head gets, worth up to 3.4 of those points
+  (`results/phase16_r1/SUMMARY.md`). Rule R1.4 of `run_r1.sh` therefore
+  fires: phase 16 continues on **route B**, adding to VIP-Seg's head rather than repairing the printed
+  stage. VIP-Seg's released S1 checkpoint is cited at 0.7609, so this is a real starting point and the
+  head remains VIP-Seg's contribution.
 * **Affects.** `models/vip_stage.py` (new), `models/cascadeproto.py`, `train.py` (run directories get
   `_vip`), 01 §3, 05 §3.4c (VIPS-1…5).
 
