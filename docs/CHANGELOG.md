@@ -1388,3 +1388,18 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **VM.** Stockout at start (`ZONE_RESOURCE_POOL_EXHAUSTED`, 10+ retries every 20 s); the waiter that
   stops the VM used a self-safe pattern (`pgrep -f "[t]rain.py|..."`) and stopped it about 5 minutes
   after the evaluation. The first waiter died with the previous session; it was re-armed.
+
+### 16p - text research (two independent notes) and D-31 / P3 queued
+
+* **Research.** `docs/research/2026-09-24_text_integration_math.md` (research agent) and
+  `docs/research/2026-09-24_text_integration_independent.md` (main session, `experiments/t0_text_geometry.py`)
+  agree: the existing text path is class-blind by construction (template prompts at cos ~0.9, GMMN reduces
+  to 0.303 x ||mean difference||^2 at unit norm, six training names), VIP-Seg's head processes class rows
+  independently, and EPPM's failure is structural (entropy of a channel magnitude, a class-blind diffusion
+  term, class-shared SE/fusion). On E1 the error is the support-derived prototype: the oracle rule on the
+  same features and decoding scores 85.9-87.4.
+* **D-31 (P3).** Part A splits E1's gap (support rule vs E1 vs oracle; fixable points by boundary and
+  support size) to choose the next mechanism; Part B is a training-free, support-gated text prior after the
+  head (ridge or retrieval directions, four prompt sets, an entropy weight). Rules and bands fixed before
+  the run. `models/text_prior.py`, `experiments/p3_probe.py`, `experiments/run_p3.sh`; TXT-1...14, 17 of 17
+  mutants killed.

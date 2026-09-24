@@ -389,6 +389,27 @@ Mutation check (2026-09-23, revised form), 25 mutants over `models/oracle_distil
 
 E1 rules (2026-09-24), 6 mutants: 6 killed, the last after DIS-11 gained the unscored-model case.
 
+### 3.8k `tests/test_text_prior.py` (G1) — training-free text prior and P3's gap decomposition [DECISION D-31]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| TXT-1 | The four prompt sets, the 12 frozen descriptions, unknown sets or classes raise | [DECISION D-31] |
+| TXT-2 | Class embeddings average unit prompt embeddings and renormalise | [DECISION D-31] |
+| TXT-3 | The ridge map interpolates the base anchors, returns unit directions and uses centred embeddings | [DECISION D-31] |
+| TXT-4 | Retrieval picks the nearest base prototype at large τ and the normalised mean at τ = 0 | [DECISION D-31] |
+| TXT-5 | Text logits are CL2N features times the directions; text-only query accuracy maps column c−1 to label c and skips background | [DECISION D-31] |
+| TXT-6 | The support gate is 1 for correct text, 0 for swapped text and 2·acc − 1 in between | [DECISION D-31] |
+| TXT-7 | κ = 0 or w = 0 is the head; background untouched; a shift common to the ways is ignored; the ways are only re-ranked | [DECISION D-31] |
+| TXT-8 | The entropy weight is 1 for uniform and ≈ 0 for confident posteriors | [DECISION D-31] |
+| TXT-9 | The equal-norm oracle keeps absent classes and gives present classes their mean norm | [DECISION D-31] |
+| TXT-10 | Alignment sums use the two foreground classes' points only | [DECISION D-31] |
+| TXT-11 | Boundary points are exactly those whose k nearest neighbours include another label | [DECISION D-31] |
+| TXT-12 | The grid has 192 arms, selection takes the best valid gain, the sibling flips the weight, S0 is refused | [DECISION D-31] [DECISION D-22] |
+| TXT-13 | Rules P3.0–P3.5 and Part A's bands; the Part A summary on a synthetic set | [DECISION D-31] |
+| TXT-14 | The new files parse as Python 3.10 | 00 §5.2 |
+
+Mutation check (2026-09-24), 17 mutants: 17 killed, the last two after TXT-3 and TXT-5 gained the centring and query-accuracy cases.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.
