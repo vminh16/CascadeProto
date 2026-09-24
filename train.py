@@ -79,6 +79,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--diffusion_input", default="post_relu", choices=["post_relu", "pre_relu"], help="[D-14]")
     p.add_argument("--neck", default="none", choices=["none", "sq_attn"],
                    help="support -> query attention before the prototypes [D-33], beyond the paper")
+    p.add_argument("--neck_alpha_init", type=float, default=0.0,
+                   help="initial value of the neck's gate alpha; 0 = identity at initialisation [D-34]")
     p.add_argument("--init_checkpoint", default=None,
                    help="warm start from one of our own checkpoints (strict except the neck's parameters) [D-33]")
     p.add_argument("--distill_beta", type=float, default=0.0,
@@ -131,7 +133,8 @@ def model_config(args):
                               gate_target=args.gate_target, eq19_self=args.eq19_self,
                               fusion_weight=args.fusion_weight, diffusion_input=args.diffusion_input,
                               cross_attn_support=args.cross_attn_support, stage_type=args.stage_type,
-                              distill_beta=args.distill_beta, neck=args.neck)
+                              distill_beta=args.distill_beta, neck=args.neck,
+                              neck_alpha_init=args.neck_alpha_init)
 
 
 def build_model(config, feature_extractor=None) -> torch.nn.Module:
@@ -171,6 +174,7 @@ def run_dir(args) -> str:
     tag += "" if getattr(args, "batch_size", EPISODES_PER_BATCH) == EPISODES_PER_BATCH else f"_b{args.batch_size}"
     tag += "" if not getattr(args, "distill_beta", 0.0) else f"_distill{args.distill_beta:g}"  # [D-29]
     tag += "" if getattr(args, "neck", "none") == "none" else f"_{args.neck}"  # [D-33]
+    tag += "" if not getattr(args, "neck_alpha_init", 0.0) else f"_a{args.neck_alpha_init:g}"  # [D-34]
     tag += "_ft" if getattr(args, "init_checkpoint", None) else ""  # [D-33]
     return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 

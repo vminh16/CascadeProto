@@ -135,6 +135,26 @@ def test_neck8_rules():
     assert r2.decide_n1(_n1()[:2], 1)[0][0] == "incomplete"
 
 
+def test_neck10_alpha_initialisation_from_scratch():
+    """D-34: the gate starts at 0.1 when asked, so the neck's projections get gradient at once."""
+    n = SupportQueryAttention(alpha_init=0.1).double()
+    f_s, f_q = feats(3)
+    assert n.alpha.item() == pytest.approx(0.1) and not torch.allclose(n(f_s, f_q), f_s)
+    n(f_s, f_q).pow(2).sum().backward()
+    assert n.w_q.weight.grad.abs().sum() > 0
+    cfg = CascadeProtoConfig(use_lma=False, num_stages=2, l2norm_point_proto=True, neck="sq_attn", neck_alpha_init=0.1)
+    assert model(cfg).neck.alpha.item() == pytest.approx(0.1)
+    for bad in (dict(neck_alpha_init=0.1), dict(neck="sq_attn", neck_alpha_init=float("nan"))):
+        with pytest.raises(ValueError, match="neck_alpha_init"):
+            CascadeProtoConfig(**bad)
+    base = ["--dataset", "s3dis", "--data_path", "x", "--cvfold", "1", "--n_way", "2", "--k_shot", "1",
+            "--use_lma", "false", "--num_stages", "4", "--stage_type", "vip", "--l2norm_point_proto", "true",
+            "--batch_size", "1", "--neck", "sq_attn", "--neck_alpha_init", "0.1"]
+    args = train.parse_args(base)
+    assert train.model_config(args).neck_alpha_init == 0.1
+    assert train.run_dir(args).endswith("s3dis_S1_N2_K1_point_T4_vip_b1_sq_attn_a0.1")
+
+
 @pytest.mark.parametrize("path", ["models/neck.py", "models/cascadeproto.py", "train.py", "experiments/r2_distill_eval.py"])
 def test_neck9_parses_as_python_3_10(path):
     ast.parse((REPO / path).read_text(encoding="utf-8"), feature_version=(3, 10))

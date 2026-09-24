@@ -74,10 +74,14 @@ class CascadeProtoConfig:
     diffusion_input: str = "post_relu"  # [DECISION D-14]
     distill_beta: float = 0.0  # [DECISION D-29], beyond the paper; 0 = the paper's objective
     neck: str = "none"  # [DECISION D-33], beyond the paper
+    neck_alpha_init: float = 0.0  # [DECISION D-34]; 0 keeps D-33's identity at initialisation
 
     def __post_init__(self):
         if not 0 <= self.num_stages <= 6:
             raise ValueError(f"num_stages must be in 0..6 (01 §3), got {self.num_stages}")
+        if not math.isfinite(self.neck_alpha_init) or (self.neck_alpha_init != 0 and self.neck == "none"):
+            raise ValueError(f"neck_alpha_init must be finite and needs a neck [DECISION D-34], got "
+                             f"{self.neck_alpha_init} with neck={self.neck!r}")
         if not (math.isfinite(self.distill_beta) and self.distill_beta >= 0):
             raise ValueError(f"distill_beta must be a finite value >= 0 [DECISION D-29], got {self.distill_beta}")
         for name, value, allowed in (("modality", self.modality, MODALITIES),
@@ -149,7 +153,7 @@ class CascadeProto(nn.Module):
             feature_extractor = PointFeatureExtractor()
         self.features = feature_extractor
         # Support -> query attention before the prototypes, identity at initialisation [DECISION D-33]
-        self.neck = build_neck(config.neck)
+        self.neck = build_neck(config.neck, alpha_init=config.neck_alpha_init)
         if config.use_lma:
             self.lma = LearnableModalityAdapter(eval_noise=config.eval_noise)
             # Frozen CLIP stays outside the module tree: not in state_dict, untouched by .to()/.double() (03 §2.1)

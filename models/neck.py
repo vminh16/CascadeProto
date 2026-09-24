@@ -22,7 +22,7 @@ NECK_DIM = 64  # d [DECISION D-33]
 class SupportQueryAttention(nn.Module):
     """F_s [N, K, P, D], F_q [B_q, P, D] -> F_s' [N, K, P, D]; identity while alpha = 0."""
 
-    def __init__(self, dim: int = 128, d: int = NECK_DIM):
+    def __init__(self, dim: int = 128, d: int = NECK_DIM, alpha_init: float = 0.0):
         super().__init__()
         self.norm_s = nn.LayerNorm(dim)
         self.norm_q = nn.LayerNorm(dim)
@@ -30,7 +30,8 @@ class SupportQueryAttention(nn.Module):
         self.w_k = nn.Linear(dim, d, bias=False)
         self.w_v = nn.Linear(dim, d, bias=False)
         self.w_o = nn.Linear(d, dim, bias=False)
-        self.alpha = nn.Parameter(torch.zeros(()))  # ReZero-style gate [DECISION D-33]
+        # ReZero-style gate, 0 for a warm start [DECISION D-33]; 0.1 from scratch [DECISION D-34]
+        self.alpha = nn.Parameter(torch.full((), float(alpha_init)))
         self.scale = math.sqrt(d)
 
     def forward(self, f_s: torch.Tensor, f_q: torch.Tensor) -> torch.Tensor:
@@ -44,9 +45,9 @@ class SupportQueryAttention(nn.Module):
         return f_s + self.alpha * update.view(n, k, p, dim)  # [N, K, P, D]
 
 
-def build_neck(kind: str, dim: int = 128):
+def build_neck(kind: str, dim: int = 128, alpha_init: float = 0.0):
     if kind == "none":
         return None
     if kind == "sq_attn":
-        return SupportQueryAttention(dim)
+        return SupportQueryAttention(dim, alpha_init=alpha_init)
     raise ValueError(f"neck must be one of {NECKS}, got {kind!r}")

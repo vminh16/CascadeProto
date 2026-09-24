@@ -440,6 +440,7 @@ Mutation check (2026-09-24), 9 mutants: 9 killed.
 | NECK-7 | CLI, run directories `_b1_ft` / `_b1_sq_attn_ft`, resume at the defaults | [DECISION D-33], 04 §5 |
 | NECK-8 | Rules N1.1–N1.4 and "incomplete" | [DECISION D-33] |
 | NECK-9 | The changed files parse as Python 3.10 | 00 §5.2 |
+| NECK-10 | α starts at `neck_alpha_init` (0.1 from scratch) and the projections then get gradient at once; the value needs a neck and must be finite; CLI and run directory `_sq_attn_a0.1` | [DECISION D-34] |
 
 Mutation check (2026-09-24), 10 mutants: 10 killed, the last three after NECK-4, NECK-6 and NECK-8 gained the query-dependence, missing-key and CI cases.
 

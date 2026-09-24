@@ -1446,3 +1446,13 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   the neck's parameters), identical episodes, 7,200 updates at a constant 1.25e-4; rules N1.1-N1.4 fixed
   before the run (`r2_distill_eval.py decide_n1`, `experiments/run_n1.sh`). NECK-1...9, 10 of 10 mutants
   killed.
+
+### 16v - D-34 / N2 prepared: the neck from scratch on E1's schedule (not run)
+
+* **N1 so far** (outcome recorded when its evaluation is back): the neck's alpha ended at 0.0023 after
+  7,200 warm-started updates at 1.25e-4, and both arms' validations moved together; restarting AdamW
+  dropped both from 73.04 to 59 at epoch 5. N1 tests grafting, not point-level attention.
+* **D-34.** The same neck trained from scratch on E1's schedule with alpha = 0.1 at initialisation,
+  against E1's existing checkpoints (maintainer: E1 is not retrained); rules as N1, a go needs a second seed.
+  `train.py --neck_alpha_init`, `experiments/run_n2.sh` (AUTOSTOP=1 shuts the VM down 15 minutes after the
+  script ends, success or failure). NECK-10.
