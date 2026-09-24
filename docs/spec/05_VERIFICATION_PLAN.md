@@ -444,6 +444,29 @@ Mutation check (2026-09-24), 9 mutants: 9 killed.
 
 Mutation check (2026-09-24), 10 mutants: 10 killed, the last three after NECK-4, NECK-6 and NECK-8 gained the query-dependence, missing-key and CI cases.
 
+### 3.8n `tests/test_condition_probe.py` (G1) — condition and presence probe P5 [DECISION D-35]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| P5-1 | Block status: own for the sampled-for class, other when present, absent otherwise; one block per way or it raises | [DECISION D-35], [VIPSEG dataloaders/loader.py:174-225] |
+| P5-2 | The own/other/absent split partitions the pooled GT, TP and FP counts on random episodes | [DECISION D-35] |
+| P5-3 | Split counts by hand, including FP of a class in a block that lacks it | [DECISION D-35] |
+| P5-4 | Counterfactual cf-a raises other-condition TP to the own recall and never lowers it; cf-b removes absent-block FP; background untouched | [DECISION D-35] |
+| P5-5 | Recall per condition, other share and FP ratios; raw counts kept separately | [DECISION D-35] |
+| P5-6 | Presence-fair oracle: present rows are the query's own directions, absent rows the support's, same geometry | [DECISION D-35] |
+| P5-7 | The support rule is `F^q n(P_point)ᵀ` | [DECISION D-31] |
+| P5-8 | Batch statistics normalise with the batch, leave running statistics and modes unchanged, and raise without BatchNorm | [DECISION D-35] |
+| P5-9 | The index copy of the sampler equals the inherited `sample_pointcloud` (both sampling modes) and over-samples by 2 − π | [VIPSEG dataloaders/loader.py:31-89] |
+| P5-10 | False-positive kinds: episode, base, clutter, novel outside the episode | [DECISION D-35] |
+| P5-11 | A sparse view keeps the shape, puts the foreground at the raw share (background density), re-normalises XYZ, raises without foreground | [DECISION D-35] |
+| P5-12 | Dual logits take the background from the dense run and the foreground maximum; the control adds one constant and matches the foreground count | [DECISION D-35] |
+| P5-13 | φ and the intervention summary (pooled recalls, own recall, bootstrap CI over episodes) | [DECISION D-35] |
+| P5-14 | Rules P5.1 (a / b / in between / stop), P5.2, P5.3, P5.4, "neither" and "incomplete" | [DECISION D-35] |
+| P5-15 | The new files parse as Python 3.10 | 00 §5.2 |
+
+Mutation check (2026-09-24), 10 mutants: 10 killed. The first run of P5-5 found a real defect (the raw counts
+overwrote the FP ratios under the same keys); fixed before any GPU run.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

@@ -1205,9 +1205,11 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
     views (their `P^0` and their support slots); foreground logit of class k = max(dense, sparse). **Control:** the
     dense logits plus one constant on the foreground columns, set per episode by bisection so that the number of
     foreground predictions equals the dual arm's.
-  * **Checks in the smoke run (5 episodes per arm, before the full run).** E1's logits reproduced from unmodified
-    inputs (P4's identity check); B's V0 equal to the protocol prediction on the same draw; A's own + other + absent
-    counts summing to the pooled counts; C with batch statistics differs from `eval()` on every episode.
+  * **Checks, on every episode of the smoke run (5 episodes per arm) and of the full run.** Every scoring rule
+    reproduces its model's logits (P0's identity check), arm E's re-run head included; the index copy of the sampler
+    that gives B its raw labels equals the inherited `sample_pointcloud` on every block it draws; A's own + other +
+    absent counts add up to the pooled counts and the pooled mIoU equals VIP-Seg's `evaluate_metric`; batch
+    statistics change the logits of every episode and leave every running statistic unchanged.
 * **Rules, fixed before the run** (+1.0 = twice the single-run sd, the smallest gain worth a training run in R2/E1/N1;
   +0.5 = the smallest training-free effect worth a follow-up in P0–P4):
   * **P5.1 E-a (other-condition misses) matters:** cf-a − E1 ≥ +1.0 on fixed100. Then **P5.1a sampling is causal:**
@@ -1227,7 +1229,8 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   in points 3–4 their measured size.
 * **Reporting.** P5 is a diagnostic of E1; nothing in it is a result against VIP-Seg. The counterfactuals are bounds.
 * **Affects.** `experiments/c1_sampling_condition.py`, `experiments/c2_vipseg_crosscorr_check.py` (new, CPU, done),
-  `experiments/p5_condition_probe.py`, `experiments/run_p5.sh` (new), 05 §3.8n (P5-…).
+  `experiments/p5_condition_probe.py`, `experiments/run_p5.sh`, `tests/test_condition_probe.py` (new), 05 §3.8n
+  (P5-1…15).
 
 ---
 

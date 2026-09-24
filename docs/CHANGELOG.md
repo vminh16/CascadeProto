@@ -1497,3 +1497,12 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   only way 2's support changes.
 * **D-35** in `docs/spec/00`: arms A-E and rules P5.1-P5.5, fixed before any P5 code.
 
+### 16aa - P5 implemented (D-35), not run
+
+* `experiments/p5_condition_probe.py`: arms A (condition and presence split, cf-a / cf-b, current and presence-fair
+  oracles, support rule), B (re-sampling the same scans for the other class and uniformly, raw class of every false
+  positive), C (batch statistics at test, fixed100 + random600:0), D (leak-free draw), E (training-free
+  dual-condition prototypes against a foreground-count-matched control); `decide` applies P5.1-P5.5.
+* `experiments/run_p5.sh smoke|full` (AUTOSTOP=1 as N2). `tests/test_condition_probe.py` P5-1...15 (05 §3.8n): G1
+  458 passed; mutation check 10/10 killed; P5-5 caught a key collision in `split_summary` before any run.
+
