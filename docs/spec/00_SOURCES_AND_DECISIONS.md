@@ -1075,6 +1075,10 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 * **Affects.** `models/neck.py` (new), `models/cascadeproto.py` (`neck`), `train.py` (`--neck`,
   `--init_checkpoint`), `experiments/r2_distill_eval.py` (`decide_n1`), `experiments/run_n1.sh` (new), 02 §15,
   05 §3.8m (NECK-…).
+* **Outcome: N1.2 stop, the neck never opened (2026-09-24, `results/phase16_n1/SUMMARY.md`).** neck − ctl on fixed100
+  −0.17 [−0.22, −0.13], −0.07 / −0.20 / −0.16 on random600; the gate ended at α = 0.0023. Both arms lost about
+  2 points against E1 (restarting AdamW's moments: validation 73.04 → ~59 at epoch 5 → ~71). The run measured
+  that a zero-initialised neck grafted onto a converged model at 1.25e-4 does not open; D-34 tests the neck.
 
 ---
 
@@ -1199,5 +1203,6 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-24 | D-32 (maintainer request): P4, a causal test of background contamination by the episode's own classes (clean-background intervention, label-free purification); rules fixed before the run. |
 | 2026-09-24 | D-32 measured: background contamination is not causal (clean background +0.09); the oracle gain is joint across rows. |
 | 2026-09-24 | D-33 (maintainer request): N1, a zero-initialised point-level support → query attention neck, warm-started from E1 against a control arm; rules fixed before the run. |
+| 2026-09-24 | D-33 measured: N1.2 stop with α = 0.0023; the neck was never used. |
 | 2026-09-24 | D-34 (maintainer request): N2, the neck trained from scratch on E1's schedule with alpha initialised to 0.1, against E1's existing checkpoints; script prepared, not run. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |
