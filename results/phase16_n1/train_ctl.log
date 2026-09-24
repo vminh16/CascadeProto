@@ -1,0 +1,41 @@
+=== 2026-09-24T08:32:57+00:00 commit d7ec930 arm ctl
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'stage_type': 'vip', 'gate_target': 'prototype', 'eq19_self': 'none', 'train_classes': 'split', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'neck': 'none', 'init_checkpoint': 'log_r2/s3dis_S1_N2_K1_point_T4_vip_b1/last.pt', 'distill_beta': 0.0, 'epochs': 15, 'episodes_per_epoch': 480, 'lr': 0.000125, 'weight_decay': 0.1, 'lr_step_epochs': 1000, 'batch_size': 1, 'lr_gamma': 0.5, 'valid_every': 5, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_n1', 'dry_run': False, 'resume': True}
+data: /home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+train classes [0, 3, 4, 8, 10, 11] | test classes [6, 1, 9, 7, 2, 5] | 7200 training episodes, 480 steps/epoch
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+warm start from log_r2/s3dis_S1_N2_K1_point_T4_vip_b1/last.pt [D-33]
+model config: {'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'gate_target': 'prototype', 'eq19_self': 'none', 'stage_type': 'vip', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'distill_beta': 0.0, 'neck': 'none'}
+epoch 1/15 | loss 0.1009 | L_GMMN 0.0000 | lr 1.25e-04 | 94s | L_distill 0.0665
+epoch 2/15 | loss 0.1025 | L_GMMN 0.0000 | lr 1.25e-04 | 188s | L_distill 0.0661
+epoch 3/15 | loss 0.1063 | L_GMMN 0.0000 | lr 1.25e-04 | 282s | L_distill 0.0666
+epoch 4/15 | loss 0.1088 | L_GMMN 0.0000 | lr 1.25e-04 | 378s | L_distill 0.0725
+epoch 5/15 | loss 0.1093 | L_GMMN 0.0000 | lr 1.25e-04 | 471s | L_distill 0.0741
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 5 | valid mIoU 0.5891
+epoch 6/15 | loss 0.1097 | L_GMMN 0.0000 | lr 1.25e-04 | 679s | L_distill 0.0742
+epoch 7/15 | loss 0.0977 | L_GMMN 0.0000 | lr 1.25e-04 | 772s | L_distill 0.0706
+epoch 8/15 | loss 0.1102 | L_GMMN 0.0000 | lr 1.25e-04 | 865s | L_distill 0.0673
+epoch 9/15 | loss 0.1036 | L_GMMN 0.0000 | lr 1.25e-04 | 958s | L_distill 0.0662
+epoch 10/15 | loss 0.1006 | L_GMMN 0.0000 | lr 1.25e-04 | 1052s | L_distill 0.0659
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 10 | valid mIoU 0.7017
+epoch 11/15 | loss 0.1007 | L_GMMN 0.0000 | lr 1.25e-04 | 1261s | L_distill 0.0623
+epoch 12/15 | loss 0.1101 | L_GMMN 0.0000 | lr 1.25e-04 | 1354s | L_distill 0.0617
+epoch 13/15 | loss 0.0987 | L_GMMN 0.0000 | lr 1.25e-04 | 1446s | L_distill 0.0567
+epoch 14/15 | loss 0.1017 | L_GMMN 0.0000 | lr 1.25e-04 | 1540s | L_distill 0.0606
+epoch 15/15 | loss 0.0966 | L_GMMN 0.0000 | lr 1.25e-04 | 1633s | L_distill 0.0625
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 15 | valid mIoU 0.7095
+done: best valid mIoU 0.7095; evaluate best.pt and last.pt with eval.py [D-15]
+=== TRAIN ctl exit=0 2026-09-24T09:02:16+00:00

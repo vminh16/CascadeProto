@@ -1,0 +1,51 @@
+=== 2026-09-24T09:32:23+00:00 eval
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] S1 fixed100: ctl 0.7115 (logit-pair cos 0.780, oracle 0.8589 / unit 0.8546) | neck 0.7097 (logit-pair cos 0.778, oracle 0.8577 / unit 0.8541) | ctl_best 0.7115 (logit-pair cos 0.780, oracle 0.8589 / unit 0.8546) | neck_best 0.7097 (logit-pair cos 0.778, oracle 0.8577 / unit 0.8541) | e1 0.7320 (logit-pair cos 0.755, oracle 0.8743 / unit 0.8593) | vipseg 0.7536 (logit-pair cos 0.807, oracle 0.8377 / unit 0.8631)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] S1 random600:0: ctl 0.7004 (logit-pair cos 0.766, oracle 0.8504 / unit 0.8492) | neck 0.6997 (logit-pair cos 0.764, oracle 0.8488 / unit 0.8488) | ctl_best 0.7004 (logit-pair cos 0.766, oracle 0.8504 / unit 0.8492) | neck_best 0.6997 (logit-pair cos 0.764, oracle 0.8488 / unit 0.8488) | e1 0.7251 (logit-pair cos 0.740, oracle 0.8662 / unit 0.8543) | vipseg 0.7449 (logit-pair cos 0.795, oracle 0.8338 / unit 0.8571)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] S1 random600:1: ctl 0.7241 (logit-pair cos 0.781, oracle 0.8642 / unit 0.8616) | neck 0.7221 (logit-pair cos 0.779, oracle 0.8630 / unit 0.8615) | ctl_best 0.7241 (logit-pair cos 0.781, oracle 0.8642 / unit 0.8616) | neck_best 0.7221 (logit-pair cos 0.779, oracle 0.8630 / unit 0.8615) | e1 0.7423 (logit-pair cos 0.753, oracle 0.8798 / unit 0.8668) | vipseg 0.7582 (logit-pair cos 0.808, oracle 0.8432 / unit 0.8692)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] S1 random600:2: ctl 0.7300 (logit-pair cos 0.785, oracle 0.8624 / unit 0.8574) | neck 0.7284 (logit-pair cos 0.783, oracle 0.8605 / unit 0.8567) | ctl_best 0.7300 (logit-pair cos 0.785, oracle 0.8624 / unit 0.8574) | neck_best 0.7284 (logit-pair cos 0.783, oracle 0.8605 / unit 0.8567) | e1 0.7550 (logit-pair cos 0.758, oracle 0.8760 / unit 0.8629) | vipseg 0.7721 (logit-pair cos 0.807, oracle 0.8375 / unit 0.8649)
+N1.2 stop                neck - ctl fixed100 -0.17 [-0.22, -0.13], below 0; random600 [-0.07, -0.2, -0.16]
+N1.4 oracle gap          ctl +14.31, neck +14.44
+reported ctl_vs_e1       -2.05 [-2.34, -1.78], below 0
+reported neck_vs_e1      -2.22 [-2.51, -1.95], below 0
+reported neck_best_vs_ctl_best -0.17 [-0.22, -0.13], below 0
+=== N1 FINISHED 2026-09-24T10:19:55+00:00

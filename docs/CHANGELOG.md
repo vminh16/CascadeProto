@@ -1456,3 +1456,10 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   against E1's existing checkpoints (maintainer: E1 is not retrained); rules as N1, a go needs a second seed.
   `train.py --neck_alpha_init`, `experiments/run_n2.sh` (AUTOSTOP=1 shuts the VM down 15 minutes after the
   script ends, success or failure). NECK-10.
+
+### 16w - N1 measured: stop, and the neck never opened
+
+* **N1** (`results/phase16_n1/SUMMARY.md`; commit `d7ec930`). neck - ctl fixed100 -0.17 [-0.22, -0.13],
+  random600 -0.07 / -0.20 / -0.16: N1.2 stop. The gate ended at alpha = 0.0023, so the run measured grafting
+  a closed neck, not the attention. Both arms ended about 2 points under E1 (fresh AdamW moments on a
+  converged model; a warm start should load `resume.pt`'s optimiser state). N2 (D-34) is the real test.
