@@ -1484,3 +1484,16 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **AGENTS.md** status, mission and task routing updated (decision log D-01...D-34, the phase-16 modules and
   probes, CONTEXT.md in the layout).
 * This changelog's header said "newest first"; the entries run oldest first, and the header now says so.
+
+### 16z - D-35 recorded: P5, the oracle gap split by sampling condition and class presence (not run)
+
+* **Research note** `docs/research/2026-09-24_condition_presence_gauge.md`: the inherited sampler puts the other
+  episode class of every query block at background density (floor 19 %, wall 24 %, ceiling 24 % of their query points;
+  the other nine test classes 1-7 %), the oracle rules carry block-level class presence, P4's row-wise split measured a
+  gauge bias, and VIP-Seg's cross-term mixes both queries and all support slots.
+* **C1** `experiments/c1_sampling_condition.py` (CPU, inherited loader only) -> `results/c1/c1_S{0,1}.{json,txt}`.
+* **C2** `experiments/c2_vipseg_crosscorr_check.py` (CPU, parses the inherited PEM without importing or editing it) ->
+  `results/c1/c2_crosscorr.txt`: index formula equal to the module to 4.7e-14; slot 1's attention moves by 0.45 when
+  only way 2's support changes.
+* **D-35** in `docs/spec/00`: arms A-E and rules P5.1-P5.5, fixed before any P5 code.
+

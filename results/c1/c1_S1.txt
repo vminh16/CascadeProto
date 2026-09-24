@@ -1,0 +1,9 @@
+S1, 100 episodes per class pair; kNN-16 radius median [m]: support fg 0.0793, support bg 0.1179, query bg 0.1185
+class | other share | blocks own/other | median points own/other | kNN16 radius own/other | dup own/other
+door     | 0.042 | 500/60 | 814/314 | 0.0756/0.1120 | 0.057/0.001
+floor    | 0.192 | 500/472 | 723/152 | 0.0715/0.1296 | 0.060/0.001
+sofa     | 0.007 | 500/11 | 648/159 | 0.0802/0.1020 | 0.049/0.000
+table    | 0.068 | 500/132 | 494/134 | 0.0780/0.1325 | 0.050/0.002
+wall     | 0.235 | 500/363 | 1373/529 | 0.0840/0.1206 | 0.044/0.001
+window   | 0.032 | 500/36 | 1040/330 | 0.0840/0.1172 | 0.042/0.002
+other-condition share of all foreground query points: 0.118

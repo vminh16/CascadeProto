@@ -1,0 +1,77 @@
+{
+ "cvfold": 1,
+ "episodes_per_pair": 100,
+ "seed": 0,
+ "classes": {
+  "door": {
+   "other_share_of_points": 0.04189156802819918,
+   "blocks_own": 500,
+   "blocks_other": 60,
+   "median_points_own": 813.5,
+   "median_points_other": 314.0,
+   "knn16_radius_own": 0.07557279107645513,
+   "knn16_radius_other": 0.11199137742454886,
+   "duplicate_share_own": 0.057122442027351325,
+   "duplicate_share_other": 0.0008455683808675472
+  },
+  "floor": {
+   "other_share_of_points": 0.19194069021939433,
+   "blocks_own": 500,
+   "blocks_other": 472,
+   "median_points_own": 723.0,
+   "median_points_other": 151.5,
+   "knn16_radius_own": 0.07149649051471349,
+   "knn16_radius_other": 0.12957237349170042,
+   "duplicate_share_own": 0.06029149638246392,
+   "duplicate_share_other": 0.0005442812945913417
+  },
+  "sofa": {
+   "other_share_of_points": 0.007444190963056747,
+   "blocks_own": 500,
+   "blocks_other": 11,
+   "median_points_own": 647.5,
+   "median_points_other": 159.0,
+   "knn16_radius_own": 0.08019351673164794,
+   "knn16_radius_other": 0.10204166129827932,
+   "duplicate_share_own": 0.0492882213057991,
+   "duplicate_share_other": 0.0
+  },
+  "table": {
+   "other_share_of_points": 0.06782260869565217,
+   "blocks_own": 500,
+   "blocks_other": 132,
+   "median_points_own": 494.5,
+   "median_points_other": 134.5,
+   "knn16_radius_own": 0.07801602012627099,
+   "knn16_radius_other": 0.13249892452293766,
+   "duplicate_share_own": 0.05019099339628753,
+   "duplicate_share_other": 0.0015592650251662205
+  },
+  "wall": {
+   "other_share_of_points": 0.2352802005344589,
+   "blocks_own": 500,
+   "blocks_other": 363,
+   "median_points_own": 1373.0,
+   "median_points_other": 529.0,
+   "knn16_radius_own": 0.08396122690441385,
+   "knn16_radius_other": 0.12058607219394978,
+   "duplicate_share_own": 0.04438548907278657,
+   "duplicate_share_other": 0.0011042682193172226
+  },
+  "window": {
+   "other_share_of_points": 0.031731465653283615,
+   "blocks_own": 500,
+   "blocks_other": 36,
+   "median_points_own": 1039.5,
+   "median_points_other": 329.5,
+   "knn16_radius_own": 0.08401494167695625,
+   "knn16_radius_other": 0.11724574399923075,
+   "duplicate_share_own": 0.04165421229375343,
+   "duplicate_share_other": 0.0016113521539258514
+  }
+ },
+ "support_fg_radius_median": 0.07927167371600477,
+ "support_bg_radius_median": 0.11793534320251475,
+ "query_bg_radius_median": 0.11849259149830306,
+ "other_share_all_foreground_points": 0.11834638688492916
+}

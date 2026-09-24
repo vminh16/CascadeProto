@@ -1,0 +1,5 @@
+index formula vs module, max |diff|: 4.71e-14
+attention of (query 1, slot 1 = way 1) when only way 2's support changes, max |diff|: 4.536e-01
+attention of (query 1, slot 0 = background) when only way 2's support changes: 3.801e-01
+attention of query 1 (all slots) when only query 2 changes: 7.503e-02
+typical attention entry (1/D): 7.812e-03
