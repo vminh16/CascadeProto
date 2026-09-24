@@ -1,0 +1,46 @@
+=== 2026-09-24T15:43:59+00:00 commit 5e5ca63 P5 smoke
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[fixed] e1: model 83.18 | cf-a +7.32 | cf-b +2.31 | tbn +1.50 | oracle +6.29 | presence-fair -3.03 | dual-control +0.03
+[fixed] vipseg: model 84.17 | cf-a +7.60 | cf-b +0.00 | tbn +1.17 | oracle +3.64 | presence-fair -5.25
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[intervene] events 7 | recall of the re-sampled class V0/V1/V2 0.000 / 0.000 / 0.000 | own 0.883 | phi 0.00
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[leakfree] model 2.90 | support_rule 16.69 | oracle_unit 29.72
+P5.1 E-a                 cf-a - E1 +7.32: matters
+P5.1b not density        phi 0.00 < 0.2: M1 only, M2 dropped
+P5.2 E-b                 cf-b - E1 +2.31: a decision for presence estimation (M3)
+P5.3 batch statistics    fixed100 +1.50 [-0.33, +3.57], random600:0 -0.08: not adopted
+P5.4 dual prototypes     dual - control +0.03 [-0.17, +0.16]: not enough
+P5.5 report              oracle +6.29, presence-fair oracle -3.03; leak-free: E1 2.90, support rule 16.69, oracle 29.72; protocol: E1 83.18, support rule 48.28; FP kinds episode 0.01, base 0.11, clutter 0.00, novel_out 0.87
+=== P5 smoke FINISHED 2026-09-24T15:44:38+00:00

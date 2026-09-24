@@ -1,0 +1,12 @@
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[c3] e1: mIoU stored order 73.20, swapped 0.92 | support rule 49.27 / 49.27 | own class kept 0.935 -> 0.001, relabelled by position 0.913, background 0.087
+[c3] vipseg: mIoU stored order 75.36, swapped 0.87 | support rule 51.57 / 51.57 | own class kept 0.937 -> 0.000, relabelled by position 0.898, background 0.101

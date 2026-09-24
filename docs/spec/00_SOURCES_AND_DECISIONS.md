@@ -1232,6 +1232,140 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   `experiments/p5_condition_probe.py`, `experiments/run_p5.sh`, `tests/test_condition_probe.py` (new), 05 §3.8n
   (P5-1…15).
 
+* **Outcome of the smoke run and C3 (2026-09-24): the full P5 is not run as registered.** The smoke run (5 episodes
+  per arm, `results/phase16_p5/*_smoke.json`) passed every check but showed E1 at other-condition recall 0 / 1,153
+  points, VIP-Seg at 1 / 1,153, and arm B's V1 (the other class made dense in its own scan) still at recall 0. A
+  diagnostic found why: E1 labels the dense region of query block b with class b + 1 *whatever it is* (floor made
+  dense in the "wall" block: 421 / 671 points predicted wall, 0 floor; the support rule without head: 668 / 671
+  floor). C3 (`experiments/c3_query_order.py`, `results/phase16_p5/c3_query_order.json`, all 1,500 fixed100
+  episodes, the two query blocks swapped, labels moving with their blocks) measured it:
+
+  | model | mIoU, stored order | mIoU, swapped | own-class points kept → after swap | relabelled by position | support rule (both orders) |
+  | :--- | ---: | ---: | :--- | ---: | ---: |
+  | E1 `last` | 73.20 | **0.92** | 0.935 → 0.001 | 0.913 | 49.27 |
+  | VIP-Seg released | 75.36 | **0.87** | 0.937 → 0.000 | 0.898 | 51.57 |
+
+  VIP-Seg's head names the foreground by the **position** of the query block, which the loader fixes (the block
+  sampled for class k is appended k-th [VIPSEG dataloaders/loader.py:181-222], in training and in the cached test
+  episodes). Arms B and E presuppose a head that names classes by their prototypes, so their rules cannot be read on
+  these checkpoints; arms A, C, D measure what they were built for but on a model whose errors are those of the
+  shortcut. Every phase-16 decision measured on route B (D-25…D-34), and the oracle gap itself, was measured on
+  heads with this shortcut. D-36 and D-37 trace it before any new module.
+
+---
+
+### D-36 — C4: is the cross-term reshape the only carrier of the query position? · `PROPOSED`, diagnostic
+
+* **Problem.** C3 shows that E1 and VIP-Seg depend on the query position (D-35 outcome). By the index algebra of
+  C2 (`results/c1/c2_crosscorr.txt`), `reshape(72, −1)` gives query b′ the projected rows of parity b′ and slot w′ the
+  rows ≡ w′ (mod 3), so the cross-term can learn a different map for every (position, slot) pair: a *necessary*
+  condition for the shortcut. Every other operation of the model is symmetric in the query index [verified: the
+  encoder and feature head treat each block alike and couple them only through the batch-wide `torch.std` and, in
+  training, BatchNorm, both invariant to the order of the batch (`models/encoder.py:182-189`); PEM/PDM's self-gates
+  are per query and per slot (`models/vipseg.py:266-277,370-380`); the gating network and the logits are per query
+  (`models/vipseg.py:158-176`)]. Whether the reshape is also *sufficient*, i.e. the only carrier, is not measured.
+* **What it does** (`experiments/c4_crossterm_ablation.py`, inference only). A re-implementation of VIP-Seg's
+  PEM/PDM forward that reads the inherited modules' weights (never edits them) and computes the cross-term in one of
+  two forms: `scrambled` (VIP-Seg's, checked to reproduce the inherited module's output on every episode) and
+  `clean`, `A[b, w] = softmax(Q′_bᵀ S′_w / √128)` per query b and slot w, D-01's form with VIP-Seg's scale. E1 and
+  VIP-Seg's released head re-run with each form on fixed100, stored and swapped order (C3's scoring).
+  * **Implementation** (amended 2026-09-24, before any code). `models/vip_stage.py` gains
+    `vip_module_forward(module, query, supports, prototype, form)`: PEM (Eq.9–14) and PDM (Eq.15–18) written out
+    from the inherited source, reading the module's own submodules (`maxpool`, `map`, `proto_map`, `reweight`,
+    `reweight_s`, `fc`, `fc_qs`, `layer_norm_qs`, `layer_norm`); only the cross-term differs between the forms
+    [VIPSEG models/vipseg.py:285-296,387-394]. `VIPStage` gains `cross_form ∈ {native, scrambled, clean}`; `native`
+    calls the inherited module exactly as before, so E1's configuration and every state-dict key are unchanged.
+    On VIP-Seg's released model the entries of `vip_module` are wrapped in the loaded instance only; no class is
+    edited (AGENTS guardrail 2).
+  * **Passes per checkpoint** (fixed100): native stored and swapped (a repeat of C3), `scrambled` stored,
+    `clean` stored and swapped.
+  * **Checks, on every episode; a failure stops the run.** C4.0a: `scrambled` reproduces the native logits,
+    max |diff| ≤ 1e-4 · max(1, max |native logit|). C4.0b: the native passes reproduce C3's mIoU (73.20 / 0.92,
+    75.36 / 0.87) within 0.01.
+* **Rules, fixed before the run.**
+  * **Relabel shift** (defined 2026-09-24, before any run). After the swap, the label of the position a block moved
+    to is the other episode class's label, which a model can also predict by honest confusion. The raw relabel
+    share is therefore not zero for an order-free model; the quantity is its shift, the share of own-class points
+    predicted as the other episode class in the swapped order minus the same share in the stored order (0 for an
+    order-free model; for E1, 0.913 minus a stored-order share that C3 did not record and C4 does).
+  * C4.1 sole carrier: with `clean`, |stored − swapped| ≤ 0.1 mIoU and |relabel shift| ≤ 0.01 on both
+    checkpoints. The equivariance argument above predicts exact invariance up to floating point, so a larger
+    difference means a second carrier exists and must be found before D-37 is read.
+  * C4.2 reported: `clean` stored-order mIoU against `scrambled` (73.20 / 75.36) and the support rule (49.27 /
+    51.57). The weights were trained with the scrambled form, so the level is not a model's quality; it measures how
+    much of the trained head's prediction runs through the positional path.
+* **Cost.** Five passes over fixed100 per checkpoint, about 30 minutes on an L4 (not measured).
+* **Order.** C4 runs before D-37's training; a C4.1 failure stops D-37's queue, because a second carrier would
+  also be present in the clean arm.
+* **Affects.** `experiments/c4_crossterm_ablation.py`, `models/vip_stage.py` (the `clean` form is shared with
+  D-37), tests (05 §3.8o).
+
+---
+
+### D-37 — A 2 × 2: head (scrambled, clean) × training query order (fixed, random) · `PROPOSED`, beyond the paper
+
+* **Problem.** C3 (D-35 outcome) shows reliance on the query position at test time; it does not show where the
+  reliance comes from or what the head is worth without it. The shortcut needs two things at once: an architecture
+  that can represent the position (D-36's necessary condition) and training data in which the position predicts the
+  class (the loader's fixed order). Only an experiment that varies both separates them.
+* **Arms** (each trained once on E1's schedule, D-30: batch 1, 24,000 updates, LR 1e-3 halved every 7,200, 13
+  validations, seed 0, S1):
+
+  | | fixed order (the loader's) | random order |
+  | :--- | :--- | :--- |
+  | **scrambled head** (VIP-Seg's PEM/PDM) | **VF** = E1, existing checkpoints | **VR**, trained |
+  | **clean head** (D-36's `clean` form, same parameters) | **CF** = CR, by the lemma below | **CR**, trained |
+
+  *Random order:* every training episode's query blocks are permuted uniformly at random before the forward pass,
+  labels moving with their blocks (`train.py --query_order random`); supports, labels and the test protocol are
+  unchanged. The cached test and valid episodes keep the loader's order.
+* **Amendments (2026-09-24, before any code or run).**
+  * **CF is not trained.** Lemma: with the `clean` form every operation of the model is equivariant or invariant
+    in the query index during training as well as at evaluation. The encoder and feature head process each block
+    alone except BatchNorm's batch statistics and the batch-wide `torch.std` [VIPSEG models/encoder.py:182-189],
+    both invariant to the order of the batch; there is no stochastic layer (`drop_path = 0.`
+    [VIPSEG models/encoder.py:514], `DropPath` only built for a positive rate [VIPSEG models/mamba_block.py:60]);
+    the `clean` PEM/PDM, ADRM and the logits are per query; the loss (mean cross-entropy over all query points,
+    no LMA, D-29 off) is invariant. So a permuted episode gives the same loss and the same parameter gradient as
+    the stored one, and CF and CR follow the same trajectory up to floating-point rounding, which CUDA already
+    makes non-deterministic (AGENTS §6). Training CF would measure that rounding, not the data order. Verified,
+    not assumed: D37-T5 (float64, CPU, exact) and D37-T6 (the real model on the GPU) compare the loss and every
+    gradient under a query permutation; the scrambled form must fail the same test. The saving is one run.
+  * **Episode identity.** The permutation comes from its own generator, `np.random.default_rng([seed, 3, i])` for
+    training episode i (`pipeline/episodes.py`, `QueryOrder`, after `SeededEpisodes`); it never draws from the
+    global RNGs, so VR and CR see E1's episodes (classes, blocks, points, augmentation) and differ from E1 only in
+    the query positions and, for CR, in the cross-term. Run directory suffix `_qrandom`.
+  * **Evaluation check.** E1 `last` and `best` are re-scored in the same evaluation run; they must reproduce E1's
+    summary (73.20 / 75.05 on fixed100) within 0.05, or the evaluation differs from E1's and the run stops.
+  * **Queue.** GPU tests and a smoke run → C4 (D-36) → train VR → train CR → evaluation → rules.
+* **Test.** Every arm on fixed100 in stored and swapped order (C3), the three random600 draws (stored), and P5's
+  leak-free draw (seed 4, arm D); `last.pt` and `best.pt` (D-22 amended). Oracle columns come with R2's scoring.
+* **What each contrast measures.**
+  * VF vs VR (data, scrambled head): how much of the standard-protocol score the position shortcut is worth.
+  * CF vs CR (data, clean head): nil by the lemma; D37.2 checks it at test time.
+  * VR vs CR (architecture, no shortcut available): the honest architectural comparison, the one a paper can claim.
+  * VF − VR − (CF − CR) = VF − VR (interaction): the shortcut itself, which needs both the architecture and the data.
+  * stored vs leak-free for VR and CR: what the density cue is worth once the position is gone.
+* **Rules, fixed before the run.**
+  * D37.1 origin: VR swap gap |stored − swapped| ≤ 1.0 and relabel shift (D-36) ≤ 0.05 → the fixed order is the
+    origin of the shortcut. If VR still relabels by position (shift > 0.5), the carrier is not the training order; stop
+    and re-examine.
+  * D37.2 equivariance check: CR swap gap ≤ 0.1 and |relabel shift| ≤ 0.01 (by construction); otherwise the clean
+    head is wrong and no other rule is read.
+  * D37.3 architecture: CR − VR on fixed100 stored ≥ +1.0 with a paired CI above 0 and > 0 on all three random600
+    draws → the clean head is the base of every later arm; ≤ −1.0 with a paired CI below 0 and < 0 on all three
+    random600 draws → the scrambled head, trained with random order. Otherwise (amended before the run) the clean
+    head: at equal accuracy it is the one that cannot re-learn the shortcut under any data order, including the
+    standard loader's, and its prediction for one query does not depend on the other queries of the episode (C2).
+  * D37.4 reported: the shortcut's worth VF − VR, the leak-free levels, and the oracle gap of the chosen base — the
+    first oracle gap in this repository measured on a head that cannot name classes by position, which is the
+    quantity the next decision (prototype, head or neck) is built on.
+* **Cost.** Two training runs of about 1.7 GPU-h each (E1 took 1 h 42 min on the L4) plus about 1.5 h of
+  evaluation (not measured).
+* **Affects.** `models/vip_stage.py` (`clean` form), `models/cascadeproto.py` (`stage_type=vip_clean`),
+  `pipeline/episodes.py` (`QueryOrder`), `train.py` (`--query_order`), `experiments/d37_eval.py`,
+  `experiments/c3_query_order.py` (`--out`), `experiments/run_d37.sh`, 05 §3.8o.
+
 ---
 
 ## 5. Official VIP-Seg files: restore, reuse, avoid
@@ -1333,4 +1467,6 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-24 | D-34 (maintainer request): N2, the neck trained from scratch on E1's schedule with alpha initialised to 0.1, against E1's existing checkpoints; script prepared, not run. |
 | 2026-09-24 | D-34 measured: N1.2 stop; the neck opened (α 0.060) and costs 0.5–1.1 points on every draw. |
 | 2026-09-24 | D-35 (maintainer request): P5, an inference-only split of E1's oracle gap by sampling condition and class presence, with a sampling intervention, test-time batch statistics, a leak-free draw and training-free dual-condition prototypes; evidence from C1/C2 and the saved P4/E1 counts; rules fixed before the run. |
+| 2026-09-24 | D-35 outcome: the smoke run passed its checks but showed E1 naming the foreground by query position; C3 measured it on all of fixed100 (E1 73.20 → 0.92, VIP-Seg released 75.36 → 0.87 with the two query blocks swapped). The full P5 is not run as registered. |
+| 2026-09-24 | D-36 (maintainer request): C4, VIP-Seg's cross-term re-run in a per-query form on the trained weights; D-37 (maintainer request): the 2 × 2 of head × training query order. Amended before any code: CF = CR by a lemma checked by tests, the relabel shift replaces the raw relabel share, E1 re-scored as an evaluation check, a tie in D37.3 goes to the clean head. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |
