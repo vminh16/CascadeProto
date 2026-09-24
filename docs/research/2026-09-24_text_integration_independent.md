@@ -283,3 +283,51 @@ MM-FSS's gain comes from per-point features aligned with a 2-D open-vocabulary m
   areas of our blocks and that a point-to-pixel projection covers most points of a block.
 
 Recorded as the only neck design with an information source beyond six names; not started.
+
+## 9. Where the error sits, and a neck that opens the head's missing information path (2026-09-24)
+
+### 9.1 Features, prototype, decoding: which step is wrong [measured: E1, R2-pre]
+
+`L = F^q M_effᵀ`, argmax. Replacing only M_eff by the query's own class means lifts E1 from 73.20 to
+85.9–87.4 with the same features and the same dot-product decoding. So (a) the features separate the novel
+classes, (b) the decoding rule works when the prototype is right, and (c) **the error is the prototype the
+support + head produce**, a biased estimate of the query's class centre (one support block, support → query
+shift). The prototype does not "extract the novel class well": it is the step that fails.
+
+### 9.2 Only three sources can correct a prototype [inferred]
+
+The query's class centre μ_q,c can be informed by (i) the support block (already used), (ii) the query's
+own unlabelled points (transduction), (iii) prior knowledge (base classes, class names). D-31 tests (iii).
+(ii) holds the whole oracle gap by definition; fixed rules on it failed (D-26…D-28), but a *learned*
+query–support interaction is what makes VIP-Seg's head 15.5 points better than EPPM (R1): learned
+transduction is where the measured gains of this family come from.
+
+### 9.3 What VIP-Seg's head cannot see [verified: `models/vipseg.py:238-311`]
+
+* PEM/PDM max-pool 2048 points to 64 tokens (MaxPool 32) and act through 128×128 channel Gram and
+  correlation matrices: **no point-level correspondence between query and support** reaches the prototype.
+* Each class row is processed alone: classes never compete inside the head (only at the logits).
+* The prototype entering the head is one masked mean of one support block; its composition bias (which
+  parts of the object the block shows) is never corrected with point-level query evidence.
+
+### 9.4 The neck this suggests (a design to research, not yet decided)
+
+A zero-initialised residual **point-level query–support cross-attention neck** before the prototype and the
+head: query points attend to support points (and vice versa) on the 128-d features, producing
+F′ = F + α·Attn(F, F_other) with α = 0 at init and warm-start from E1, so the base is reached exactly. It
+gives the head the point-level correspondence it lacks and targets source (ii), the measured bottleneck,
+rather than a six-name text map. Precedents in few-shot 3-D segmentation use point-level query–support
+interaction (AttMPTI's label propagation, QGE, QGPA), under the old protocol with its foreground leak, so
+their sizes are not evidence here [verified: repo note 2026-09-21 external sources]. Risks: a learned
+transduction can still fit base-class episodes only; memory of 2048×2048 attention per query (≈ 16 MB
+float32 per head, fine on an L4). Cheapest evidence before building it, on E1 (one GPU pass): the mIoU of
+the plain support-prototype rule (no head) against E1 and the oracle, which splits the gap into what the
+head already recovers and what remains; and the oracle gap by point type (boundary vs interior, small vs
+large support mask) to see whether it is concentrated where point-level correspondence would help.
+
+### 9.5 Other modalities [inferred]
+
+The paper's image and audio branches encode the same class name as its text (03 §2.2), so they add no new
+information about a novel class. The modalities that do carry new per-point information here are the
+point cloud's own streams (geometry and colour, fused early in the 9-channel input) and, outside the current
+data, the 2-D images of 2D-3D-S (§8.3). Neither has evidence of being under-used yet.
