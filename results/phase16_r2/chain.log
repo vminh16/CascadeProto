@@ -1,0 +1,20 @@
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] S1 fixed100: r0 0.7020 (logit-pair cos 0.771, oracle 0.8463 / unit 0.8501) | d29 0.7026 (logit-pair cos 0.843, oracle 0.8469 / unit 0.8550) | vipseg 0.7536 (logit-pair cos 0.807, oracle 0.8377 / unit 0.8631) | d29 - r0 +0.06 [-0.26, +0.39]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] S1 random600:0: r0 0.6940 (logit-pair cos 0.759, oracle 0.8449 / unit 0.8489) | d29 0.6937 (logit-pair cos 0.831, oracle 0.8426 / unit 0.8519) | vipseg 0.7449 (logit-pair cos 0.795, oracle 0.8338 / unit 0.8571) | d29 - r0 -0.04 [-0.47, +0.41]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] S1 random600:1: r0 0.7140 (logit-pair cos 0.775, oracle 0.8522 / unit 0.8561) | d29 0.7136 (logit-pair cos 0.846, oracle 0.8536 / unit 0.8621) | vipseg 0.7582 (logit-pair cos 0.808, oracle 0.8432 / unit 0.8692) | d29 - r0 -0.04 [-0.51, +0.43]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] S1 random600:2: r0 0.7291 (logit-pair cos 0.778, oracle 0.8507 / unit 0.8548) | d29 0.7270 (logit-pair cos 0.847, oracle 0.8481 / unit 0.8585) | vipseg 0.7721 (logit-pair cos 0.807, oracle 0.8375 / unit 0.8649) | d29 - r0 -0.21 [-0.61, +0.21]
+R2.0 reference           r0 - VIP-Seg released -5.16 on fixed100: our loop trains the head worse; a gain over R0 is not a gain over VIP-Seg
+R2.2 stop                fixed100 +0.06 [-0.26, +0.39], contains 0; random600 [-0.04, -0.04, -0.21]; logit-pair cosine to the oracle rule 0.7706 -> 0.8434
+headroom r0              oracle replacement +14.43, oracle directions +14.81 on fixed100; logit-pair cosine 0.7706
+headroom d29             oracle replacement +14.43, oracle directions +15.24 on fixed100; logit-pair cosine 0.8434
+headroom vipseg          oracle replacement +8.41, oracle directions +10.95 on fixed100; logit-pair cosine 0.8066
+=== R2 EVAL FINISHED 2026-09-23T18:01:42+00:00

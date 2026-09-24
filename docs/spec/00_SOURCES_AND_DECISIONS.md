@@ -857,6 +857,19 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   `effective_prototype` for the diagnostics), `pipeline/model_api.py` (`EpisodeOutput.loss_distill`, `distill_weight`), `train.py`
   (`--distill_beta`, run-dir suffix `_distill<β>`, `L_distill` in the log), `experiments/r2_distill_eval.py`
   and `experiments/run_r2.sh` (new), 02 §14, 05 §3.8j (DIS-1…).
+* **Outcome: R2.2 stop (2026-09-24, `results/phase16_r2/SUMMARY.md`,
+  `docs/research/2026-09-24_r2_distill_analysis.md`).** d29 − r0 on S1: fixed100 +0.06 [−0.26, +0.39],
+  random600 −0.04 / −0.04 / −0.21. The objective transferred to the novel classes (logit-pair cosine
+  0.771 → 0.843, above VIP-Seg's 0.807) and the mIoU did not move: the cosine weights points by their
+  squared teacher margin, so it is dominated by easy points and barely sees sign errors at the boundary,
+  and on training episodes the labels already give CE every decision the oracle rule could. The oracle
+  headroom (+14.43) is a transductive information gap, not a missing training signal. No implementation
+  bug (β 0 / 1 in the checkpoints, teacher detached, masks right, the loss optimised 0.067 → 0.023).
+  R2.0: r0 is 5.16 [4.72, 5.64] below VIP-Seg's released checkpoint on fixed100 with equally informative
+  features (oracle rules 84.6 / 85.0 against 83.8 / 86.3). VIP-Seg's released S1 log reads 70.07 valid at
+  6,000 updates, where r0 ends (70.26), then 72.84 at its last update (24,000) and 75.63 at its selected
+  best (22,000); its S0 log peaks at update 4,000 (72.94) and ends at 68.97. The gap is training length
+  plus best-of-12 selection on test-class episodes [inferred from one run each]. Closed.
 
 ---
 
@@ -947,4 +960,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-23 | D-26 closed by its rule P0.2. D-27 (maintainer request): base-class calibration of the background, probed on the same checkpoints (P1) before any training; rules fixed before the run. |
 | 2026-09-23 | D-27 closed by P1.2 (P1.4 weak). D-28 (maintainer request): the two combined, the base margin filtering the foreground M-step of D-26, probed as P2; rules fixed before the run. |
 | 2026-09-23 | D-28 closed by P2.0 / P2.2. D-29 (maintainer request): oracle-direction distillation during training, on route B's head (revised before any run to the logit-space pairwise form); one training run per arm, three test draws (maintainer); rules fixed before the run. |
+| 2026-09-24 | D-29 closed by R2.2; R2.0 shows our loop's route-B base 5.16 below VIP-Seg's released checkpoint, which VIP-Seg's own logs put down to training length and checkpoint selection. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

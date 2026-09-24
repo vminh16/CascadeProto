@@ -78,7 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--fusion_weight", default="per_query", choices=["per_query", "per_class"], help="[D-11]")
     p.add_argument("--diffusion_input", default="post_relu", choices=["post_relu", "pre_relu"], help="[D-14]")
     p.add_argument("--distill_beta", type=float, default=0.0,
-                   help="weight of the oracle-direction loss on the effective prototype; 0 = the paper's "
+                   help="weight of the oracle-direction loss on the pairwise logit decisions; 0 = the paper's "
                         "objective [D-29], beyond the paper")
     p.add_argument("--epochs", type=int, default=None, help="default: 50 (S3DIS) / 30 (ScanNet) [D-12]")
     p.add_argument("--episodes_per_epoch", type=int, default=None, help="default: 480 / 800 [D-12]")

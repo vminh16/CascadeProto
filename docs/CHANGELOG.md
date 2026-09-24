@@ -1345,3 +1345,23 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   logit-pair cosine on the test episodes; the evaluation also scores the equal-norm oracle rule.
 * **Verification.** DIS-1...10 rewritten for the new form (25 tests); mutation check 25 of 25 killed
   after DIS-8 gained a model-against-teacher case. G1: 399 passed.
+
+### 16m - R2 measured: D-29 stops; the r0 - VIP-Seg gap is training length and checkpoint selection
+
+* **R2 result** (`results/phase16_r2/SUMMARY.md`; VM 14:50-18:01 UTC on 2026-09-23, commit `4a2ec60`).
+  d29 - r0 on S1: fixed100 +0.06 [-0.26, +0.39], random600 -0.04 / -0.04 / -0.21. R2.2 stop. The trained
+  objective transferred to the novel classes (logit-pair cosine 0.771 -> 0.843, VIP-Seg 0.807) without
+  any mIoU change. r0 is 5.16 [4.72, 5.64] below VIP-Seg's released checkpoint on fixed100 and 4.3-5.1 on
+  every random600 draw, with oracle-rule scores as high as VIP-Seg's (84.6 / 85.0 vs 83.8 / 86.3).
+* **Analysis** (`docs/research/2026-09-24_r2_distill_analysis.md`, desk study by a research agent, key
+  numbers re-checked against the fetched logs). The uncentred pair cosine weights points by their squared
+  teacher margin (1 - cos >= 1/2 x teacher energy on sign-disagreeing points), so it rewards magnitudes on
+  easy points; on training episodes CE already has every decision; the oracle headroom is a transductive
+  gap. No implementation bug. VIP-Seg's released training logs (pinned commit, not in the repo before):
+  S1 valid 70.07 at 6,000 updates (r0: 70.26 at 6,000), 72.84 at the last update, 75.63 at the selected
+  best; S0 peaks at 4,000 (72.94) and ends at 68.97, mean of 12 validations 69.29. The D-12 null (15x) held
+  for a headless baseline whose curve is flat; VIP-Seg's head keeps gaining on S1 up to 22,000 updates.
+* **Incident.** The completion waiter's `pgrep -f r2_distill_eval.py` matched its own ssh command line,
+  so it never saw the evaluation end; the VM idled about 6 hours after 18:01 UTC before it was stopped
+  (00:10 UTC). Waiters now need a pattern that cannot match themselves (e.g. `pgrep -f "[r]2_distill"`).
+* Stale comments of D-29's first form fixed in `experiments/run_r2.sh` and `train.py`.

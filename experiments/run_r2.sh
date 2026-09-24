@@ -1,5 +1,5 @@
 #!/bin/bash
-# Phase 16 R2 [DECISION D-29]: oracle-direction distillation of the effective prototype, trained.
+# Phase 16 R2 [DECISION D-29]: oracle-direction distillation of the pairwise logit decisions, trained.
 #
 # ARMS. r0  = VIP-Seg's four alternating modules in our loop (stage_type=vip, T = 4, L2 prototypes, no
 #             LMA, ADRM), the r1_vip4 configuration of R1: route B's base [DECISION D-25].
@@ -11,7 +11,7 @@
 # RULES, fixed before the run (experiments/r2_distill_eval.py decide):
 #   R2.0 reference   r0 - VIP-Seg released on fixed100, reported; below -2 our loop trains the head worse
 #   R2.1 go          d29 - r0 >= +1.0 on fixed100 with CI above 0, > 0 on all three random600 draws and a
-#                    higher cos(M_eff, O): train both arms on S0, same test
+#                    higher logit-pair cosine to the oracle rule: train both arms on S0, same test
 #   R2.2 stop        fixed100 gain < +0.5, or mean random600 gain < +0.5
 #   R2.3 in between  otherwise: a second training seed per arm is needed
 #   R2.4 mechanism   a gain without a higher cosine is treated as R2.3
