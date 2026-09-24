@@ -4,6 +4,7 @@
         --checkpoint r0:ours:1:log_r2/.../last.pt --checkpoint d29:ours:1:log_r2/.../last.pt \
         --checkpoint vipseg:vipseg:1:vipseg_S1_N2_K1.pt
     python experiments/r2_distill_eval.py decide --cvfold 1                       # rules R2.0-R2.5
+    python experiments/r2_distill_eval.py decide_e1 --cvfold 1 --out_dir results/phase16_e1   # D-30
 
 Each arm is trained once (maintainer, 2026-09-23), so the test repeats over draws instead: fixed100 (the
 table's protocol, one cached draw) and three independent `random600` draws (seeds 0, 1, 2). Every model
@@ -42,6 +43,12 @@ from models.oracle_distill import (cosine_to_oracle, oracle_directions, oracle_l
 OUT_DIR = "results/phase16_r2"
 DRAWS = ("fixed100", "random600:0", "random600:1", "random600:2")
 REFERENCE, ARM, RELEASED = "r0", "d29", "vipseg"
+E1, E1_BEST, REFERENCE_BEST = "e1", "e1_best", "r0_best"  # [DECISION D-30]
+# (a, b) -> paired "b_vs_a", computed when both names are scored
+PAIRS = ((REFERENCE, ARM), (RELEASED, REFERENCE), (RELEASED, ARM),
+         (REFERENCE, E1), (RELEASED, E1), (RELEASED, E1_BEST), (REFERENCE_BEST, E1_BEST), (E1, E1_BEST),
+         (REFERENCE, REFERENCE_BEST))
+E1_ADOPT, E1_NOT_SCHEDULE = 73.0, 71.0  # VIP-Seg's own last-update level; r0 + our last.pt spread [D-30]
 GO_GAIN, STOP_GAIN = 1.0, 0.5  # 2x and 1x the estimated sd of a single-run difference [DECISION D-29]
 REFERENCE_GAP = -2.0  # R2.0: our loop's head below VIP-Seg's own by more than this [DECISION D-29]
 COLLAPSE = -3.0  # R2.5, per-class IoU points, as P0-P2
@@ -203,7 +210,7 @@ def score_draw(rules: Dict[str, object], draw: str, data_path: str, cvfold: int,
               "miou": {k: float(miou_from_counts(v.sum(0))) for k, v in stacked.items()},
               "class_iou": {k: class_ious(v.sum(0)).tolist() for k, v in stacked.items()},
               "cos": {n: {k: float(v[0] / max(v[1], 1.0)) for k, v in c.items()} for n, c in cos.items()}}
-    pairs = [(a, b) for a, b in ((REFERENCE, ARM), (RELEASED, REFERENCE), (RELEASED, ARM)) if a in rules and b in rules]
+    pairs = [(a, b) for a, b in PAIRS if a in rules and b in rules]
     result["paired"] = {f"{b}_vs_{a}": paired_bootstrap(stacked[a], stacked[b]) for a, b in pairs}
     result["paired"].update({f"{n}{o}_vs_{n}": paired_bootstrap(stacked[n], stacked[n + o])
                              for n in rules for o in ("_oracle", "_oracle_unit")})
@@ -222,15 +229,15 @@ def cmd_test(args, device) -> int:
             raise ValueError(f"{ck.name} was trained on S{ck.fold}; this run scores S{args.cvfold} [DECISION D-22]")
         rules[ck.name], protocol, config = load(ck, args.cvfold, device)
         meta[ck.name] = {"checkpoint": vars(ck), "protocol": protocol, "config": config}
-    os.makedirs(OUT_DIR, exist_ok=True)
+    os.makedirs(args.out_dir, exist_ok=True)
     try:  # the rules (VIP-Seg's hooks) serve every draw and are closed once, at the end
         for draw in args.draws:
             result, stacked = score_draw(rules, draw, args.data_path, args.cvfold, device, args.max_episodes)
             result["models"] = meta
             stem = draw_stem(args.cvfold, draw)
-            with open(os.path.join(OUT_DIR, stem + ".json"), "w") as f:
+            with open(os.path.join(args.out_dir, stem + ".json"), "w") as f:
                 json.dump(result, f, indent=1)
-            np.savez_compressed(os.path.join(OUT_DIR, stem + "_counts.npz"), **stacked)
+            np.savez_compressed(os.path.join(args.out_dir, stem + "_counts.npz"), **stacked)
             p = result["paired"].get(f"{ARM}_vs_{REFERENCE}")
             print(f"[test] S{args.cvfold} {draw}: " + " | ".join(
                 f"{n} {result['miou'][n]:.4f} (logit-pair cos {result['cos'][n]['logit_pair']:.3f}, oracle "
@@ -294,26 +301,61 @@ def decide(results: List[Dict], cvfold: int) -> List[Tuple[str, str]]:
     return verdicts
 
 
-def cmd_decide(args) -> int:
+def decide_e1(results: List[Dict], cvfold: int) -> List[Tuple[str, str]]:
+    """Rules E1.1-E1.3 of [DECISION D-30] on the draws of one fold, plus the reported comparisons."""
+    by_draw = {r["draw"]: r for r in results if r["cvfold"] == cvfold}
+    missing = [d for d in DRAWS if d not in by_draw]
+    if missing:
+        return [("incomplete", f"S{cvfold}: missing draws {missing}")]
+    fixed = by_draw["fixed100"]
+    if E1 not in fixed["miou"] or REFERENCE not in fixed["miou"]:
+        return [("incomplete", f"S{cvfold}: {E1!r} and {REFERENCE!r} must both be scored")]
+    last = 100.0 * fixed["miou"][E1]
+    p = fixed["paired"][f"{E1}_vs_{REFERENCE}"]
+    rand = [100.0 * (by_draw[d]["miou"][E1] - by_draw[d]["miou"][REFERENCE]) for d in DRAWS[1:]]
+    text = f"E1 last {last:.2f}; E1 - r0 fixed100 {ci_text(p)}; random600 {[round(g, 2) for g in rand]}"
+    if last >= E1_ADOPT:
+        verdicts = [("E1.1 adopt", f"{text}: VIP-Seg's update count becomes route B's schedule")]
+    elif last <= E1_NOT_SCHEDULE:
+        verdicts = [("E1.2 not the schedule", f"{text}: the gap lies elsewhere")]
+    elif p["ci_low"] > 0 and min(rand) > 0:
+        verdicts = [("E1.3 partial, adopt", f"{text}: paired gain holds on every draw")]
+    else:
+        verdicts = [("E1.3 partial, keep", f"{text}: the gain does not hold on every draw")]
+    for a, b in ((RELEASED, E1), (RELEASED, E1_BEST), (E1, E1_BEST), (REFERENCE, REFERENCE_BEST)):
+        key = f"{b}_vs_{a}"
+        if key in fixed["paired"]:
+            verdicts.append((f"reported {key}", ci_text(fixed["paired"][key])))
+    return verdicts
+
+
+def load_results(out_dir: str, cvfold: int) -> List[Dict]:
     results = []
-    for path in sorted(glob.glob(os.path.join(OUT_DIR, f"test_S{args.cvfold}_*.json"))):
+    for path in sorted(glob.glob(os.path.join(out_dir, f"test_S{cvfold}_*.json"))):
         with open(path) as f:
             results.append(json.load(f))
-    for rule, text in decide(results, args.cvfold):
+    return results
+
+
+def cmd_decide(args) -> int:
+    results = load_results(args.out_dir, args.cvfold)
+    rules = decide_e1 if args.stage == "decide_e1" else decide
+    for rule, text in rules(results, args.cvfold):
         print(f"{rule:24s} {text}")
     return 0 if results else 1
 
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("stage", choices=["test", "decide"])
+    p.add_argument("stage", choices=["test", "decide", "decide_e1"])
     p.add_argument("--data_path")
     p.add_argument("--cvfold", type=int, required=True, choices=[0, 1])
     p.add_argument("--checkpoint", action="append", default=[], help="name:kind:trained_fold:path")
     p.add_argument("--draws", nargs="+", default=list(DRAWS), choices=list(DRAWS))
     p.add_argument("--max_episodes", type=int, default=None, help="smoke runs only")
+    p.add_argument("--out_dir", default=OUT_DIR, help="results/phase16_e1 for D-30, so R2's files stay intact")
     args = p.parse_args(argv)
-    if args.stage == "decide":
+    if args.stage in ("decide", "decide_e1"):
         return cmd_decide(args)
     if not args.data_path or not args.checkpoint:
         p.error("test needs --data_path and the checkpoints")

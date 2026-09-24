@@ -244,6 +244,40 @@ def test_dis9_rules():
     assert r2.decide(_draws(1.4, 0.6, [1.1, 0.9, 1.3]), 0)[0][0] == "incomplete"  # wrong fold
 
 
+def _e1_draws(e1_last, gains, ci_low=0.4, fold=1):
+    out = []
+    for draw, g in zip(r2.DRAWS, gains):
+        out.append({"draw": draw, "cvfold": fold,
+                    "miou": {"e1": e1_last / 100 if draw == "fixed100" else 0.70 + g / 100,
+                             "r0": 0.7020 if draw == "fixed100" else 0.70},
+                    "paired": {"e1_vs_r0": {"gain": g, "ci_low": ci_low, "ci_high": g + 0.5},
+                               "e1_best_vs_vipseg": {"gain": -0.5, "ci_low": -1.0, "ci_high": 0.0},
+                               "e1_vs_vipseg": {"gain": -2.0, "ci_low": -2.5, "ci_high": -1.5}}})
+    return out
+
+
+def test_dis11_e1_rules():
+    """D-30: adopt at >= 73.0, not the schedule at <= 71.0, in between only with a paired gain on every draw."""
+    v = dict(r2.decide_e1(_e1_draws(73.1, [2.9, 2.5, 2.6, 2.8]), 1))
+    assert "E1.1 adopt" in v and v["reported e1_best_vs_vipseg"].endswith("contains 0")
+    assert "E1.2 not the schedule" in dict(r2.decide_e1(_e1_draws(71.0, [0.8, 0.5, 0.6, 0.9]), 1))
+    assert "E1.3 partial, adopt" in dict(r2.decide_e1(_e1_draws(72.0, [1.8, 1.5, 1.6, 1.2]), 1))
+    assert "E1.3 partial, keep" in dict(r2.decide_e1(_e1_draws(72.0, [1.8, 1.5, -0.1, 1.2]), 1))
+    assert "E1.3 partial, keep" in dict(r2.decide_e1(_e1_draws(72.0, [1.8, 1.5, 1.6, 1.2], ci_low=-0.1), 1))
+    assert r2.decide_e1(_e1_draws(73.1, [2.9, 2.5, 2.6, 2.8])[:2], 1)[0][0] == "incomplete"
+    unscored = _e1_draws(73.1, [2.9, 2.5, 2.6, 2.8])
+    for d in unscored:
+        del d["miou"]["e1"]
+    assert r2.decide_e1(unscored, 1)[0][0] == "incomplete"
+
+
+def test_dis11_named_pairs_only_when_both_are_scored():
+    names = {"e1", "e1_best", "r0", "r0_best", "vipseg"}
+    keys = {f"{b}_vs_{a}" for a, b in r2.PAIRS if a in names and b in names}
+    assert keys == {"r0_vs_vipseg", "e1_vs_r0", "e1_vs_vipseg", "e1_best_vs_vipseg", "e1_best_vs_r0_best",
+                    "e1_best_vs_e1", "r0_best_vs_r0"}
+
+
 def test_dis9_test_refuses_a_checkpoint_of_the_other_fold():
     from types import SimpleNamespace
 

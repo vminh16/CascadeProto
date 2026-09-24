@@ -440,6 +440,19 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
      not looked at until the design is frozen, so S0 is a held-out fold for every phase-16 decision.
      S1 results are reported with that caveat.
   3. New hyper-parameters are never tuned on the classes being scored.
+* **Amendment of rule 1 (maintainer, 2026-09-24).** VIP-Seg's published 76.09 / 72.20 are the best of 12
+  validations on episodes of the test classes, re-tested once: its released S1 log reads 72.84 at the
+  last update and 75.63 at the selected one, its S0 log 68.97 last and 72.94 selected, mean of the 12
+  validations 69.29 [VIPSEG log_s3dis_VIPSeg/log_S{1,0}_N2_K1_*/log_vipseg.txt]
+  (`docs/research/2026-09-24_r2_distill_analysis.md` §3). Rule 1 compared our `last.pt` with numbers
+  selected that way. From now on every result reports **both**:
+  * `best.pt` under VIP-Seg's own disclosed selection rule, the protocol of the published baselines:
+    about 12 validations over training (`--valid_every` chosen so), each on the 1,500 `valid` episodes of
+    the fold's test classes [DECISION D-15], the best one kept. This is the number compared with the
+    published table, labelled "best-of-validation, VIP-Seg's protocol".
+  * `last.pt`, the number free of selection on test classes, labelled that way.
+  A claim of beating a baseline states which of the two it rests on; a claim on `best.pt` alone is
+  marked as resting on selection. Rules 2 and 3 are unchanged.
 * **Affects.** `eval.py`, `experiments/run_seen.sh`, `experiments/rescore_alt_metrics.sh`, 04 §6.1,
   05 §3.12 (PROT-1…6), README §5.
 
@@ -873,6 +886,36 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 
 ---
 
+### D-30 — Route B's base on VIP-Seg's update count (E1) · `PROPOSED`, beyond the paper
+
+* **Problem.** R2.0 measured our loop's route-B base r0 5.16 [4.72, 5.64] points below VIP-Seg's released
+  S1 checkpoint (fixed100) with features as informative as VIP-Seg's (oracle rules 84.6 / 85.0 against
+  83.8 / 86.3) (`results/phase16_r2/SUMMARY.md`). VIP-Seg's released S1 log reads 70.07 valid at 6,000
+  updates, where r0 ends after its 6,000 (70.26), and 72.84 at its last update, 24,000
+  [VIPSEG log_s3dis_VIPSeg/log_S1_N2_K1_0.760875/log_vipseg.txt]. D-12's null (CHANGELOG 15x) was
+  measured on a headless baseline whose curve is flat from epoch 10; it does not cover the head.
+* **What it does.** E1 trains r0 unchanged except for the schedule: `--batch_size 1 --lr_step_epochs 15`,
+  i.e. 24,000 updates with the learning rate halved every 7,200 (VIP-Seg: 24,000 and 7,000
+  [VIPSEG scripts/vipseg_s3dis.sh]), the same 24,000 training episodes as D-12, and `--valid_every 4`,
+  13 validations (VIP-Seg: 12 every 2,000 updates) so that `best.pt` follows D-22's amended rule 1.
+  No code change to the model; S1, seed 0, one run.
+* **Test.** `last.pt` and `best.pt` of E1, `last.pt` and `best.pt` of r0, `best.pt` of d29, and VIP-Seg's
+  released S1 checkpoint, on the identical episodes of fixed100 and random600 seeds 0, 1, 2
+  (`experiments/r2_distill_eval.py`), paired bootstrap per draw.
+* **Rules, fixed before the run** (`r2_distill_eval.py decide_e1`), on fixed100:
+  * E1.1 adopt: E1 `last` ≥ 73.0, the level VIP-Seg's own run reaches at its last update (72.84):
+    VIP-Seg's update count becomes route B's schedule for every later arm.
+  * E1.2 not the schedule: E1 `last` ≤ 71.0, within the ≈ 1-point spread of our `last.pt` runs above
+    r0 (70.20): the gap lies elsewhere; next candidates in the analysis §3 (gating bias, selection).
+  * E1.3 partial: in between; adopt the schedule only if E1 − r0 has a paired CI above 0 on fixed100
+    and is positive on all three random600 draws.
+  * Reported, not ruled: E1 `best` against VIP-Seg released (both best-of-validation), and the
+    selection gain `best − last` of E1 and r0.
+* **Affects.** `experiments/run_r2.sh` (`train e1`, `eval_e1`), `experiments/r2_distill_eval.py`
+  (named pairs, `decide_e1`), 05 §3.8j.
+
+---
+
 ## 5. Official VIP-Seg files: restore, reuse, avoid
 
 ### 5.1 Reference implementations restored from L2
@@ -961,4 +1004,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-23 | D-27 closed by P1.2 (P1.4 weak). D-28 (maintainer request): the two combined, the base margin filtering the foreground M-step of D-26, probed as P2; rules fixed before the run. |
 | 2026-09-23 | D-28 closed by P2.0 / P2.2. D-29 (maintainer request): oracle-direction distillation during training, on route B's head (revised before any run to the logit-space pairwise form); one training run per arm, three test draws (maintainer); rules fixed before the run. |
 | 2026-09-24 | D-29 closed by R2.2; R2.0 shows our loop's route-B base 5.16 below VIP-Seg's released checkpoint, which VIP-Seg's own logs put down to training length and checkpoint selection. |
+| 2026-09-24 | D-22 rule 1 amended by the maintainer: `best.pt` under VIP-Seg's disclosed selection rule is reported with `last.pt`. D-30: route B's base on VIP-Seg's update count (E1); rules fixed before the run. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

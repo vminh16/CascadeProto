@@ -383,8 +383,11 @@ Mutation check (2026-09-23), 8 mutants: 7 killed, the survivor (removing the r =
 | DIS-8 | Both oracle rules leave absent classes untouched, one keeping each norm and one giving the present classes their mean norm; the logit-pair diagnostic is the model's cosine to the teacher; prototype-space sums and counts per term | [DECISION D-29] |
 | DIS-9 | Rules R2.0–R2.5 and "incomplete"; the rules survive several draws (the hooks are closed once); the test refuses a checkpoint of another fold before loading it | [DECISION D-29] [DECISION D-22] |
 | DIS-10 | The new and changed files parse as Python 3.10, the VM's version | 00 §5.2 |
+| DIS-11 | Rules E1.1–E1.3 of D-30 at their thresholds, "incomplete" without draws or names; named pairs are computed only when both models are scored | [DECISION D-30] |
 
 Mutation check (2026-09-23, revised form), 25 mutants over `models/oracle_distill.py`, `models/cascadeproto.py`, `pipeline/model_api.py`, `train.py` and `experiments/r2_distill_eval.py`: 25 killed, the last after DIS-8 gained the model-against-teacher case.
+
+E1 rules (2026-09-24), 6 mutants: 6 killed, the last after DIS-11 gained the unscored-model case.
 
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 

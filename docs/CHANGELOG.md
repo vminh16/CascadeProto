@@ -1365,3 +1365,16 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   so it never saw the evaluation end; the VM idled about 6 hours after 18:01 UTC before it was stopped
   (00:10 UTC). Waiters now need a pattern that cannot match themselves (e.g. `pgrep -f "[r]2_distill"`).
 * Stale comments of D-29's first form fixed in `experiments/run_r2.sh` and `train.py`.
+
+### 16n - D-22 amended (best.pt reported under VIP-Seg's selection rule); D-30 / E1 queued
+
+* **D-22 rule 1 amended by the maintainer.** VIP-Seg's published numbers are the best of 12 validations on
+  test-class episodes (its logs, 16m). Every result now reports `best.pt` under that disclosed rule
+  (about 12 validations, 1,500 `valid` episodes of the fold's test classes), labelled as such and compared
+  with the published table, next to `last.pt`, the number free of selection.
+* **D-30 (E1).** r0 on VIP-Seg's update count: `--batch_size 1 --lr_step_epochs 15 --valid_every 4`
+  (24,000 updates, LR halved every 7,200, 13 validations). Rules fixed before the run: adopt at E1 `last`
+  >= 73.0 on S1 fixed100, not the schedule at <= 71.0, in between only with a paired gain on every draw.
+* **Code.** `run_r2.sh train e1` / `eval_e1` (results in `results/phase16_e1/`); `r2_distill_eval.py`
+  gains named pairs, `decide_e1` and `--out_dir`, so R2's files stay intact. DIS-11; E1-rule mutants 6 of 6
+  killed.
