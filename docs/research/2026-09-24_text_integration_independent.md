@@ -219,3 +219,67 @@ three draws, on both checkpoints; S0 only after that.
 | first experiment | GPU probes P-a..P-c, then a trained prior at p⁰ | training-free logit prior T1 with a support-accuracy gate, one E1 evaluation | adopt T1 as the first step, with this note's entropy weight as an extra arm |
 | text source | retrieval (softmax over CLIP similarity to base names) | closed-form ridge map from the banks | test both in the same probe |
 | expected effect | small on S1 | 0 to +0.5 (repo prompt), ≈ +1 (descriptions) | agree |
+
+## 8. Is 80 mIoU reachable, and would a learnable multimodal neck get there? (maintainer's question, 2026-09-24)
+
+### 8.1 The ceiling is not the backbone [measured: `results/phase16_e1/SUMMARY.md`, `results/phase16_r2_pre/`]
+
+| S1 fixed100 | mIoU |
+| :--- | ---: |
+| E1 `last` / `best` | 73.20 / 75.05 |
+| VIP-Seg released (best of 12) / its own training-log test | 75.36 / 74.65 |
+| **oracle rule on E1's features** (query's own class means; norms kept / equal) | **87.43 / 85.93** |
+| oracle rule on VIP-Seg's features | 83.77 / 86.31 |
+
+With the right prototypes the same frozen features score 86–87: the encoder separates the test classes
+well. What limits 73–75 is estimating each class's prototype from one support block (the support → query
+shift), not the features. 80 is therefore not information-theoretically out of reach on S1; it is +7 over
+E1 `last`, i.e. recovering about half of the transductive gap without query labels. No measured method in
+this repo moves any of that gap (D-26…D-29: ≤ +0.37), and the best published S1 number, selection
+included, is 76.09. A pretrained backbone would violate guardrail 1, and where it was measured (COSeg on
+MM-FSS's 2D-aligned backbone) it added +1.12 on S3DIS 2-way 1-shot [verified: repo note 2026-09-23 §6].
+**Verdict: 80 is not ruled out by the features, but no evidence-backed path reaches it; the backbone is not
+the thing to replace.** [inferred]
+
+### 8.2 A learnable neck that fuses modalities before the head
+
+What "multimodal features" exist here: per point only xyzrgbXYZ (the blocks carry no image
+correspondence); per class only a name. A neck fusing the two before the head is F′_i = F_i + α·N(F_i, t_c),
+which is class-conditional: the query would need one feature copy per class hypothesis (as text-query
+attention does), and the neck learns from **six** (text, visual) anchor pairs per fold.
+
+* **Information argument.** Any map, linear or not, is pinned by the data only at the six anchors; a novel
+  name's CLIP embedding is 88–90 % the shared template (T0-A; agent §1.4) and reaches the point space only by
+  interpolating between base anchors. T0-C/T0-D and the agent's held-out assignment (0.58 / 0.60 / 0.72)
+  measure exactly that interpolation: weak on S1, better on S0 and with descriptions. A neck adds capacity,
+  not information about novel names; it inherits this bound and adds the shortcut of memorising six names
+  (agent §2.3). [inferred, with the cited measurements]
+* **Capacity argument.** CE on base classes is already near saturation (E1 training loss ≈ 0.12–0.15,
+  `results/phase16_e1/train_e1_S1.log`) while novel-class mIoU is 73: the problem is generalisation, which
+  more trainable parameters between encoder and head do not address by themselves. [measured / inferred]
+* **Gradient argument.** A neck changes the features of support and query at once, so the trained head's
+  equilibrium moves; only a zero-initialised residual F + α·N(·) with α = 0, warm-started from E1, starts at
+  the base. That is T3 of the agent's note applied to features instead of PEM's gates. [inferred]
+
+**Verdict on the neck as proposed (text + point features, trained on the few-shot episodes): not expected
+to give more than the text prior itself (0 to +1), with more ways to overfit.** It is kept as a variant of
+T3, behind T1.
+
+### 8.3 The variant that is feasible in principle: a neck distilled from dense 2-D vision-language features
+
+MM-FSS's gain comes from per-point features aligned with a 2-D open-vocabulary model over *every* point
+(dense supervision, many implicit concepts), not from class names. The same idea here would be:
+
+* data: S3DIS's original 2D-3D-S images and poses, projected onto the blocks to give each point a
+  vision-language feature from a frozen 2-D model (CLIP-based, e.g. an open-vocabulary segmenter);
+* neck: a zero-init residual head on our encoder features, trained to regress those per-point features on
+  **all** points of the training areas (no class labels involved), then fused with the point features
+  before VIP-Seg's head; text then matches these features directly, with no six-name map;
+* constraints and cost: guardrail 1 forbids pretrained point-cloud weights, not frozen 2-D models, but
+  the paper and VIP-Seg state "no pretraining", so it needs a new decision and a separate comparison table;
+  the 2-D projection pipeline is new work (days, not hours), and the test areas' images must not enter
+  training; expected effect unknown on S3DIS (MM-FSS reports its multimodal gains on its own backbone).
+* cheapest feasibility test before building it: check that 2D-3D-S images and camera poses exist for the
+  areas of our blocks and that a point-to-pixel projection covers most points of a block.
+
+Recorded as the only neck design with an information source beyond six names; not started.
