@@ -1424,3 +1424,15 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **D-32 / P4.** The causal test: the head re-run from a background row without the other way's points
   (labels read through the inherited `sample_pointcloud(support=False)`), a label-free purification, and
   row-wise oracles. `experiments/p4_background_probe.py`, `run_p4.sh`; BG-1...10, 9 of 9 mutants killed.
+
+### 16t - P4 measured: background contamination is not the cause
+
+* **P4** (`results/phase16_p4/SUMMARY.md`; commit `ef19410`). With labels, a background row without the other
+  way's points gains +0.09 [+0.04, +0.14] (floor recall 0.724 -> 0.733); the label-free purification +0.02.
+  P4.1 not causal, the line stops. Row-wise oracles: background only -26.07, foreground only -9.05, all rows
+  +13.71: the gap is a joint query-conditioned shift of all prototypes.
+* **Follow-up reading (CPU):** the everywhere-classes (ceiling S0, floor and wall S1) are always background
+  in training and are among the lowest IoUs; share of training-block points vs IoU over 12 classes,
+  Spearman -0.55 (p = 0.06). Not a rule; a causal test would need test-class labels in training.
+* **Operations.** On-VM watcher now waits 15 minutes after the run before shutting down, so the local waiter
+  can copy the results first; it copied them and stopped the VM.

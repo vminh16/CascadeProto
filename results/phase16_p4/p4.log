@@ -1,0 +1,39 @@
+=== 2026-09-24T07:37:45+00:00 commit ef19410
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] model 0.7359 clean_bg 0.7368 | frozen q 0.1 (+0.00) | contamination 0.102 | purifier AUC 0.773
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] clean_bg             +0.09 [+0.04, +0.14]
+[test] purify_q0.1          +0.02 [-0.01, +0.05]
+[test] oracle_bg_only       -26.07 [-27.34, -24.76]
+[test] oracle_fg_only       -9.05 [-9.99, -8.11]
+[test] oracle_all           +13.71 [+12.73, +14.70]
+[test] clean_bg_vs_frozen   +0.07 [+0.02, +0.11]
+[test] contamination 0.100 | purifier AUC 0.789
+P4.1 not causal        clean_bg +0.09: stop this line; floor recall 0.724 -> 0.733, wall recall 0.737 -> 0.738
+P4.2 label-free fix    purify_q0.1 +0.02 [-0.01, +0.05]: not enough
+P4.3 neck              not reached (P4.1 does not hold)
+split oracle_bg_only   -26.07 [-27.34, -24.76]
+split oracle_fg_only   -9.05 [-9.99, -8.11]
+split oracle_all       +13.71 [+12.73, +14.70]
+diagnostics            contamination 0.100, purifier AUC 0.789
+=== P4 FINISHED 2026-09-24T07:44:13+00:00

@@ -1028,6 +1028,12 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   * +1.0 and +0.5 are the thresholds of R2/E1 and P0–P3 (twice the single-run sd; the smallest effect worth a
     training run).
 * **Affects.** `experiments/p4_background_probe.py`, `experiments/run_p4.sh`, 05 §3.8l (BG-…).
+* **Outcome: P4.1 not causal, the line stops (2026-09-24, `results/phase16_p4/SUMMARY.md`).** The background row
+  rebuilt without the other way's points (labels) gains +0.09 [+0.04, +0.14]; floor recall 0.724 → 0.733,
+  wall 0.737 → 0.738. The label-free purification gains +0.02. Row-wise oracles: background only −26.07,
+  foreground only −9.05, all rows +13.71: the oracle's gain is a joint, query-conditioned shift of every
+  prototype, not a contaminated row. C0's correlation was confounded; no purification neck is warranted by
+  this evidence (P4.3 not reached).
 
 ---
 
@@ -1124,4 +1130,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-24 | D-31 (maintainer request): P3, a training-free gap decomposition and text-prior probe on E1; interpretation bands and rules fixed before the run. |
 | 2026-09-24 | D-31 measured: text stops (P3.0); E1's dominant error is floor/wall → background, flat across support sizes. |
 | 2026-09-24 | D-32 (maintainer request): P4, a causal test of background contamination by the episode's own classes (clean-background intervention, label-free purification); rules fixed before the run. |
+| 2026-09-24 | D-32 measured: background contamination is not causal (clean background +0.09); the oracle gain is joint across rows. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |
