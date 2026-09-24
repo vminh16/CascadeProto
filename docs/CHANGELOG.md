@@ -1403,3 +1403,14 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   head (ridge or retrieval directions, four prompt sets, an entropy weight). Rules and bands fixed before
   the run. `models/text_prior.py`, `experiments/p3_probe.py`, `experiments/run_p3.sh`; TXT-1...14, 17 of 17
   mutants killed.
+
+### 16r - P3 measured: text stops; E1's error is foreground → background on floor and wall
+
+* **P3** (`results/phase16_p3/SUMMARY.md`; VM 04:55-05:17 UTC, commit `c3cbb7e`; the VM shut itself down
+  through an on-VM watcher, and a GPU stockout delayed reading the disk until 06:5x). Part B: 0 of 192 text
+  arms gain on valid; oracle-weight bound +0.70; P3.0 fails, text stops on this feature space. Part A:
+  support rule 49.27, E1 73.20, oracle 85.93 (head recovery 0.65); fixable points 83.5 % interior, flat
+  across support sizes; floor and wall recall 0.72 / 0.73 (oracle 0.99 / 0.95), background precision 0.861
+  (oracle 0.977); the head lowers floor below the plain support prototype.
+* **Operations.** The local waiter died with the session; an on-VM watcher (`pgrep -f "[r]un_p3.sh|..."`,
+  then `sudo shutdown -h now`) is now the pattern for unattended runs.

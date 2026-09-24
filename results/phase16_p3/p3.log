@@ -1,0 +1,45 @@
+=== 2026-09-24T04:55:20+00:00 commit c3cbb7e
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] model 0.7304 | frozen ridge_bare_entropy_k0.25 (-0.00)
+[select] mechanism retrieval_t100_bare          text acc 0.597 | align +0.139 [+0.104, +0.173]
+[select] mechanism retrieval_t100_descriptions  text acc 0.557 | align +0.001 [-0.027, +0.027]
+[select] mechanism retrieval_t100_ensemble      text acc 0.615 | align +0.068 [+0.033, +0.104]
+[select] mechanism retrieval_t100_template      text acc 0.523 | align -0.008 [-0.039, +0.024]
+[select] mechanism retrieval_t30_bare           text acc 0.614 | align +0.193 [+0.157, +0.230]
+[select] mechanism retrieval_t30_descriptions   text acc 0.574 | align +0.031 [+0.000, +0.060]
+[select] mechanism retrieval_t30_ensemble       text acc 0.624 | align +0.150 [+0.113, +0.188]
+[select] mechanism retrieval_t30_template       text acc 0.580 | align +0.115 [+0.082, +0.150]
+[select] mechanism ridge_bare                   text acc 0.552 | align +0.044 [+0.014, +0.076]
+[select] mechanism ridge_descriptions           text acc 0.612 | align +0.168 [+0.137, +0.196]
+[select] mechanism ridge_ensemble               text acc 0.561 | align +0.099 [+0.067, +0.132]
+[select] mechanism ridge_template               text acc 0.554 | align +0.016 [-0.016, +0.052]
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] model 0.7320 -> ridge_bare_entropy_k0.25 0.7320 (-0.00 [-0.00, +0.00]) | oracle-gamma +0.70
+[test] part A {"support_rule": 49.26528210836832, "model": 73.19755441194923, "oracle_unit": 85.92656348773767, "head_recovery": 0.6527942123989283, "fixable_share_of_points": 0.10849544270833333, "boundary_share_of_points": 0.10767692057291667, "boundary_share_of_fixable": 0.1653850308132662, "boundary_enrichment": 1.535937598635826, "boundary_share_of_model_errors": 0.2530021984950484, "fixable_share_by_support_tercile": [0.33083006798720666, 0.33572208654117336, 0.33344784547162], "support_tercile_cuts": [0.343505859375, 0.5021158854166665], "spearman_oracle_gain_vs_support_fg": 0.020243553886023946}
+P3.0 mechanism         text acc 0.552 (bar 0.6), alignment +0.044 [+0.014, +0.076]: fails, stop text on this feature space
+P3.3 in between        frozen -0.00 (contains 0), oracle-gamma +0.70
+P3.4 entropy weight    +0.00 [-0.00, +0.00]: not claimable
+A head recovery        support rule 49.27 -> E1 73.20 -> oracle 85.93: the head recovers 0.65 of the gap
+A fixable points       0.108 of points; boundary share 0.165 vs 0.108 of all points, enrichment 1.54: boundary-enriched: a local refinement problem
+A support quality      Spearman(oracle gain, support foreground fraction) +0.02; fixable share by support tercile small/mid/large [0.331, 0.336, 0.333]
+=== P3 FINISHED 2026-09-24T05:17:01+00:00

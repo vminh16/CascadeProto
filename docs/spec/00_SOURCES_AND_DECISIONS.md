@@ -978,6 +978,14 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 * **Checkpoint.** E1 `last.pt` (`log_r2/s3dis_S1_N2_K1_point_T4_vip_b1/last.pt`); S1 only, S0 held out.
 * **Affects.** `models/text_prior.py` (new), `experiments/p3_probe.py` and `experiments/run_p3.sh` (new),
   05 §3.8k (TXT-…).
+* **Outcome (2026-09-24, `results/phase16_p3/SUMMARY.md`).** Part B: **P3.0 fails, text stops on this feature
+  space**: 0 of 192 arms gain on the valid draw, the frozen arm is −0.00 on fixed100, and a per-episode weight
+  chosen with the labels reaches only +0.70 [+0.52, +0.88]; the best text-only fg-vs-fg accuracy is 0.62. Part A:
+  support rule 49.27 → E1 73.20 → oracle 85.93 (head recovery 0.65); fixable points are 1.54× enriched at
+  boundaries (the pre-registered "boundary-enriched" band) but 83.5 % interior, flat across support sizes
+  (Spearman +0.02), and mostly floor and wall predicted as background (recall 0.72 / 0.73 → 0.99 / 0.95 under
+  the oracle; background precision 0.861 → 0.977). The head lowers floor below the plain support prototype
+  (IoU 66.0 → 62.1).
 
 ---
 
@@ -1072,4 +1080,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-24 | D-22 rule 1 amended by the maintainer: `best.pt` under VIP-Seg's disclosed selection rule is reported with `last.pt`. D-30: route B's base on VIP-Seg's update count (E1); rules fixed before the run. |
 | 2026-09-24 | D-30 closed by E1.1: route B's base on VIP-Seg's update count reaches 73.20 `last` / 75.05 `best` on S1 fixed100 (VIP-Seg released 75.36). |
 | 2026-09-24 | D-31 (maintainer request): P3, a training-free gap decomposition and text-prior probe on E1; interpretation bands and rules fixed before the run. |
+| 2026-09-24 | D-31 measured: text stops (P3.0); E1's dominant error is floor/wall → background, flat across support sizes. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |
