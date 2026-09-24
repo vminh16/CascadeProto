@@ -467,6 +467,29 @@ Mutation check (2026-09-24), 10 mutants: 10 killed, the last three after NECK-4,
 Mutation check (2026-09-24), 10 mutants: 10 killed. The first run of P5-5 found a real defect (the raw counts
 overwrote the FP ratios under the same keys); fixed before any GPU run.
 
+### 3.8o `tests/test_d37_trace.py` (G1, T6 on G2) — cross-term forms and the 2 × 2 [DECISION D-36] [DECISION D-37]
+
+The inherited PEM / PDM are parsed from `models/vipseg.py` with `ast` (never edited), float64, projection weights
+scaled by 20 so that a positional path is visible.
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| D37-T1 | The written-out forward with the `scrambled` cross-term reproduces the inherited PEM and PDM (N = 2, 3; K = 1, 2) to 1e-12; `CrossFormModule` in `native` calls the module unchanged | [DECISION D-36], [VIPSEG models/vipseg.py:235-405] |
+| D37-T2 | `scrambled` attention equals C2's index formula; `clean` equals `softmax(Q'_bᵀ S'_w / √128)` per query and slot; unknown forms and modules raise | [DECISION D-35] point 5, [DECISION D-36] |
+| D37-T3 | Four `clean` stages: permuting the queries permutes the prototypes, changing another query leaves a query's prototypes unchanged; VIP-Seg's form fails both | [DECISION D-37] |
+| D37-T4 | `stage_type=vip_clean` builds `clean` stages with the state-dict keys of `vip` (an E1 checkpoint loads strictly); ignored switches and unknown forms raise | [DECISION D-36] |
+| D37-T5 | The lemma of D-37 on the whole model in training mode: a permuted episode gives the same loss and every gradient (1e-10 of the largest) with `vip_clean`; `vip` does not | [DECISION D-37] |
+| D37-T6 (cuda) | The real model: `scrambled` reproduces `native` within C4.0a's tolerance, `native` is positional, `clean` logits are permutation-equivariant and its training loss and gradients order-free | [DECISION D-36], [DECISION D-37] |
+| D37-T7 | `QueryOrder` permutes blocks and labels together by `default_rng([seed, 3, i])`, leaves supports and classes, swaps about half the episodes, never draws from the global RNG, is deterministic per seed | [DECISION D-37] |
+| D37-T8 | `--query_order` defaults to `fixed`; E1's run directory is unchanged, VR / CR get `_qrandom`; a checkpoint without the flag resumes at `fixed` | [DECISION D-37] |
+| D37-T9 | C4's own-class bookkeeping (own, position label 2 − b, background), rule C4.1 and check C4.0b | [DECISION D-36] |
+| D37-T10 | D-37's reader: the E1 reproduction check gates everything, D37.2 failure stops, D37.1 origin / stop, D37.3 clean / scrambled / tie, D37.4 reports | [DECISION D-37] |
+| D37-T11 | The new files parse as Python 3.10 | 00 §5.2 |
+
+Mutation check (2026-09-25), 17 mutants (cross-term forms, shot average, stage switch, configuration mapping, query
+order, run directory, C4 and D-37 readers): 17 killed. D37-T5's first run flagged the biases in front of a BatchNorm,
+whose gradient is analytically zero (rounding noise only); the tolerance is relative to the largest gradient.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

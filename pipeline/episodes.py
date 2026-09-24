@@ -204,3 +204,37 @@ class SeededEpisodes(torch.utils.data.Dataset):
         finally:
             np.random.set_state(np_state)
             random.setstate(py_state)
+
+
+QUERY_ORDERS = ("fixed", "random")  # [DECISION D-37]
+QUERY_ORDER_SEED_STREAM = 3  # second word of the per-episode permutation seed, see QueryOrder
+
+
+class QueryOrder(torch.utils.data.Dataset):
+    """Training episode i with its query blocks in a random order [DECISION D-37]. **Beyond the paper.**
+
+    The inherited loader appends the query block sampled for class k at position k [VIPSEG
+    dataloaders/loader.py:181-222], so the position names the class. Here the blocks and their labels are
+    permuted together by `np.random.default_rng([seed, 3, i])`; the labels keep their meaning (local label
+    k + 1 = sampled class k) and the supports are untouched. The generator is private: the global RNGs are
+    never drawn from, so the wrapped dataset yields the same episodes as the unwrapped one, only reordered.
+    """
+
+    def __init__(self, base, seed: int):
+        self.base, self.seed = base, seed
+        self.classes = base.classes
+
+    def __len__(self) -> int:
+        return len(self.base)
+
+    def __getitem__(self, i: int):
+        support_x, support_y, query_x, query_y, sampled_classes = self.base[i]
+        order = np.random.default_rng([self.seed, QUERY_ORDER_SEED_STREAM, i]).permutation(query_x.shape[0])  # [B_q]
+        return support_x, support_y, query_x[order], query_y[order], sampled_classes  # blocks and labels together
+
+
+def with_query_order(train_set, query_order: str, seed: int):
+    """The training episodes in the loader's query order (`fixed`) or permuted per episode (`random`) [D-37]."""
+    if query_order not in QUERY_ORDERS:
+        raise ValueError(f"query_order must be one of {QUERY_ORDERS}, got {query_order!r}")
+    return train_set if query_order == "fixed" else QueryOrder(train_set, seed)

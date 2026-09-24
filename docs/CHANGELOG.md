@@ -1506,3 +1506,35 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * `experiments/run_p5.sh smoke|full` (AUTOSTOP=1 as N2). `tests/test_condition_probe.py` P5-1...15 (05 §3.8n): G1
   458 passed; mutation check 10/10 killed; P5-5 caught a key collision in `split_summary` before any run.
 
+
+### 16ab - D-35 outcome: VIP-Seg's head names the foreground by query position (C3); D-36 and D-37 recorded
+
+* **P5 smoke** (`results/phase16_p5/*_smoke.json`, `p5_smoke.log`): every check passed, but E1's other-condition
+  recall was 0 / 1,153 points and arm B's re-sampled block still 0: E1 labels the dense region of query block b with
+  class b + 1 whatever it is.
+* **C3** `experiments/c3_query_order.py` -> `results/phase16_p5/c3_query_order.json`, `c3.log`: fixed100 with the two
+  query blocks swapped (labels with their blocks). E1 73.20 -> 0.92, VIP-Seg released 75.36 -> 0.87; own-class points
+  kept 0.935 -> 0.001, relabelled by position 0.913; the support rule without head 49.27 in both orders. The loader
+  appends the block sampled for class k at position k in training and in the cached test episodes, so the benchmark
+  rewards the shortcut. Every route-B measurement of D-25...D-34, the oracle gap included, was taken on such heads.
+* **D-36** (C4: is the cross-term reshape the only carrier?) and **D-37** (2 x 2: head scrambled / clean x training
+  query order fixed / random) in `docs/spec/00`, rules fixed before any code. Amendments before code: CF is not
+  trained (with the clean head a permuted episode has the same loss and gradient, so CF = CR up to rounding); the
+  relabel shift (swapped minus stored share of the other episode class) replaces the raw share, which honest
+  confusion makes non-zero; E1 re-scored in the same run must reproduce its evaluation; a D37.3 tie goes to the clean
+  head.
+
+### 16ac - C4 and D-37 implemented, not run
+
+* `models/vip_stage.py`: `vip_module_forward` (PEM / PDM written out from the inherited source, reading the module's
+  own weights), `cross_attention` (`scrambled` = VIP-Seg's reshape, `clean` = one softmax per query and slot),
+  `CrossFormModule`, `VIPStage(cross_form=native|scrambled|clean)`; `native` is unchanged, so E1 still loads and runs
+  as trained. `models/cascadeproto.py`: `stage_type=vip_clean`.
+* `pipeline/episodes.py`: `QueryOrder` / `with_query_order` (private generator `[seed, 3, i]`, blocks and labels
+  permuted together, the global RNGs untouched, so VR and CR see E1's episodes); `train.py --query_order`, run
+  directory suffix `_qrandom`.
+* `experiments/c4_crossterm_ablation.py` (C4.0a / C4.0b checks, rule C4.1, exit 3 stops the queue),
+  `experiments/d37_eval.py` (leak-free draw, rules D37.1-D37.4 behind the E1 reproduction check),
+  `experiments/c3_query_order.py --out` and the stored-order share of the other class, `experiments/run_d37.sh
+  smoke|full`.
+* `tests/test_d37_trace.py` D37-T1...T11 (05 §3.8o), T6 on the GPU: G1 474 passed (CPU); mutation check 17/17 killed.

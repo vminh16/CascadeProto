@@ -20,9 +20,9 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, Subset
 
-from pipeline.episodes import (AUGMENT_CONFIG, EPISODES_PER_BATCH, NUM_POINT, PC_ATTRIBS, SCHEDULE,
-                               EpisodeCollate, SeededEpisodes, build_eval_dataset, build_train_dataset,
-                               read_class_names)
+from pipeline.episodes import (AUGMENT_CONFIG, EPISODES_PER_BATCH, NUM_POINT, PC_ATTRIBS, QUERY_ORDERS, SCHEDULE,
+                               EpisodeCollate, SeededEpisodes, build_eval_dataset, build_train_dataset, read_class_names,
+                               with_query_order)
 from pipeline.evaluation import evaluate
 from pipeline.model_api import episode_loss
 from utils.logger import IOStream
@@ -65,11 +65,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--cross_attn_norm", default="none", choices=["none", "layernorm"], help="[D-18]")
     p.add_argument("--cross_attn_support", default="class_slots", choices=["class_slots", "pooled"],
                    help="one A per class slot (D-01) or one per query from all support blocks [D-23]")
-    p.add_argument("--stage_type", default="eppm", choices=["eppm", "eppm_s", "vip"],
-                   help="the printed EPPM stage, the stripped EPPM-S [D-24] or VIP-Seg's own PEM/PDM "
-                        "[D-25]; the last two are beyond the paper")
+    p.add_argument("--stage_type", default="eppm", choices=["eppm", "eppm_s", "vip", "vip_clean"],
+                   help="the printed EPPM stage, the stripped EPPM-S [D-24], VIP-Seg's own PEM/PDM [D-25] or "
+                        "the same modules with a per-query cross-term [D-37]; the last three are beyond the paper")
     p.add_argument("--gate_target", default="prototype", choices=["prototype", "features"], help="[D-02]")
     p.add_argument("--eq19_self", default="none", choices=["none", "gated"], help="[D-19], beyond the paper")
+    p.add_argument("--query_order", default="fixed", choices=list(QUERY_ORDERS),
+                   help="random = permute each training episode's query blocks (labels with them); the "
+                        "loader's order names the class by position [D-37], beyond the paper")
     p.add_argument("--train_classes", default="split", choices=["split", "all"],
                    help="all = also train on the test classes; leakage diagnostic only [D-21]")
     p.add_argument("--init_from_vipseg", default=None,
@@ -176,6 +179,7 @@ def run_dir(args) -> str:
     tag += "" if getattr(args, "neck", "none") == "none" else f"_{args.neck}"  # [D-33]
     tag += "" if not getattr(args, "neck_alpha_init", 0.0) else f"_a{args.neck_alpha_init:g}"  # [D-34]
     tag += "_ft" if getattr(args, "init_checkpoint", None) else ""  # [D-33]
+    tag += "" if getattr(args, "query_order", "fixed") == "fixed" else f"_q{args.query_order}"  # [D-37]
     return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 
 
@@ -298,6 +302,7 @@ def main(argv=None):
     train_set = SeededEpisodes(build_train_dataset(args.data_path, args.dataset, args.cvfold, args.n_way,
                                                    args.k_shot, num_episode=total_episodes,
                                                    train_classes=args.train_classes), args.seed)
+    train_set = with_query_order(train_set, args.query_order, args.seed)  # same episodes; random permutes queries [D-37]
     valid_set = build_eval_dataset(args.data_path, args.dataset, args.cvfold, args.n_way, args.k_shot,
                                    mode="valid", seed=args.seed)
     logger.cprint(f"train classes {list(train_set.classes)} | test classes {list(valid_set.classes)} | "

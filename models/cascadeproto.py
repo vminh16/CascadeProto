@@ -34,7 +34,8 @@ from pipeline.episodes import Episode
 from pipeline.model_api import EpisodeOutput
 
 MODALITIES = ("text", "image", "audio")  # 03 §2
-STAGE_TYPES = ("eppm", "eppm_s", "vip")  # [DECISION D-24] [DECISION D-25], beyond the paper
+STAGE_TYPES = ("eppm", "eppm_s", "vip", "vip_clean")  # [DECISION D-24] [D-25] [D-37], beyond the paper
+VIP_STAGES = {"vip": "native", "vip_clean": "clean"}  # stage type -> cross-term form [DECISION D-36]
 # Switches that only mean something for the printed EPPM stage; a non-default value with another
 # stage type would be silently ignored, so it raises instead (AGENTS guardrail 7).
 EPPM_ONLY = ("use_gate", "gate_target", "eq19_self", "cross_attn_norm", "fusion_weight", "diffusion_input")
@@ -69,7 +70,7 @@ class CascadeProtoConfig:
     cross_attn_support: str = "class_slots"  # [DECISION D-23], beyond the paper's D-01 reading
     gate_target: str = "prototype"  # [DECISION D-02]
     eq19_self: str = "none"  # [DECISION D-19], beyond the paper
-    stage_type: str = "eppm"  # [DECISION D-24] [DECISION D-25], beyond the paper
+    stage_type: str = "eppm"  # [DECISION D-24] [DECISION D-25] [DECISION D-37], beyond the paper
     fusion_weight: str = "per_query"  # [DECISION D-11]
     diffusion_input: str = "post_relu"  # [DECISION D-14]
     distill_beta: float = 0.0  # [DECISION D-29], beyond the paper; 0 = the paper's objective
@@ -107,7 +108,7 @@ class CascadeProtoConfig:
         if self.stage_type != "eppm":  # switches of the printed stage that another stage cannot honour
             defaults = CascadeProtoConfig()
             ignored = [f for f in EPPM_ONLY if getattr(self, f) != getattr(defaults, f)]
-            ignored += [f for f in VIP_IGNORES if self.stage_type == "vip" and getattr(self, f) != getattr(defaults, f)]
+            ignored += [f for f in VIP_IGNORES if self.stage_type in VIP_STAGES and getattr(self, f) != getattr(defaults, f)]
             if ignored:
                 raise ValueError(f"stage_type={self.stage_type!r} ignores {ignored}; leave them at their "
                                  f"defaults so that a run's configuration describes what it ran "
@@ -122,7 +123,8 @@ class CascadeProtoConfig:
 
 
 def build_stage(config: "CascadeProtoConfig", step: int) -> nn.Module:
-    """Stage `step` of the cascade: the printed EPPM, EPPM-S [D-24] or VIP-Seg's own module [D-25].
+    """Stage `step` of the cascade: the printed EPPM, EPPM-S [D-24] or VIP-Seg's own module [D-25], the latter
+    with VIP-Seg's cross-term (`vip`) or the per-query one (`vip_clean`, same parameters) [D-37].
 
     All three take `(P^{t-1} [B_q, N+1, D], F^s [N, K, 2048, D], F^q [B_q, 2048, D])` and return
     `P^t [B_q, N+1, D]`, so the cascade, ADRM and the losses are untouched by the choice.
@@ -138,7 +140,7 @@ def build_stage(config: "CascadeProtoConfig", step: int) -> nn.Module:
         return EPPMSharedStage(cross_attn_scale=config.cross_attn_scale, support=config.cross_attn_support)
     from models.vip_stage import VIPStage  # imports models.vipseg, which needs the GPU environment
 
-    return VIPStage(step)
+    return VIPStage(step, cross_form=VIP_STAGES[config.stage_type])
 
 
 class CascadeProto(nn.Module):
