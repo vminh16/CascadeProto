@@ -327,7 +327,8 @@ large support mask) to see whether it is concentrated where point-level correspo
 
 ### 9.5 Other modalities [inferred]
 
-The paper's image and audio branches encode the same class name as its text (03 §2.2), so they add no new
-information about a novel class. The modalities that do carry new per-point information here are the
+The paper's image and audio inputs are one item per class, like its text (image → CLIP, audio → Whisper →
+CLIP; 03 §1, [PAPER Fig.1]): per-class priors learned from six base classes, with the same anchor limit as
+text (§8.2) and no per-point information. The modalities that do carry new per-point information here are the
 point cloud's own streams (geometry and colour, fused early in the 9-channel input) and, outside the current
 data, the 2-D images of 2D-3D-S (§8.3). Neither has evidence of being under-used yet.
