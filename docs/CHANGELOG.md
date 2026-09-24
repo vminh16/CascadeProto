@@ -1538,3 +1538,13 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   `experiments/c3_query_order.py --out` and the stored-order share of the other class, `experiments/run_d37.sh
   smoke|full`.
 * `tests/test_d37_trace.py` D37-T1...T11 (05 §3.8o), T6 on the GPU: G1 474 passed (CPU); mutation check 17/17 killed.
+
+### 16ad - D37-T6 judged against the rounding floor
+
+* The first GPU smoke stopped at D37-T6: a freshly initialised model's positional effect in evaluation (8e-4) is
+  below the fixed 1e-2 margin the test demanded, and float32 / TF32 rounding makes no quantity exactly equal on the
+  GPU. Probes on the L4 separated rounding from order dependence by moving every query coordinate by one ULP: with
+  the clean head a query swap leaves the loss bit-identical (TF32 off) and moves the gradients by 1.8e-3 of their
+  largest entry, below the 5.4e-3 of one ULP; VIP-Seg's head moves the loss by 3.0e-3 and the gradients by 0.66.
+  The test now uses that floor (clean within 3x, VIP-Seg's form beyond 5x on the loss); three passes in a row. D-37's
+  lemma paragraph records the numbers.

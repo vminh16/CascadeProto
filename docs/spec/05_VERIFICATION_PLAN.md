@@ -479,7 +479,7 @@ scaled by 20 so that a positional path is visible.
 | D37-T3 | Four `clean` stages: permuting the queries permutes the prototypes, changing another query leaves a query's prototypes unchanged; VIP-Seg's form fails both | [DECISION D-37] |
 | D37-T4 | `stage_type=vip_clean` builds `clean` stages with the state-dict keys of `vip` (an E1 checkpoint loads strictly); ignored switches and unknown forms raise | [DECISION D-36] |
 | D37-T5 | The lemma of D-37 on the whole model in training mode: a permuted episode gives the same loss and every gradient (1e-10 of the largest) with `vip_clean`; `vip` does not | [DECISION D-37] |
-| D37-T6 (cuda) | The real model: `scrambled` reproduces `native` within C4.0a's tolerance, `native` is positional, `clean` logits are permutation-equivariant and its training loss and gradients order-free | [DECISION D-36], [DECISION D-37] |
+| D37-T6 (cuda) | The real model in float32: `scrambled` reproduces `native` within C4.0a's tolerance; under a query swap the `clean` logits, training loss and gradients change by at most 3× the rounding floor (every query coordinate moved by one ULP), `native`'s loss by more than 5× | [DECISION D-36], [DECISION D-37] |
 | D37-T7 | `QueryOrder` permutes blocks and labels together by `default_rng([seed, 3, i])`, leaves supports and classes, swaps about half the episodes, never draws from the global RNG, is deterministic per seed | [DECISION D-37] |
 | D37-T8 | `--query_order` defaults to `fixed`; E1's run directory is unchanged, VR / CR get `_qrandom`; a checkpoint without the flag resumes at `fixed` | [DECISION D-37] |
 | D37-T9 | C4's own-class bookkeeping (own, position label 2 − b, background), rule C4.1 and check C4.0b | [DECISION D-36] |
@@ -489,6 +489,9 @@ scaled by 20 so that a positional path is visible.
 Mutation check (2026-09-25), 17 mutants (cross-term forms, shot average, stage switch, configuration mapping, query
 order, run directory, C4 and D-37 readers): 17 killed. D37-T5's first run flagged the biases in front of a BatchNorm,
 whose gradient is analytically zero (rounding noise only); the tolerance is relative to the largest gradient.
+D37-T6's first GPU run used a fixed 1e-2 margin for VIP-Seg's positional effect, which a freshly initialised model
+does not reach in evaluation (8e-4); the test now compares every quantity with the one-ULP rounding floor, and passed
+three runs in a row on the L4.
 
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 

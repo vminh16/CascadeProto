@@ -1331,6 +1331,11 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
     makes non-deterministic (AGENTS §6). Training CF would measure that rounding, not the data order. Verified,
     not assumed: D37-T5 (float64, CPU, exact) and D37-T6 (the real model on the GPU) compare the loss and every
     gradient under a query permutation; the scrambled form must fail the same test. The saving is one run.
+    Measured on the L4 (2026-09-25, one episode, default initialisation, TF32 off): with `vip_clean` the query swap
+    leaves the loss bit-identical and changes the gradients by at most 1.8e-3 of a parameter's largest entry, below
+    the 5.4e-3 caused by moving every query coordinate by one float32 ULP; with `vip` the loss moves by 3.0e-3 and
+    the gradients by 0.66. With TF32 (cuDNN's default, used in training) 3.6e-2 against a floor of 3.9e-2. The
+    differences sit in the first encoder layers, whose gradients cancel over the batch through BatchNorm.
   * **Episode identity.** The permutation comes from its own generator, `np.random.default_rng([seed, 3, i])` for
     training episode i (`pipeline/episodes.py`, `QueryOrder`, after `SeededEpisodes`); it never draws from the
     global RNGs, so VR and CR see E1's episodes (classes, blocks, points, augmentation) and differ from E1 only in

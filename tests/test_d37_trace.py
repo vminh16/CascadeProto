@@ -180,8 +180,29 @@ def test_d37_t5_clean_head_trains_identically_in_any_query_order(monkeypatch):
 
 # ------------------------------------------------------------------ T6 the real model on the GPU
 
+def gpu_episodes(dev):
+    """(stored, swapped, stored with every query coordinate moved by one float32 ULP) on the GPU."""
+    ep = episode(n=2, k=1, bq=2, seed=6)
+    ep.support_x, ep.query_x = ep.support_x.float(), ep.query_x.float()
+    sw = permuted(ep, torch.tensor([1, 0]))
+    ulp = permuted(ep, torch.tensor([0, 1]))
+    ulp.query_x = torch.nextafter(ep.query_x, torch.full_like(ep.query_x, 2.0))
+    return ep.to(dev), sw.to(dev), ulp.to(dev)
+
+
+def worst_grad(g0, g):
+    """Largest gradient difference relative to the parameter's own maximum, over non-negligible gradients."""
+    scale = max(v.abs().max().item() for v in g0.values())
+    return max((g0[n] - g[n]).abs().max().item() / g0[n].abs().max().item()
+               for n in g0 if g0[n].abs().max().item() > 1e-3 * scale)
+
+
 @pytest.mark.cuda
 def test_d37_t6_real_model_clean_head_is_order_free_and_scrambled_reproduces_native():
+    """On the GPU the forward and backward are float32 (TF32 in cuDNN convolutions by default), so order-freedom is
+    judged against the rounding floor: the change caused by moving every query coordinate by one ULP. The clean head's
+    swap must stay within 3x that floor; VIP-Seg's form must exceed 5x it (measured 2026-09-25: clean 1.8e-3 against a
+    floor of 5.4e-3 without TF32, native 0.66)."""
     from train import build_model
 
     dev = torch.device("cuda")
@@ -189,16 +210,8 @@ def test_d37_t6_real_model_clean_head_is_order_free_and_scrambled_reproduces_nat
     for st in ("vip", "vip_clean"):
         torch.manual_seed(0)
         models[st] = build_model(CascadeProtoConfig(stage_type=st, **ROUTE_B)).to(dev)
-        with torch.no_grad():
-            for s in models[st].stages:
-                s.module.map.weight.mul_(20.0)
     models["vip_clean"].load_state_dict(models["vip"].state_dict(), strict=True)
-    ep = episode(n=2, k=1, bq=2, seed=6)
-    ep.support_x, ep.query_x = ep.support_x.float(), ep.query_x.float()
-    ep = ep.to(dev)
-    sw = permuted(ep, torch.tensor([1, 0], device=dev))
-    sw.support_x, sw.query_x = sw.support_x.float(), sw.query_x.float()
-    sw = sw.to(dev)
+    ep, sw, ulp = gpu_episodes(dev)
     with torch.no_grad():
         m = models["vip"].eval()
         native = m(ep).logits
@@ -207,19 +220,21 @@ def test_d37_t6_real_model_clean_head_is_order_free_and_scrambled_reproduces_nat
         scrambled = m(ep).logits
         for s in m.stages:
             s.cross_form = "native"
-        scale = max(1.0, native.abs().max().item())
-        assert (scrambled - native).abs().max().item() <= 1e-4 * scale  # C4.0a's tolerance
-        assert (m(sw).logits - native[[1, 0]]).abs().max().item() > 1e-2 * scale  # VIP-Seg's form is positional
+        assert (scrambled - native).abs().max().item() <= 1e-4 * max(1.0, native.abs().max().item())  # C4.0a
         c = models["vip_clean"].eval()
         clean = c(ep).logits
-        assert (c(sw).logits - clean[[1, 0]]).abs().max().item() <= 1e-4 * max(1.0, clean.abs().max().item())
-    c = models["vip_clean"].train()
-    l0, g0 = loss_and_grads(c, ep)
-    l1, g1 = loss_and_grads(c, sw)
-    assert abs(l0 - l1) <= 1e-5 * max(1.0, abs(l0))
-    for n in g0:
-        assert (g0[n] - g1[n]).abs().max().item() <= 1e-3 * g0[n].abs().max().item() + 1e-7, n
-
+        floor = (c(ulp).logits - clean).abs().max().item()
+        assert (c(sw).logits - clean[[1, 0]]).abs().max().item() <= 3 * floor + 1e-6
+    for st, m in models.items():
+        m.train()
+        l0, g0 = loss_and_grads(m, ep)
+        l1, g1 = loss_and_grads(m, sw)
+        l2, g2 = loss_and_grads(m, ulp)
+        if st == "vip_clean":
+            assert abs(l1 - l0) <= 3 * abs(l2 - l0) + 1e-7
+            assert worst_grad(g0, g1) <= 3 * worst_grad(g0, g2)
+        else:
+            assert abs(l1 - l0) > 5 * abs(l2 - l0)  # the test detects VIP-Seg's positional form
 
 # ------------------------------------------------------------------ T7 random query order
 
