@@ -34,7 +34,7 @@ VIP-Seg's released checkpoint.
 Per-class IoU (door, floor, sofa, table, wall, window): r0 74.7 / 53.6 / 72.4 / 64.5 / 68.6 / 87.3;
 d29 74.0 / 55.6 / 71.2 / 63.9 / 69.8 / 87.1; VIP-Seg 74.8 / 65.3 / 80.4 / 73.6 / 69.7 / 88.4.
 
-## Training (S1 valid draw, 300 episodes)
+## Training (S1 valid draw, 1,500 episodes)
 
 | epoch | 10 | 20 | 30 | 40 | 50 |
 | :--- | ---: | ---: | ---: | ---: | ---: |
