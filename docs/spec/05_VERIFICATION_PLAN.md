@@ -410,6 +410,23 @@ E1 rules (2026-09-24), 6 mutants: 6 killed, the last after DIS-11 gained the uns
 
 Mutation check (2026-09-24), 17 mutants: 17 killed, the last two after TXT-3 and TXT-5 gained the centring and query-accuracy cases.
 
+### 3.8l `tests/test_background_probe.py` (G1, BG-9 on G4) — background contamination probe P4 [DECISION D-32]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| BG-1 | Foreground and background prototypes are the masked means; an empty background raises | [DECISION D-32] |
+| BG-2 | With every mask-0 point kept, P^0 equals the model's L2 point prototypes | 02 §3, [DECISION D-10] |
+| BG-3 | The purifier's score for a block ignores the block's own way | [DECISION D-32] |
+| BG-4 | q = 0 keeps every mask-0 point; q > 0 drops the points most similar to another way, per block | [DECISION D-32] |
+| BG-5 | The re-run head from P^0 reproduces the model's logits; row oracles touch only their rows | [DECISION D-32] |
+| BG-6 | The histogram AUC is 1, 0 and 0.5 in the limiting cases and nan without positives | [DECISION D-32] |
+| BG-7 | Recall and precision per column; the fraction with the best draw-A gain is frozen | [DECISION D-32] |
+| BG-8 | Rules P4.1 (gain, CI and the floor/wall recall rise), P4.2, P4.3 | [DECISION D-32] |
+| BG-9 | On the real blocks, `support=False` labels give exactly the loader's `support=True` mask for the same RNG state; drawn episodes have the loader's shapes | [VIPSEG dataloaders/loader.py:31-87] |
+| BG-10 | The new files parse as Python 3.10 | 00 §5.2 |
+
+Mutation check (2026-09-24), 9 mutants: 9 killed.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

@@ -58,7 +58,7 @@ real fg-vs-fg signal, too weak to move decisions the head already gets right.
 
 Floor and wall appear in almost every S3DIS block. In an episode, the other way's support block labels them
 background, and the background prototype pools the mask-0 points of all support blocks
-[VIPSEG models/vipseg.py:108-113]; the head then adapts that row toward the query, whose blocks are dominated by
+[VIPSEG models/vipseg.py:108-116]; the head then adapts that row toward the query, whose blocks are dominated by
 the same surfaces. A background prototype contaminated by the episode's own foreground classes would produce
 exactly this fg → bg pattern. Not yet measured: the share of background support points that belong to another
 way's class, and the part of the gap that replacing only the background prototype recovers.

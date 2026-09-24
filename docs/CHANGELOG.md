@@ -1414,3 +1414,13 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   (oracle 0.977); the head lowers floor below the plain support prototype.
 * **Operations.** The local waiter died with the session; an on-VM watcher (`pgrep -f "[r]un_p3.sh|..."`,
   then `sudo shutdown -h now`) is now the pattern for unattended runs.
+
+### 16s - C0 and D-32 / P4: background contamination by the episode's own classes
+
+* **C0** (`experiments/c0_background_contamination.py`, CPU, raw block labels, 3,000 S1 test episodes):
+  floor is present in 95 % of the other way's support blocks (18 % of their background), wall in 64 % (26 %),
+  the other four classes in 3-21 % (0.5-3 %). Over fixed100's 15 pairs, the pooled contamination correlates
+  with E1's oracle gap (Spearman +0.70, p = 0.004); background precision falls from 0.95 to 0.69.
+* **D-32 / P4.** The causal test: the head re-run from a background row without the other way's points
+  (labels read through the inherited `sample_pointcloud(support=False)`), a label-free purification, and
+  row-wise oracles. `experiments/p4_background_probe.py`, `run_p4.sh`; BG-1...10, 9 of 9 mutants killed.
