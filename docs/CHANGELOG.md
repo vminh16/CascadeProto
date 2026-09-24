@@ -1463,3 +1463,10 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   random600 -0.07 / -0.20 / -0.16: N1.2 stop. The gate ended at alpha = 0.0023, so the run measured grafting
   a closed neck, not the attention. Both arms ended about 2 points under E1 (fresh AdamW moments on a
   converged model; a warm start should load `resume.pt`'s optimiser state). N2 (D-34) is the real test.
+
+### 16x - N2 measured: the neck, trained and used, does not help
+
+* **N2** (`results/phase16_n2/SUMMARY.md`; commit `daf95d7`). From scratch on E1's schedule with alpha 0.1:
+  alpha ended at 0.060, so the neck was used. N2 - E1 fixed100 last -0.66 [-1.03, -0.29], random600 -0.52 /
+  -1.08 / -0.94, best -0.81; oracle gap 12.73 -> 13.48. N1.2 stop. The on-VM AUTOSTOP trap shut the VM down;
+  the local waiter copied the results first.

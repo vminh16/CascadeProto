@@ -1105,6 +1105,9 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   a second seed before S0, because one run cannot separate +1.0 from training noise.
 * **Affects.** `models/neck.py` and `models/cascadeproto.py` (`neck_alpha_init`), `train.py`
   (`--neck_alpha_init`), `experiments/run_n2.sh` (new), 05 §3.8m (NECK-10).
+* **Outcome: N1.2 stop (2026-09-24, `results/phase16_n2/SUMMARY.md`).** N2 − E1 on fixed100 `last` −0.66 [−1.03, −0.29],
+  random600 −0.52 / −1.08 / −0.94, `best` −0.81 [−1.21, −0.44]; the neck was used (α 0.1 → 0.060) and the oracle
+  gap did not shrink (12.73 → 13.48). The same sign on every draw and checkpoint makes a hidden +1.0 implausible.
 
 ---
 
@@ -1205,4 +1208,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-24 | D-33 (maintainer request): N1, a zero-initialised point-level support → query attention neck, warm-started from E1 against a control arm; rules fixed before the run. |
 | 2026-09-24 | D-33 measured: N1.2 stop with α = 0.0023; the neck was never used. |
 | 2026-09-24 | D-34 (maintainer request): N2, the neck trained from scratch on E1's schedule with alpha initialised to 0.1, against E1's existing checkpoints; script prepared, not run. |
+| 2026-09-24 | D-34 measured: N1.2 stop; the neck opened (α 0.060) and costs 0.5–1.1 points on every draw. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |
