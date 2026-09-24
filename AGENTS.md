@@ -1,16 +1,16 @@
 # AGENTS.md: Operating Rules for Coding Agents
 
-Rules for autonomous coding agents (Claude Code, Cursor, Copilot, Devin, Aider, …) working in this repository. Humans should start with [README.md](README.md).
+Rules for autonomous coding agents (Claude Code, Cursor, Copilot, Devin, Aider, …) working in this repository. Humans should start with [README.md](README.md); everyone should read [CONTEXT.md](CONTEXT.md) for the current goal and state.
 
 ---
 
 ## 1. Project context
 
-* **Mission:** an **unofficial** re-implementation of *CascadeProto: Cascaded Cross-Modal Prototype Purification via Entropy-Aware Learning for Few-Shot 3D Point Cloud Segmentation* (Wang et al.), aiming to reproduce its Tables 2–5. The authors' code is not released yet.
+* **Mission:** an **unofficial** re-implementation of *CascadeProto: Cascaded Cross-Modal Prototype Purification via Entropy-Aware Learning for Few-Shot 3D Point Cloud Segmentation* (Wang et al.), first aiming to reproduce its Tables 2–5 (closed 2026-09-22), now used to improve VIP-Seg with the paper's ideas (phase 16, [CONTEXT.md](CONTEXT.md)). The authors' code is not released yet.
 * **Base code:** the official VIP-Seg repository `changshuowang/VIP-Seg_NeurIPS2025`, pinned at commit `28aedc5093c0d386d526864c49505ae6921b1600`.
 * **Target hardware:** one NVIDIA GPU; the paper used an RTX 5090.
 * **Modality priority:** text first; image and audio are deferred and must raise until implemented.
-* **Status (2026-09-23, phase 16 open):** the *reproduction* is closed; what runs now is **improvement research beyond the paper**, behind flags whose defaults keep the reproduction (decisions D-22…D-25, [docs/research/2026-09-22_improvement_directions.md](docs/research/2026-09-22_improvement_directions.md)). Target: beat VIP-Seg 72.20 / 76.09 and EDS-Net 73.32 / 74.67 under the standard protocol, never by scoring seen classes — `eval.py` now refuses that (D-22). R1 is measured (16f, [results/phase16_r1/SUMMARY.md](results/phase16_r1/SUMMARY.md)): the support reading of D-23 is worth +0.33, the stripped stage of D-24 is 3.8 points **worse** than the printed one, and one VIP-Seg module is +15.47 over it, so the work continues on **route B** — additions on top of `stage_type=vip`, not repairs to the printed stage.
+* **Status (2026-09-24, docs version 2.0): read [CONTEXT.md](CONTEXT.md) first.** The goal is to improve VIP-Seg with CascadeProto's ideas (entropy-aware purification, cascade, multimodal prototypes) under the standard protocol; the target is 80+ mIoU and is not reached. Route B (VIP-Seg's head in this pipeline, `stage_type=vip`) trained on VIP-Seg's update count (E1, D-30) reproduces VIP-Seg on S1: 73.20 `last` / 75.05 `best` against the release's 75.36 ([results/phase16_e1/SUMMARY.md](results/phase16_e1/SUMMARY.md)). Every addition tested on top of it (D-26…D-29, D-31…D-34: test-time EM and calibration, oracle distillation, a text prior, background purification, a point-level attention neck) stopped under its own pre-registered rule; none closes the oracle gap (+12 to +14). S0 has not been run for route B. `eval.py` refuses to score seen classes (D-22); `last.pt` and best-of-validation `best.pt` are both reported (D-22 amended).
 * **Status (2026-09-22, reproduction closed):** phases 8–13 implement the paper (environment, data and metric, feature extractor, LMA/GMMN/CLIP, EPPM cascade, ADRM) and pass their GPU checks. Phase 14 added resumable training, the run queue and the summary tools; phase 15 trained every row of Table 4 on S3DIS S0, 2-way 1-shot, on the full schedule, and phase 15y scored the baselines of both folds on seen and unseen classes. Results and the analysis of what does not reproduce: [docs/research/2026-09-21_reproduction_report.md](docs/research/2026-09-21_reproduction_report.md). The equation-by-equation audit of paper, spec and code: [docs/research/2026-09-20_paper_vs_code_audit.md](docs/research/2026-09-20_paper_vs_code_audit.md). docs/CHANGELOG.md records every step. [docs/research/paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) describes the pre-rewrite code and is kept as history.
 
 ---
@@ -19,7 +19,7 @@ Rules for autonomous coding agents (Claude Code, Cursor, Copilot, Devin, Aider, 
 
 Read [docs/spec/00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) before any change. In short:
 
-1. **Paper** (L1) beats **pinned VIP-Seg code** (L2) beats the **decision log** D-01…D-19 (L3).
+1. **Paper** (L1) beats **pinned VIP-Seg code** (L2) beats the **decision log** D-01…D-34 (L3).
 2. Specs `01`–`05` restate L1–L3 with a source tag on every normative line: `[PAPER …]`, `[VIPSEG path:line]`, `[DECISION D-nn]`.
 3. Code, tests, this file and the README are **not** sources. When code and spec disagree, the spec wins; when a spec line has no tag, treat it as unverified.
 4. If the paper is ambiguous and no decision covers the case, **stop and ask the maintainer**. Record the answer as a new decision in `00` before writing code.
@@ -35,6 +35,9 @@ Read [docs/spec/00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.
 | EPPM (gate, cross-attention, diffusion, fusion) | `models/eppm.py` | [02 §5](docs/spec/02_TENSOR_MATH_SPEC.md), [01 §2.4](docs/spec/01_ARCHITECTURE_SPEC.md), decisions D-01, D-02, D-11, D-14, D-16 |
 | ADRM, total loss | `models/adrm.py`, `pipeline/model_api.py` (`episode_loss`) | [02 §6–7](docs/spec/02_TENSOR_MATH_SPEC.md) |
 | Ablation switches | `models/cascadeproto.py`, CLI | [01 §3](docs/spec/01_ARCHITECTURE_SPEC.md), D-17 |
+| Route B head (VIP-Seg's PEM/PDM as stages) | `models/vip_stage.py`, `models/cascadeproto.py` (`stage_type=vip`) | D-25, D-30, [CONTEXT.md](CONTEXT.md) |
+| Phase-16 additions (all off by default) | `models/transductive.py` (D-26), `models/base_calibration.py` (D-27), `models/oracle_distill.py` (D-29), `models/text_prior.py` (D-31), `models/neck.py` (D-33, D-34) | [02 §11–15](docs/spec/02_TENSOR_MATH_SPEC.md), the decisions in 00 |
+| Phase-16 probes and runs | `experiments/p0_em_probe.py` … `p4_background_probe.py`, `r2_distill_eval.py`, `run_*.sh` | the decision each one implements; results under `results/phase16_*` |
 | Data, splits, episodes, schedule, evaluation | `pipeline/`, `train.py`, `eval.py`, `preprocess/prepare_s3dis.py`, `dataloaders/` (read-only) | [04](docs/spec/04_DATA_AND_EPISODES.md) |
 | Tests | `tests/` | [05](docs/spec/05_VERIFICATION_PLAN.md) |
 
@@ -85,7 +88,7 @@ Values are defined in the specs; this list is a reminder, not a source. If a val
 
 ```text
 CascadeProto/
-├── AGENTS.md, README.md
+├── AGENTS.md, README.md, CONTEXT.md   CONTEXT.md: goal, state and experiment summary (read first)
 ├── docs/
 │   ├── spec/00_SOURCES_AND_DECISIONS.md   source hierarchy + decision log (read first)
 │   ├── spec/01_ARCHITECTURE_SPEC.md       modules, wiring, switches, parameter budget
@@ -93,7 +96,7 @@ CascadeProto/
 │   ├── spec/03_MULTIMODAL_SPEC.md         modality front-ends, LMA, GMMN rules
 │   ├── spec/04_DATA_AND_EPISODES.md       data layout, splits, episodes, schedule, metric
 │   ├── spec/05_VERIFICATION_PLAN.md       tests, gates, acceptance
-│   └── research/                          audits (pre-rewrite code; paper vs spec vs code) and the reproduction report
+│   └── research/                          audits, the reproduction report and the phase-16 research notes
 ├── dataloaders/            inherited, read-only
 ├── preprocess/             inherited scripts (read-only) + prepare_s3dis.py, verify_s3dis.py (local)
 ├── utils/                  inherited, read-only
@@ -106,13 +109,15 @@ CascadeProto/
 │   ├── lma.py              modality adapter and generator
 │   ├── eppm.py             entropy gate, cross-attention, diffusion, fusion: one EPPM stage
 │   ├── adrm.py             dynamic routing
+│   ├── vip_stage.py        VIP-Seg's PEM/PDM behind the stage contract (route B, D-25)
+│   ├── transductive.py, base_calibration.py, oracle_distill.py, text_prior.py, neck.py   phase-16 additions
 │   └── cascadeproto.py     end-to-end model
 ├── loss/                   gmmn_loss.py
 ├── pointnet2_ops_lib/      vendored CUDA ops
 ├── runs/, main.py, scripts/  VIP-Seg reference code (inherited, read-only)
 ├── tests/                  see 05
 ├── pipeline/               episodes over the inherited loader, model contract, evaluation
-├── experiments/            phase-14 run queue, summary, complexity; diag_short.py (debug harness)
+├── experiments/            phase-14 run queue and tools; phase-16 probes (p0–p4, t0, c0), evaluations and run scripts
 ├── results/                artefacts of the VM runs (eval JSONs, training logs, summaries)
 ├── train.py, eval.py
 └── requirements.txt

@@ -2,7 +2,19 @@
 
 Re-implementation of **CascadeProto: Cascaded Cross-Modal Prototype Purification via Entropy-Aware Learning for Few-Shot 3D Point Cloud Segmentation** (Changshuo Wang, Weijun Li, Fan Mo, Zhonghang Liu, Shuting He, Prayag Tiwari, Dimitrios Kanoulas).
 
-> **Status (2026-09-22): complete for S3DIS 2-way 1-shot; the paper is only partly reproduced. Project closed at this point.**
+> **Status (2026-09-24, docs version 2.0).** Goal, state and every experiment in one page: **[CONTEXT.md](CONTEXT.md)**.
+> * **Goal now:** improve VIP-Seg with CascadeProto's ideas (entropy-aware purification, cascade, multimodal
+>   prototypes) under the standard protocol; target 80+ mIoU on S3DIS 2-way 1-shot. **Not reached.**
+> * **Best measured here (fold S1, fixed100):** VIP-Seg's head in this pipeline on VIP-Seg's update count (E1) scores
+>   73.20 (`last.pt`) / 75.05 (best of 13 validations), against VIP-Seg's released checkpoint at 75.36. The pipeline
+>   reproduces VIP-Seg; it does not improve on it yet. Fold S0 has not been run for this model.
+> * **Phase 16 tested** test-time EM and base-class calibration, oracle distillation, a text prior, background
+>   purification and a point-level query-attention neck on top of it; each stopped under a rule fixed before its run
+>   (decisions D-26…D-34 in [00](docs/spec/00_SOURCES_AND_DECISIONS.md), results under `results/phase16_*`).
+> * The paper's EPPM stage is 15.5 points below one VIP-Seg module in the same pipeline (R1); the reproduction of the
+>   paper (below) is closed.
+>
+> **Reproduction of the paper (2026-09-22, closed): complete for S3DIS 2-way 1-shot; the paper is only partly reproduced.**
 > * This is **not** the authors' code. Their repository `github.com/changshuowang/CascadeProto` says "We will release it soon." (checked 2026-09-17).
 > * Every equation is implemented from the paper (phases 8–13), every ambiguity is a numbered decision (D-01…D-19), and every row of Table 4 has been trained on the full 50-epoch schedule on one GPU (phases 14–15). Text modality only; image and audio raise.
 > * **What reproduces:** the pipeline (VIP-Seg's released checkpoint scores 0.7197 here against its published 0.7220), the total gain of the added modules (+8.07 here, +5.81 in the paper) and ADRM's increment (+0.60 against +0.64).
@@ -44,13 +56,15 @@ Exact formulas, shapes and the interpretation of ambiguous equations are in the 
 
 | Document | Content |
 | :--- | :--- |
-| [00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) | Source hierarchy (paper → pinned VIP-Seg code → decisions) and decision log D-01…D-19 |
+| [CONTEXT.md](CONTEXT.md) | **Start here**: goal, vocabulary, current state, every phase-16 experiment and what is and is not established |
+| [00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) | Source hierarchy (paper → pinned VIP-Seg code → decisions) and decision log D-01…D-34, each with its outcome |
 | [01_ARCHITECTURE_SPEC.md](docs/spec/01_ARCHITECTURE_SPEC.md) | Modules, wiring, ablation switches, parameter budget |
 | [02_TENSOR_MATH_SPEC.md](docs/spec/02_TENSOR_MATH_SPEC.md) | Every formula and tensor shape |
 | [03_MULTIMODAL_SPEC.md](docs/spec/03_MULTIMODAL_SPEC.md) | Modality front-ends, adapters, GMMN loss rules |
 | [04_DATA_AND_EPISODES.md](docs/spec/04_DATA_AND_EPISODES.md) | Data layout, class splits, episodes, schedule, evaluation metric |
 | [05_VERIFICATION_PLAN.md](docs/spec/05_VERIFICATION_PLAN.md) | Tests, gates, acceptance criteria |
-| [paper_vs_repo_audit.md](docs/research/paper_vs_repo_audit.md) | Audit of the current code against the paper |
+| [docs/research/](docs/research/) | Audits, the reproduction report, and the phase-16 research notes (gap analysis, distillation, text integration) |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Every step, newest last, with its evidence |
 | [AGENTS.md](AGENTS.md) | Rules for coding agents |
 
 ---
@@ -110,7 +124,7 @@ Use `datasets/S3DIS/blocks_bs1_s1` as `--data_path`; the loader reads `datasets/
 
 ## 5. Training and evaluation
 
-`train.py` and `eval.py` read real episodes only. The CascadeProto model itself is rewritten in the next phases, so do not report its numbers yet.
+`train.py` and `eval.py` read real episodes only. Numbers of the paper's model are in the reproduction report; route B's are in [CONTEXT.md](CONTEXT.md).
 
 ```bash
 D=datasets/S3DIS/blocks_bs1_s1
@@ -135,6 +149,23 @@ Before training CascadeProto, the data and metric pipeline must come close to VI
 wget https://github.com/changshuowang/VIP-Seg_NeurIPS2025/raw/28aedc5093c0d386d526864c49505ae6921b1600/log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/checkpoint.pt -O vipseg_S0_N2_K1.pt
 python eval.py --model vipseg --checkpoint vipseg_S0_N2_K1.pt --checkpoint_cvfold 0 --dataset s3dis --data_path $D --cvfold 0 --n_way 2 --k_shot 1
 ```
+
+---
+
+### Route B (phase 16): VIP-Seg's head in this pipeline
+
+```bash
+D=datasets/S3DIS/blocks_bs1_s1
+# E1: VIP-Seg's head (stage_type=vip, T = 4, L2 prototypes, no text) on VIP-Seg's update count, 13 validations [D-30]
+python train.py --dataset s3dis --data_path $D --cvfold 1 --n_way 2 --k_shot 1 --use_lma false --num_stages 4 \
+                --stage_type vip --l2norm_point_proto true --batch_size 1 --lr_step_epochs 15 --valid_every 4
+# paired evaluation on fixed100 + three random600 draws, last and best, with VIP-Seg's release on the same episodes
+python experiments/r2_distill_eval.py test --data_path $D --cvfold 1 --out_dir results/mine \
+       --checkpoint e1:ours:1:<run>/last.pt --checkpoint e1_best:ours:1:<run>/best.pt \
+       --checkpoint vipseg:vipseg:1:vipseg_S1_N2_K1.pt
+```
+
+`experiments/run_*.sh` hold the exact commands of every phase-16 run.
 
 ---
 

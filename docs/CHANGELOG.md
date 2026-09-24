@@ -1,6 +1,6 @@
 # Change log
 
-One entry per commit-sized step from phase 10 onwards, newest first. Each entry says what changed,
+One entry per commit-sized step from phase 10 onwards, oldest first (the newest is at the end). Each entry says what changed,
 why, which spec lines it implements, and how it was verified, so any line of code can be traced
 back to its source. Earlier phases are summarised in [00 §7](spec/00_SOURCES_AND_DECISIONS.md).
 Find the commit of an entry with `git log --oneline --grep "<step id>"`.
@@ -1470,3 +1470,17 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   alpha ended at 0.060, so the neck was used. N2 - E1 fixed100 last -0.66 [-1.03, -0.29], random600 -0.52 /
   -1.08 / -0.94, best -0.81; oracle gap 12.73 -> 13.48. N1.2 stop. The on-VM AUTOSTOP trap shut the VM down;
   the local waiter copied the results first.
+
+### 16y - docs version 2.0: CONTEXT.md, README and AGENTS brought to the phase-16 state
+
+* **CONTEXT.md** (new, repository root): the goal (improve VIP-Seg with CascadeProto's ideas and multimodal
+  prototypes, target 80+ mIoU, not reached), a vocabulary, the measured state (E1 73.20 / 75.05 against VIP-Seg's
+  75.36 on S1), one line per phase-16 decision with its outcome and source, and an explicit list of what is not
+  established (S0 for route B, text or attention "cannot help" in general, the planar-class hypothesis, sub-2-point
+  effects, any path to 80).
+* **README** status block rewritten for phase 16 with the reproduction kept as history; documentation table
+  gains CONTEXT.md, the research notes and the changelog; a stale sentence ("the model is rewritten in the next
+  phases") replaced; route B's train and evaluation commands added.
+* **AGENTS.md** status, mission and task routing updated (decision log D-01...D-34, the phase-16 modules and
+  probes, CONTEXT.md in the layout).
+* This changelog's header said "newest first"; the entries run oldest first, and the header now says so.
