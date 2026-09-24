@@ -379,3 +379,22 @@ $$\mathcal{L}_{distill} = \frac{1}{|\mathcal{C}|}\sum_{(b,c,c') \in \mathcal{C}}
 | `O` | `[B_q, N+1, D]` | [DECISION D-29] |
 | `T` | `[B_q, P, N+1]` | [DECISION D-29] |
 | `cos`, `C` (mask) | `[B_q, N+1, N+1]` | [DECISION D-29] |
+
+---
+
+## 15. Support → query attention neck (beyond the paper) [DECISION D-33]
+
+Before the prototypes, with `S = F^s` flattened over ways, shots and points and `Q = F^q` flattened over
+queries and points [DECISION D-33]:
+
+$$F^{s\prime} = F^s + \alpha\, \mathrm{softmax}\!\left(\frac{(\mathrm{LN}_s(S) W_Q)(\mathrm{LN}_q(Q) W_K)^\top}{\sqrt{d}}\right)(\mathrm{LN}_q(Q) W_V)\, W_O, \qquad d = 64$$
+
+* `α` is a scalar initialised to 0, so the model starts as the checkpoint it is warm-started from; the other
+  projections receive gradient only once `α ≠ 0` [DECISION D-33].
+* Eq.3's prototypes and the head's support slots read `F^{s′}`; `F^q` is unchanged [DECISION D-33].
+* One support point's update reads every query point of the episode [DECISION D-33].
+
+| Tensor | Shape | Source |
+| :--- | :--- | :--- |
+| `S`, `F^{s′}` | `[N·K·P, D]`, `[N, K, P, D]` | [DECISION D-33] |
+| attention | `[N·K·P, B_q·P]` | [DECISION D-33] |

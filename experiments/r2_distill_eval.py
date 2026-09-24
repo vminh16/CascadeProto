@@ -5,6 +5,7 @@
         --checkpoint vipseg:vipseg:1:vipseg_S1_N2_K1.pt
     python experiments/r2_distill_eval.py decide --cvfold 1                       # rules R2.0-R2.5
     python experiments/r2_distill_eval.py decide_e1 --cvfold 1 --out_dir results/phase16_e1   # D-30
+    python experiments/r2_distill_eval.py decide_n1 --cvfold 1 --out_dir results/phase16_n1   # D-33
 
 Each arm is trained once (maintainer, 2026-09-23), so the test repeats over draws instead: fixed100 (the
 table's protocol, one cached draw) and three independent `random600` draws (seeds 0, 1, 2). Every model
@@ -49,6 +50,8 @@ PAIRS = ((REFERENCE, ARM), (RELEASED, REFERENCE), (RELEASED, ARM),
          (REFERENCE, E1), (RELEASED, E1), (RELEASED, E1_BEST), (REFERENCE_BEST, E1_BEST), (E1, E1_BEST),
          (REFERENCE, REFERENCE_BEST))
 E1_ADOPT, E1_NOT_SCHEDULE = 73.0, 71.0  # VIP-Seg's own last-update level; r0 + our last.pt spread [D-30]
+CTL, NECK = "ctl", "neck"  # [DECISION D-33]
+PAIRS = PAIRS + ((CTL, NECK), (E1, CTL), (E1, NECK), (CTL + "_best", NECK + "_best"))
 GO_GAIN, STOP_GAIN = 1.0, 0.5  # 2x and 1x the estimated sd of a single-run difference [DECISION D-29]
 REFERENCE_GAP = -2.0  # R2.0: our loop's head below VIP-Seg's own by more than this [DECISION D-29]
 COLLAPSE = -3.0  # R2.5, per-class IoU points, as P0-P2
@@ -329,6 +332,35 @@ def decide_e1(results: List[Dict], cvfold: int) -> List[Tuple[str, str]]:
     return verdicts
 
 
+def decide_n1(results: List[Dict], cvfold: int) -> List[Tuple[str, str]]:
+    """Rules N1.1-N1.4 of [DECISION D-33] on the draws of one fold."""
+    by_draw = {r["draw"]: r for r in results if r["cvfold"] == cvfold}
+    missing = [d for d in DRAWS if d not in by_draw]
+    if missing:
+        return [("incomplete", f"S{cvfold}: missing draws {missing}")]
+    fixed = by_draw["fixed100"]
+    if CTL not in fixed["miou"] or NECK not in fixed["miou"]:
+        return [("incomplete", f"S{cvfold}: {CTL!r} and {NECK!r} must both be scored")]
+    p = fixed["paired"][f"{NECK}_vs_{CTL}"]
+    rand = [100.0 * (by_draw[d]["miou"][NECK] - by_draw[d]["miou"][CTL]) for d in DRAWS[1:]]
+    text = f"neck - ctl fixed100 {ci_text(p)}; random600 {[round(g, 2) for g in rand]}"
+    if p["gain"] < STOP_GAIN or float(np.mean(rand)) < STOP_GAIN:
+        v = [("N1.2 stop", text)]
+    elif p["gain"] >= GO_GAIN and p["ci_low"] > 0 and min(rand) > 0:
+        v = [("N1.1 go", f"{text}: S0 next")]
+    else:
+        v = [("N1.3 in between", text)]
+    heads = {n: fixed["paired"][f"{n}_oracle_unit_vs_{n}"]["gain"] for n in (CTL, NECK)
+             if f"{n}_oracle_unit_vs_{n}" in fixed["paired"]}
+    flag = " (a go with an unchanged gap is flagged)" if v[0][0] == "N1.1 go" and heads.get(NECK, 0) >= heads.get(CTL, 0) else ""
+    v.append(("N1.4 oracle gap", ", ".join(f"{n} {g:+.2f}" for n, g in heads.items()) + flag))
+    for a, b in ((E1, CTL), (E1, NECK), (CTL + "_best", NECK + "_best")):
+        key = f"{b}_vs_{a}"
+        if key in fixed["paired"]:
+            v.append((f"reported {key}", ci_text(fixed["paired"][key])))
+    return v
+
+
 def load_results(out_dir: str, cvfold: int) -> List[Dict]:
     results = []
     for path in sorted(glob.glob(os.path.join(out_dir, f"test_S{cvfold}_*.json"))):
@@ -339,7 +371,7 @@ def load_results(out_dir: str, cvfold: int) -> List[Dict]:
 
 def cmd_decide(args) -> int:
     results = load_results(args.out_dir, args.cvfold)
-    rules = decide_e1 if args.stage == "decide_e1" else decide
+    rules = {"decide_e1": decide_e1, "decide_n1": decide_n1}.get(args.stage, decide)
     for rule, text in rules(results, args.cvfold):
         print(f"{rule:24s} {text}")
     return 0 if results else 1
@@ -347,7 +379,7 @@ def cmd_decide(args) -> int:
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("stage", choices=["test", "decide", "decide_e1"])
+    p.add_argument("stage", choices=["test", "decide", "decide_e1", "decide_n1"])
     p.add_argument("--data_path")
     p.add_argument("--cvfold", type=int, required=True, choices=[0, 1])
     p.add_argument("--checkpoint", action="append", default=[], help="name:kind:trained_fold:path")
@@ -355,7 +387,7 @@ def main(argv=None) -> int:
     p.add_argument("--max_episodes", type=int, default=None, help="smoke runs only")
     p.add_argument("--out_dir", default=OUT_DIR, help="results/phase16_e1 for D-30, so R2's files stay intact")
     args = p.parse_args(argv)
-    if args.stage in ("decide", "decide_e1"):
+    if args.stage in ("decide", "decide_e1", "decide_n1"):
         return cmd_decide(args)
     if not args.data_path or not args.checkpoint:
         p.error("test needs --data_path and the checkpoints")

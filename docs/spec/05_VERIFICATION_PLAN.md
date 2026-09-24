@@ -427,6 +427,22 @@ Mutation check (2026-09-24), 17 mutants: 17 killed, the last two after TXT-3 and
 
 Mutation check (2026-09-24), 9 mutants: 9 killed.
 
+### 3.8m `tests/test_neck.py` (G1) — support → query attention neck and warm start [DECISION D-33]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| NECK-1 | α = 0 at initialisation and the neck is the identity | [DECISION D-33] |
+| NECK-2 | The update is the written attention; it reads every query of the episode; wrong shapes raise | 02 §15 |
+| NECK-3 | At initialisation only α receives gradient | [DECISION D-33] |
+| NECK-4 | A model with a closed neck equals the model without it; with α ≠ 0, P^0 depends on the query; parameter count | [DECISION D-33] |
+| NECK-5 | Configuration: `none` builds nothing, unknown necks raise | [DECISION D-33] |
+| NECK-6 | Warm start loads every tensor of the checkpoint, leaves α at 0, and raises on a different configuration, a missing non-neck key or an unexpected key | [DECISION D-33] |
+| NECK-7 | CLI, run directories `_b1_ft` / `_b1_sq_attn_ft`, resume at the defaults | [DECISION D-33], 04 §5 |
+| NECK-8 | Rules N1.1–N1.4 and "incomplete" | [DECISION D-33] |
+| NECK-9 | The changed files parse as Python 3.10 | 00 §5.2 |
+
+Mutation check (2026-09-24), 10 mutants: 10 killed, the last three after NECK-4, NECK-6 and NECK-8 gained the query-dependence, missing-key and CI cases.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

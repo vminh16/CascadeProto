@@ -27,6 +27,7 @@ from models.clip_text import DEFAULT_CLIP_VARIANT, ClipTextEmbedding
 from models.eppm import (CROSS_ATTN_NORMS, CROSS_ATTN_SCALES, CROSS_ATTN_SUPPORTS, EQ19_SELF, FUSION_WEIGHTS,
                          GATE_TARGETS, EPPMStage, stage_logits)
 from models.lma import EVAL_NOISE, LearnableModalityAdapter
+from models.neck import NECKS, build_neck
 from models.oracle_distill import oracle_distill_loss
 from models.prototypes import point_prototypes
 from pipeline.episodes import Episode
@@ -72,6 +73,7 @@ class CascadeProtoConfig:
     fusion_weight: str = "per_query"  # [DECISION D-11]
     diffusion_input: str = "post_relu"  # [DECISION D-14]
     distill_beta: float = 0.0  # [DECISION D-29], beyond the paper; 0 = the paper's objective
+    neck: str = "none"  # [DECISION D-33], beyond the paper
 
     def __post_init__(self):
         if not 0 <= self.num_stages <= 6:
@@ -90,7 +92,8 @@ class CascadeProtoConfig:
                                      ("eq19_self", self.eq19_self, EQ19_SELF),
                                      ("stage_type", self.stage_type, STAGE_TYPES),
                                      ("fusion_weight", self.fusion_weight, FUSION_WEIGHTS),
-                                     ("diffusion_input", self.diffusion_input, DIFFUSION_INPUTS)):
+                                     ("diffusion_input", self.diffusion_input, DIFFUSION_INPUTS),
+                                     ("neck", self.neck, NECKS)):
             if value not in allowed:
                 raise ValueError(f"{name} must be one of {allowed}, got {value!r}")
 
@@ -145,6 +148,8 @@ class CascadeProto(nn.Module):
 
             feature_extractor = PointFeatureExtractor()
         self.features = feature_extractor
+        # Support -> query attention before the prototypes, identity at initialisation [DECISION D-33]
+        self.neck = build_neck(config.neck)
         if config.use_lma:
             self.lma = LearnableModalityAdapter(eval_noise=config.eval_noise)
             # Frozen CLIP stays outside the module tree: not in state_dict, untouched by .to()/.double() (03 §2.1)
@@ -161,6 +166,8 @@ class CascadeProto(nn.Module):
         it for the diagnostics of [DECISION D-29].
         """
         f_s, f_q = self.features.encode_episode(episode.support_x, episode.query_x)  # [N,K,P,D], [B_q,P,D]
+        if self.neck is not None:
+            f_s = self.neck(f_s, f_q)  # [N, K, P, D], the prototypes and the head see F_s' [DECISION D-33]
         p_point = point_prototypes(f_s, episode.support_y)  # [N+1, D] (Eq.3)
         if self.config.l2norm_point_proto:  # ablation only [DECISION D-10]
             p_point = F.normalize(p_point, dim=-1)  # [N+1, D]

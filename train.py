@@ -77,6 +77,10 @@ def build_parser() -> argparse.ArgumentParser:
                         "diagnostic only, breaks guardrail #1 [D-20]")
     p.add_argument("--fusion_weight", default="per_query", choices=["per_query", "per_class"], help="[D-11]")
     p.add_argument("--diffusion_input", default="post_relu", choices=["post_relu", "pre_relu"], help="[D-14]")
+    p.add_argument("--neck", default="none", choices=["none", "sq_attn"],
+                   help="support -> query attention before the prototypes [D-33], beyond the paper")
+    p.add_argument("--init_checkpoint", default=None,
+                   help="warm start from one of our own checkpoints (strict except the neck's parameters) [D-33]")
     p.add_argument("--distill_beta", type=float, default=0.0,
                    help="weight of the oracle-direction loss on the pairwise logit decisions; 0 = the paper's "
                         "objective [D-29], beyond the paper")
@@ -127,7 +131,7 @@ def model_config(args):
                               gate_target=args.gate_target, eq19_self=args.eq19_self,
                               fusion_weight=args.fusion_weight, diffusion_input=args.diffusion_input,
                               cross_attn_support=args.cross_attn_support, stage_type=args.stage_type,
-                              distill_beta=args.distill_beta)
+                              distill_beta=args.distill_beta, neck=args.neck)
 
 
 def build_model(config, feature_extractor=None) -> torch.nn.Module:
@@ -135,6 +139,24 @@ def build_model(config, feature_extractor=None) -> torch.nn.Module:
     from models.cascadeproto import CascadeProto
 
     return CascadeProto(config, feature_extractor)
+
+
+def init_from_checkpoint(model, config, path: str) -> None:
+    """Load one of our checkpoints into `model`; only the neck's parameters may be missing [DECISION D-33].
+
+    The checkpoint's configuration must equal `config` except for `neck`; anything else raises, because
+    a warm start from a different architecture would silently change what the run measures.
+    """
+    ckpt = torch.load(path, map_location="cpu", weights_only=True)
+    theirs = {k: v for k, v in ckpt["config"].items() if k != "neck"}
+    ours = {k: v for k, v in config.to_dict().items() if k != "neck"}
+    diff = sorted(k for k in set(theirs) | set(ours) if theirs.get(k, ours.get(k)) != ours.get(k))
+    if diff:
+        raise ValueError(f"cannot warm start from {path}: configurations differ in {diff}")
+    result = model.load_state_dict(ckpt["model"], strict=False)
+    missing = [k for k in result.missing_keys if not k.startswith("neck.")]
+    if missing or result.unexpected_keys:
+        raise ValueError(f"cannot warm start from {path}: missing {missing}, unexpected {result.unexpected_keys}")
 
 
 def run_dir(args) -> str:
@@ -148,6 +170,8 @@ def run_dir(args) -> str:
     tag += "_leak" if getattr(args, "train_classes", "split") == "all" else ""  # [D-21]
     tag += "" if getattr(args, "batch_size", EPISODES_PER_BATCH) == EPISODES_PER_BATCH else f"_b{args.batch_size}"
     tag += "" if not getattr(args, "distill_beta", 0.0) else f"_distill{args.distill_beta:g}"  # [D-29]
+    tag += "" if getattr(args, "neck", "none") == "none" else f"_{args.neck}"  # [D-33]
+    tag += "_ft" if getattr(args, "init_checkpoint", None) else ""  # [D-33]
     return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 
 
@@ -282,6 +306,9 @@ def main(argv=None):
 
         init_features_from_vipseg(model, args.init_from_vipseg)
         logger.cprint(f"features initialised from VIP-Seg checkpoint {args.init_from_vipseg} [D-20]")
+    if args.init_checkpoint:  # before resume.pt is read, so a resumed run keeps its own weights [D-33]
+        init_from_checkpoint(model, config, args.init_checkpoint)
+        logger.cprint(f"warm start from {args.init_checkpoint} [D-33]")
     logger.cprint(f"model config: {config.to_dict()}")
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_step_epochs, gamma=args.lr_gamma)

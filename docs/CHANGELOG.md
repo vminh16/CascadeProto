@@ -1436,3 +1436,13 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   Spearman -0.55 (p = 0.06). Not a rule; a causal test would need test-class labels in training.
 * **Operations.** On-VM watcher now waits 15 minutes after the run before shutting down, so the local waiter
   can copy the results first; it copied them and stopped the VM.
+
+### 16u - D-33 / N1: a support -> query attention neck, warm-started from E1 against a control
+
+* **Why.** P4: the oracle's gain is a joint query-conditioned shift of all prototypes; VIP-Seg's head sees
+  the query only through max-pooled channel statistics. The neck (`models/neck.py`, spec 02 §15) lets every
+  support point attend to the episode's query points before the prototypes; alpha = 0 at initialisation.
+* **N1.** ctl and neck arms, both warm-started from E1 `last.pt` (`train.py --init_checkpoint`, strict except
+  the neck's parameters), identical episodes, 7,200 updates at a constant 1.25e-4; rules N1.1-N1.4 fixed
+  before the run (`r2_distill_eval.py decide_n1`, `experiments/run_n1.sh`). NECK-1...9, 10 of 10 mutants
+  killed.
