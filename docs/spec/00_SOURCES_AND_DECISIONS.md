@@ -913,6 +913,12 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
     selection gain `best − last` of E1 and r0.
 * **Affects.** `experiments/run_r2.sh` (`train e1`, `eval_e1`), `experiments/r2_distill_eval.py`
   (named pairs, `decide_e1`), 05 §3.8j.
+* **Outcome: E1.1 adopt (2026-09-24, `results/phase16_e1/SUMMARY.md`).** E1 `last` 73.20 on S1 fixed100,
+  +2.99 [+2.62, +3.39] over r0 and +2.60 to +3.11 on every random600 draw. E1 `best` (best of 13
+  validations, VIP-Seg's protocol) 75.05, against VIP-Seg's released 75.36: −0.31 [−0.63, +0.01], and
+  −0.32 to +0.02 on the random600 draws. Selection gain `best − last` +1.85 [+1.43, +2.30]. Our loop
+  reproduces VIP-Seg's head; R2.0's gap was training length (≈ 3.0) plus selection (≈ 1.9). VIP-Seg's
+  update count is route B's schedule for every later arm.
 
 ---
 
@@ -1005,4 +1011,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-23 | D-28 closed by P2.0 / P2.2. D-29 (maintainer request): oracle-direction distillation during training, on route B's head (revised before any run to the logit-space pairwise form); one training run per arm, three test draws (maintainer); rules fixed before the run. |
 | 2026-09-24 | D-29 closed by R2.2; R2.0 shows our loop's route-B base 5.16 below VIP-Seg's released checkpoint, which VIP-Seg's own logs put down to training length and checkpoint selection. |
 | 2026-09-24 | D-22 rule 1 amended by the maintainer: `best.pt` under VIP-Seg's disclosed selection rule is reported with `last.pt`. D-30: route B's base on VIP-Seg's update count (E1); rules fixed before the run. |
+| 2026-09-24 | D-30 closed by E1.1: route B's base on VIP-Seg's update count reaches 73.20 `last` / 75.05 `best` on S1 fixed100 (VIP-Seg released 75.36). |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

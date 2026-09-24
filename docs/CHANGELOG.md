@@ -1378,3 +1378,13 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **Code.** `run_r2.sh train e1` / `eval_e1` (results in `results/phase16_e1/`); `r2_distill_eval.py`
   gains named pairs, `decide_e1` and `--out_dir`, so R2's files stay intact. DIS-11; E1-rule mutants 6 of 6
   killed.
+
+### 16o - E1 measured: route B on VIP-Seg's update count reproduces VIP-Seg
+
+* **E1** (`results/phase16_e1/SUMMARY.md`; VM 00:55-03:23 UTC, commit `0837680`). r0 at batch 1, 24,000
+  updates, 13 validations. S1 fixed100: `last` 73.20 (+2.99 [+2.62, +3.39] over r0; +2.60 to +3.11 on
+  the random600 draws), `best` 75.05 against VIP-Seg's released 75.36 (-0.31 [-0.63, +0.01]). E1.1: the
+  update count is route B's schedule. Selection alone is worth +1.85 on E1 and +1.48 on d29's best.
+* **VM.** Stockout at start (`ZONE_RESOURCE_POOL_EXHAUSTED`, 10+ retries every 20 s); the waiter that
+  stops the VM used a self-safe pattern (`pgrep -f "[t]rain.py|..."`) and stopped it about 5 minutes
+  after the evaluation. The first waiter died with the previous session; it was re-armed.

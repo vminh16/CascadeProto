@@ -1,0 +1,51 @@
+=== 2026-09-24T02:36:53+00:00 commit 0837680 eval_e1 fold S1
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] S1 fixed100: e1 0.7320 (logit-pair cos 0.755, oracle 0.8743 / unit 0.8593) | e1_best 0.7505 (logit-pair cos 0.783, oracle 0.8479 / unit 0.8508) | r0 0.7020 (logit-pair cos 0.771, oracle 0.8463 / unit 0.8501) | r0_best 0.7020 (logit-pair cos 0.771, oracle 0.8463 / unit 0.8501) | d29_best 0.7168 (logit-pair cos 0.851, oracle 0.8546 / unit 0.8579) | vipseg 0.7536 (logit-pair cos 0.807, oracle 0.8377 / unit 0.8631)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] S1 random600:0: e1 0.7251 (logit-pair cos 0.740, oracle 0.8662 / unit 0.8543) | e1_best 0.7434 (logit-pair cos 0.772, oracle 0.8465 / unit 0.8486) | r0 0.6940 (logit-pair cos 0.759, oracle 0.8449 / unit 0.8489) | r0_best 0.6940 (logit-pair cos 0.759, oracle 0.8449 / unit 0.8489) | d29_best 0.7050 (logit-pair cos 0.838, oracle 0.8514 / unit 0.8558) | vipseg 0.7449 (logit-pair cos 0.795, oracle 0.8338 / unit 0.8571)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] S1 random600:1: e1 0.7423 (logit-pair cos 0.753, oracle 0.8798 / unit 0.8668) | e1_best 0.7550 (logit-pair cos 0.780, oracle 0.8531 / unit 0.8567) | r0 0.7140 (logit-pair cos 0.775, oracle 0.8522 / unit 0.8561) | r0_best 0.7140 (logit-pair cos 0.775, oracle 0.8522 / unit 0.8561) | d29_best 0.7239 (logit-pair cos 0.851, oracle 0.8622 / unit 0.8648) | vipseg 0.7582 (logit-pair cos 0.808, oracle 0.8432 / unit 0.8692)
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] S1 random600:2: e1 0.7550 (logit-pair cos 0.758, oracle 0.8760 / unit 0.8629) | e1_best 0.7723 (logit-pair cos 0.786, oracle 0.8534 / unit 0.8581) | r0 0.7291 (logit-pair cos 0.778, oracle 0.8507 / unit 0.8548) | r0_best 0.7291 (logit-pair cos 0.778, oracle 0.8507 / unit 0.8548) | d29_best 0.7414 (logit-pair cos 0.856, oracle 0.8578 / unit 0.8624) | vipseg 0.7721 (logit-pair cos 0.807, oracle 0.8375 / unit 0.8649)
+E1.1 adopt               E1 last 73.20; E1 - r0 fixed100 +2.99 [+2.62, +3.39], above 0; random600 [3.11, 2.83, 2.6]: VIP-Seg's update count becomes route B's schedule
+reported e1_vs_vipseg    -2.16 [-2.52, -1.83], below 0
+reported e1_best_vs_vipseg -0.31 [-0.63, +0.01], contains 0
+reported e1_best_vs_e1   +1.85 [+1.43, +2.30], above 0
+reported r0_best_vs_r0   +0.00 [+0.00, +0.00], contains 0
+=== E1 EVAL FINISHED 2026-09-24T03:23:33+00:00
