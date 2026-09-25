@@ -1576,3 +1576,14 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   +16.31, all +25.12 (P6.1 joint). Frozen background self-support (rho 1, alpha 0.25, T 2) +1.19 and k-means
   background (k 3) +1.32 on fixed100, positive on every random600 draw (P6.2, P6.3 go); both flat on the leak-free
   draw. No foreground self-support arm beats U; no rho < 1 arm helps.
+
+### 16ah - D-39 recorded and implemented: trained self-support prototypes on the clean base (not run)
+
+* **D-39** in `docs/spec/00`: A0 (support directions, no head) and A1 (A0 + two trained self-support steps with
+  learned alpha_bg / alpha_fg, auxiliary CE on the support-only logits) on E1's schedule against CR; inference
+  background rules (P6's self-support, 3-component k-means, both); rules D39.1-D39.4, the D39.3 candidate fixed by
+  D39.1 and D39.2 rather than by test scores.
+* `models/self_support.py` (new), `models/prototypes.py` (`unit_prototypes`), `models/cascadeproto.py`
+  (`prototype_rule`, `self_support_steps`, `support_aux`), `pipeline/model_api.py` (`loss_aux`, `aux_weight`),
+  `train.py` flags, `experiments/d39_eval.py`, `experiments/run_d39.sh smoke|full`, `tests/test_self_support.py`
+  SS-1...10 (05 §3.8q); G1 503 passed; mutation check 10/10.

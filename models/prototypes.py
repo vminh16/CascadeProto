@@ -43,3 +43,22 @@ def point_prototypes(support_feat: torch.Tensor, support_mask: torch.Tensor) -> 
         p_bg = torch.einsum("nkp,nkpd->d", bg, support_feat) / bg_count  # [D]
 
     return torch.cat([p_bg[None], p_fg], dim=0)  # [N+1, D]
+
+
+def unit_prototypes(support_feat: torch.Tensor, support_mask: torch.Tensor) -> torch.Tensor:
+    """Support directions [N+1, D]: normalised sums of unit features, background from every mask-0 point of every
+    way and shot, then each way's foreground [DECISION D-39]. **Beyond the paper.**
+
+    The geometry of D-35's `support_directions` and of the oracle directions of D-29, so that support, query
+    self-support and oracle rows are comparable unit vectors.
+    """
+    if support_feat.dim() != 4 or support_mask.shape != support_feat.shape[:3]:
+        raise ValueError(f"support_feat [N, K, P, D] and mask [N, K, P] expected, got {tuple(support_feat.shape)} "
+                         f"and {tuple(support_mask.shape)}")
+    u = torch.nn.functional.normalize(support_feat, dim=-1)  # [N, K, P, D]
+    fg = (support_mask == 1).to(u.dtype)  # [N, K, P]
+    if (fg.sum(dim=(1, 2)) == 0).any():
+        raise ValueError("a way has no foreground support point; the loader guarantees >= 101")
+    s_fg = torch.einsum("nkp,nkpd->nd", fg, u)  # [N, D]
+    s_bg = torch.einsum("nkp,nkpd->d", 1.0 - fg, u)  # [D]
+    return torch.nn.functional.normalize(torch.cat([s_bg.unsqueeze(0), s_fg], dim=0), dim=-1)  # [N+1, D]

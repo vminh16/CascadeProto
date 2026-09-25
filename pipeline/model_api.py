@@ -21,6 +21,9 @@ class EpisodeOutput(NamedTuple):
     # Beyond the paper [DECISION D-29]: L_distill (02 §14) in training mode, None otherwise, and its weight β.
     loss_distill: Optional[torch.Tensor] = None
     distill_weight: float = 0.0
+    # Beyond the paper [DECISION D-39]: CE of the support-only logits in training mode, and its weight.
+    loss_aux: Optional[torch.Tensor] = None
+    aux_weight: float = 0.0
 
 
 def episode_loss(output: EpisodeOutput, episode: Episode) -> torch.Tensor:
@@ -38,6 +41,10 @@ def episode_loss(output: EpisodeOutput, episode: Episode) -> torch.Tensor:
         if output.loss_distill is None:
             raise ValueError("distill_weight > 0 without L_distill: the model was not in training mode [D-29]")
         total = total + output.distill_weight * output.loss_distill
+    if output.aux_weight > 0:
+        if output.loss_aux is None:
+            raise ValueError("aux_weight > 0 without loss_aux: the model was not in training mode [D-39]")
+        total = total + output.aux_weight * output.loss_aux
     return total
 
 

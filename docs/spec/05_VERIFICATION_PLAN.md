@@ -510,6 +510,24 @@ three runs in a row on the L4.
 Mutation check (2026-09-25), 9 mutants: 9 killed. The first check left a go without its CI / random600 condition
 alive; P6-8 gained that case.
 
+### 3.8q `tests/test_self_support.py` (G1) — trained self-support prototypes [DECISION D-39]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| SS-1 | `unit_prototypes` equals D-35's support directions; a way without foreground raises | [DECISION D-39] |
+| SS-2 | The trained module equals P6's rule (ρ = 1) at fixed α: background only (α_fg = 1) and all rows; every step returned; too few predicted points keep the rows | [DECISION D-38], [DECISION D-39] |
+| SS-3 | Gradients reach θ_bg, θ_fg and the query features; α initialised at 0.25 / 0.5 | [DECISION D-39] |
+| SS-4 | The unit rule refuses stages, LMA, L2 point prototypes and a neck; self-support needs the unit rule; the auxiliary weight needs self-support | [DECISION D-39] |
+| SS-5 | Unit-rule logits (T = 0 and T = 2), effective prototype = last step, auxiliary CE on the support-only logits in training only, added by `episode_loss` | [DECISION D-39] |
+| SS-6 | Training loss and every gradient are unchanged by a query permutation (order-free, as D37-T5) | [DECISION D-37], [DECISION D-39] |
+| SS-7 | `train.py` flags, run directories, resuming a checkpoint without the flags | [DECISION D-39] |
+| SS-8 | The D-39 reader's k-means background (max with the row) and inference arms | [DECISION D-39] |
+| SS-9 | Rules D39.1–D39.3, including a negative random600 draw blocking a go, and "incomplete" | [DECISION D-39] |
+| SS-10 | The new files parse as Python 3.10 | 00 §5.2 |
+
+Mutation check (2026-09-25), 10 mutants: 10 killed (two survivors of the first check, the minimum-points rule and a go
+without its CI condition, gained tests). LOSS-3 (§3.6) now lists the optional `loss_aux` / `aux_weight` fields.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

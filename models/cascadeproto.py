@@ -29,7 +29,8 @@ from models.eppm import (CROSS_ATTN_NORMS, CROSS_ATTN_SCALES, CROSS_ATTN_SUPPORT
 from models.lma import EVAL_NOISE, LearnableModalityAdapter
 from models.neck import NECKS, build_neck
 from models.oracle_distill import oracle_distill_loss
-from models.prototypes import point_prototypes
+from models.prototypes import point_prototypes, unit_prototypes
+from models.self_support import SelfSupport
 from pipeline.episodes import Episode
 from pipeline.model_api import EpisodeOutput
 
@@ -43,6 +44,7 @@ VIP_IGNORES = ("cross_attn_scale", "cross_attn_support")  # VIP-Seg's own module
 LOGIT_SCALES = ("none", "sqrt_D")  # [DECISION D-10]
 CROSS_ATTN = ("channel", "two_hop")  # [DECISION D-01]
 DIFFUSION_INPUTS = ("post_relu", "pre_relu")  # [DECISION D-14]
+PROTOTYPE_RULES = ("mean", "unit")  # [DECISION D-39], "unit" beyond the paper
 
 
 @dataclass(frozen=True)
@@ -76,6 +78,9 @@ class CascadeProtoConfig:
     distill_beta: float = 0.0  # [DECISION D-29], beyond the paper; 0 = the paper's objective
     neck: str = "none"  # [DECISION D-33], beyond the paper
     neck_alpha_init: float = 0.0  # [DECISION D-34]; 0 keeps D-33's identity at initialisation
+    prototype_rule: str = "mean"  # [DECISION D-39]; "unit" = support directions, no head
+    self_support_steps: int = 0  # [DECISION D-39]; trained self-support steps on the unit rule
+    support_aux: float = 0.0  # [DECISION D-39]; weight of the CE on the step-0 (support-only) logits
 
     def __post_init__(self):
         if not 0 <= self.num_stages <= 6:
@@ -85,6 +90,17 @@ class CascadeProtoConfig:
                              f"{self.neck_alpha_init} with neck={self.neck!r}")
         if not (math.isfinite(self.distill_beta) and self.distill_beta >= 0):
             raise ValueError(f"distill_beta must be a finite value >= 0 [DECISION D-29], got {self.distill_beta}")
+        if self.prototype_rule not in PROTOTYPE_RULES:
+            raise ValueError(f"prototype_rule must be one of {PROTOTYPE_RULES}, got {self.prototype_rule!r}")
+        if self.prototype_rule == "unit" and (self.num_stages or self.use_lma or self.l2norm_point_proto
+                                              or self.neck != "none"):
+            raise ValueError("prototype_rule=unit replaces the head: it needs num_stages=0, use_lma=false, "
+                             "l2norm_point_proto=false and no neck [DECISION D-39]")
+        if self.self_support_steps < 0 or (self.self_support_steps and self.prototype_rule != "unit"):
+            raise ValueError(f"self_support_steps={self.self_support_steps} needs prototype_rule=unit [DECISION D-39]")
+        if not (math.isfinite(self.support_aux) and self.support_aux >= 0) or (self.support_aux
+                                                                             and not self.self_support_steps):
+            raise ValueError(f"support_aux={self.support_aux} must be >= 0 and needs self-support steps [DECISION D-39]")
         for name, value, allowed in (("modality", self.modality, MODALITIES),
                                      ("logit_scale", self.logit_scale, LOGIT_SCALES),
                                      ("eval_noise", self.eval_noise, EVAL_NOISE),
@@ -164,6 +180,8 @@ class CascadeProto(nn.Module):
         self.stages = nn.ModuleList(build_stage(config, step) for step in range(config.num_stages))
         # ADRM over T >= 2 stages; with T = 1 its weight is 1 and W_g could not learn [DECISION D-17]
         self.routing = DynamicRouting(config.num_stages) if config.use_adrm and config.num_stages >= 2 else None
+        # Trained self-support in place of a head [DECISION D-39]
+        self.self_support = SelfSupport(config.self_support_steps) if config.self_support_steps else None
 
     def cascade(self, episode: Episode):
         """(F^q [B_q, P, D], P^0 [N+1, D], [P^1..P^T] each [B_q, N+1, D], L_GMMN) of one episode.
@@ -174,6 +192,11 @@ class CascadeProto(nn.Module):
         f_s, f_q = self.features.encode_episode(episode.support_x, episode.query_x)  # [N,K,P,D], [B_q,P,D]
         if self.neck is not None:
             f_s = self.neck(f_s, f_q)  # [N, K, P, D], the prototypes and the head see F_s' [DECISION D-33]
+        if self.config.prototype_rule == "unit":  # support directions, no head [DECISION D-39]
+            prototypes = unit_prototypes(f_s, episode.support_y)  # [N+1, D]
+            p = prototypes.unsqueeze(0).expand(f_q.shape[0], -1, -1)  # R_0 per query [B_q, N+1, D]
+            steps = self.self_support(f_q, p) if self.self_support is not None else []  # T x [B_q, N+1, D]
+            return f_q, prototypes, steps, f_q.new_zeros(())
         p_point = point_prototypes(f_s, episode.support_y)  # [N+1, D] (Eq.3)
         if self.config.l2norm_point_proto:  # ablation only [DECISION D-10]
             p_point = F.normalize(p_point, dim=-1)  # [N+1, D]
@@ -208,12 +231,17 @@ class CascadeProto(nn.Module):
         if not self.training:  # the query labels are never read at evaluation [DECISION D-29]
             return EpisodeOutput(logits=logits, loss_gmmn=loss_gmmn)
         beta = self.config.distill_beta
+        aux = None
+        if self.config.support_aux > 0:  # the step-0 prediction is trained too [DECISION D-39]
+            aux = F.cross_entropy(torch.einsum("bpd,cd->bpc", f_q, prototypes).reshape(-1, prototypes.shape[0]),
+                                  episode.query_y.reshape(-1))  # scalar
         if beta > 0:
             loss_distill = oracle_distill_loss(logits, f_q, episode.query_y)  # scalar (02 §14)
         else:  # logged for comparison, no gradient and no effect on training [DECISION D-29]
             with torch.no_grad():
                 loss_distill = oracle_distill_loss(logits.detach(), f_q, episode.query_y)  # scalar
-        return EpisodeOutput(logits=logits, loss_gmmn=loss_gmmn, loss_distill=loss_distill, distill_weight=beta)
+        return EpisodeOutput(logits=logits, loss_gmmn=loss_gmmn, loss_distill=loss_distill, distill_weight=beta,
+                             loss_aux=aux, aux_weight=self.config.support_aux)
 
     def effective_prototype(self, f_q: torch.Tensor, p0: torch.Tensor, steps) -> torch.Tensor:
         """M_eff [B_q, N+1, D] with `L_final = F^q M_effᵀ` (up to logit_scale), for diagnostics [DECISION D-29].
