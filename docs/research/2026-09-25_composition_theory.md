@@ -143,8 +143,10 @@ non-c neighbours are predicted c. Its expected vote for c is p_i a + (1 − p_i)
 
     p_i a + (1 − p_i) b > 1/2     ⇔     p_i > (1/2 − b) / (a − b).
 
-With the U-rule's foreground recall a ≈ 0.7–0.85 and b ≈ 0.05–0.1 [P6 recall/precision], p_i must exceed about
-0.6–0.7. The same condition read for a correctly predicted point with a heterophilous neighbourhood gives the
+Measured on the U rule (CR features, fixed100 counts; b = false positives of c over the non-c points of the episodes
+that contain c): door a 0.758, b 0.152 → p* 0.574; floor 0.836, 0.106 → 0.540; sofa 0.855, 0.091 → 0.536; table 0.766,
+0.106 → 0.597; wall 0.676, 0.109 → 0.690; window 0.731, 0.108 → 0.629. These use the global a; the local recall
+around missed points is lower, so the true thresholds are higher. The same condition read for a correctly predicted point with a heterophilous neighbourhood gives the
 damage: propagation flips it when its neighbourhood is dominated by other classes. Both counts are computable with
 labels on the actual predictions; their difference bounds the net gain from above (with the true K) — an L2
 measurement.
@@ -276,8 +278,10 @@ An Opus research agent answered eight questions; I re-checked the items marked *
 * **Best verified corrected-protocol results, S3DIS 2-way 1-shot, S0 / S1 (mean):** MM-FSS (An et al., ICLR 2025,
   text + 2D, arXiv:2410.22489) 41.98 / 46.61 (44.30), +6.2 over COSeg; DA-FSS (arXiv:2601.01456) 42.07 / 47.16
   (44.62); WARM (arXiv:2509.13907) 50.91 / 38.34 (44.63), whose training-free "FPS + min-dist." baseline scores
-  44.48 / 33.00 (all **re-checked** in the papers' tables). Multimodality is a measured lever under the honest
-  protocol (MM-FSS +6.2), which bears on the maintainer's multimodal goal.
+  44.48 / 33.00 (all **re-checked** in the papers' tables). MM-FSS's +6.2 is **not** a text-only gain: its backbone
+  has an "intermodal" head pretrained to align with 2D vision-language features (LSeg / OpenSeg) on ScanNet's images,
+  reused for S3DIS (re-checked in its §4.1), which our guardrail 1 (no pre-trained point-cloud weights) excludes; its
+  text components (MSF, TACC) are not separated from that pretraining in the ablations read here.
 * **AttMPTI's propagation is not isolated.** ProtoNet → MPTI (multiple prototypes **and** label propagation) is
   48.39 / 49.98 → 52.27 / 51.48 on S3DIS 2-way 1-shot (**re-checked**); no with/without-propagation ablation exists.
   Its best propagation setting is α = 0.99, k = 200 (agent-reported). Under the corrected protocol AttMPTI is below
@@ -285,8 +289,9 @@ An Opus research agent answered eight questions; I re-checked the items marked *
 * **SSP is prediction-based at inference and ground-truth-based in its training loss.** In the official code the
   matching path pools the query at predicted probability > 0.7 (fg) / > 0.6 (bg), while the self-support loss in
   training pools the query with the **ground-truth** mask (`model/SSP_matching.py` lines 94–96, **re-checked**). The
-  paper's ablation removes the self-support background prototype for −1.7 and the foreground one for −0.8
-  (agent-reported): the background matters more, as in our P6. A faithful 3D SSP (with the ground-truth self-support
+  paper's ablation (Table 6, **re-checked**) removes the self-support background prototype for −1.7 and the foreground
+  one for −0.8 (support foreground −1.3, support background −0.1): the background matters more, as in our P6. Its
+  gain over the baseline on PASCAL is +3.1 / +3.9 (1-shot, ResNet-50 / 101; Table 13, **re-checked**). A faithful 3D SSP (with the ground-truth self-support
   loss) is untested here; D-39's A1 was a different, weaker form.
 * **Prototype rectification (BD-CSPN, ECCV 2020)** bounds the expected cosine assuming the added samples belong to the
   class; mislabelled pseudo-labels are not modelled, and transductive rectification loses under class-imbalanced
@@ -297,9 +302,10 @@ An Opus research agent answered eight questions; I re-checked the items marked *
   shifts the class-mean gap to (1 − 2e)(1 − 2α(1 − p)). The algebra is re-checked here from the stated expectations:
   the gap stays positive iff p > 1 − 1/(2α) (≈ 0.5 for α near 1). With symmetric seeds (a = 1 − e, b = e) our vote
   condition of §5 reduces to the same p > 1/2; with the U rule's asymmetric seeds (a ≈ 0.75, b ≈ 0.08) it is stricter
-  (p > 0.63). Propagation also lowers variance, so it can help even when the mean gap shrinks slightly; P7a must
+  (p* 0.54–0.69 per class, §5). Propagation also lowers variance, so it can help even when the mean gap shrinks slightly; P7a must
   measure both.
-* **Projection head theory** (Xue et al., ICLR 2024, agent-reported): training weights features increasingly
+* **Projection head theory** (Xue et al., ICLR 2024; Theorem 3.5's β, γ and Corollary 3.7's three cases
+  **re-checked**): training weights features increasingly
   unequally with depth; features that training suppresses (disrupted by augmentation, weak, or too strong) keep
   weight before the head and lose it after. Applied here: episodic training on base classes suppresses features
   useless for base classes but useful for novel ones; the head can absorb that suppression. A testable reading, not
@@ -312,4 +318,5 @@ An Opus research agent answered eight questions; I re-checked the items marked *
 **Consequences for the plan.** (1) A paper claim needs COSeg's corrected protocol as well as the standard one; that is
 a data-pipeline and backbone change, to be decided separately. (2) P7a's homophily threshold is now backed by two
 derivations (§5 and Cheng et al.). (3) Two untested trained variants remain legitimate: a faithful SSP with the
-ground-truth self-support loss, and multimodal prototypes, the one lever measured to help under the honest protocol.
+ground-truth self-support loss, and text prototypes (the measured multimodal gain of MM-FSS also contains a 2D-VLM
+pretraining our guardrails exclude, so its size does not carry over).
