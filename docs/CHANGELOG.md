@@ -1595,3 +1595,22 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   head), positive on every random600 draw; D39.1 adopts the combined rule. A1 (trained self-support) − A0 (no head)
   −0.66 (D39.2 stop); A0 itself 53.52, below the same rule on CR's features (55.74): the clean VIP head helps the
   features in training though it adds nothing at inference. Oracle gap of the best rule still ≈ +23.
+
+### 16aj - Research note: why composed modules fail, and the causal chain a module must satisfy
+
+* `docs/research/2026-09-25_composition_theory.md`: every phase-16 failure read as a module whose assumption was false
+  for the input it received in the composed pipeline; the contract L0-L5 (target, mechanism, precondition on data,
+  interface after upstream modules, effect, mechanism check); the fixed point of self-support (why the foreground
+  fails at precision 0.55-0.80); the vote condition of label propagation with per-class thresholds measured on
+  fixed100 (0.54-0.69); the projection-head reading of A0 < CR. Two literature passes, key numbers re-checked in the
+  primary sources (COSeg corrected protocol, SSP code and ablations, Wei et al. Assumption 4.1, Xue et al.).
+
+### 16ak - D-40 recorded and P7 implemented: label propagation on the query's own point graph (not run)
+
+* **D-40** in `docs/spec/00`: P7, seeds Y0 = D-39's U + both; label spreading (Zhou et al.) per query block on three
+  kNN graphs (xyz, xyz with Iscen's [cos]_+^3 weights, cosine) x k {8, 16} x beta {0.5, 0.8, 0.9, 0.99}, frozen on S1
+  valid, gate +0.5 on valid before any test draw; P7a diagnostics (homophily, local seed recall and false rate, one-hop
+  vote, same-class reachability) per class and sampling condition on every draw; rules P7.1-P7.7 fixed before the run.
+* `experiments/p7_propagation_probe.py` (select / test / decide; checks: model identity, the solve's residual,
+  VIP-Seg's metric, D-37's CR, D-39's U and U + both, P6's valid numbers), `experiments/run_p7.sh smoke|full`,
+  `tests/test_propagation_probe.py` P7-1...10 (05 §3.8r); mutation check 22/22 killed.

@@ -528,6 +528,24 @@ alive; P6-8 gained that case.
 Mutation check (2026-09-25), 10 mutants: 10 killed (two survivors of the first check, the minimum-points rule and a go
 without its CI condition, gained tests). LOSS-3 (§3.6) now lists the optional `loss_aux` / `aux_weight` fields.
 
+### 3.8r `tests/test_propagation_probe.py` (G1) — label propagation on the query graph [DECISION D-40]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| P7-1 | kNN graphs against brute force: neighbour sets (space or cosine, never the point itself) and affinities (1 or [cos]₊³); unknown graph and k ≥ P raise | [DECISION D-40], Iscen et al. Eq. 9 |
+| P7-2 | W = A + Aᵀ, symmetric with zero diagonal; S = D^{−1/2} W D^{−1/2} entry by entry; an isolated point gets a zero row and column, no NaN | [DECISION D-40], Zhou et al. |
+| P7-3 | The Cholesky solve equals the limit of F ← βSF + (1 − β)Y₀ for every β of the grid; β = 0 returns Y₀; β = 1 raises | [DECISION D-40], Zhou et al. |
+| P7-4 | An isolated point keeps its seed | [DECISION D-40] |
+| P7-5 | P7a quantities by hand on a path (homophily, local recall, one-hop vote with ties counted as neither, summands, fixed / broken) and against a loop form on random weighted graphs; reachability against BFS; a class without a correct seed is unreachable | [DECISION D-40] |
+| P7-6 | Column and condition of every point (own / other of D-35), sums by (column, condition), one query block per way; pooled and per-class ratios | [DECISION D-35], [DECISION D-40] |
+| P7-7 | The seeds are D-39's U + both; every arm and `lp_u` equal the spreading on their graph and seed | [DECISION D-39], [DECISION D-40] |
+| P7-8 | No label enters a prediction; swapping the query blocks or permuting the points of a block permutes the output | [DECISION D-37], [DECISION D-40] |
+| P7-9 | Rules P7.1–P7.7 (gate, adopt, trained form, between with a negative random600 draw, stop, leak-free reading, mechanism confirmed / unexplained, incomplete); the 24 arm names; a selection tie goes to the earlier arm | [DECISION D-40] |
+| P7-10 | The new files parse as Python 3.10 | 00 §5.2 |
+
+Mutation check (2026-09-25), 22 mutants: 22 killed (four survivors of the first check, the seed source, the leak-free
+reading, the missed-point homophily summand and the gate threshold, gained tests).
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.
