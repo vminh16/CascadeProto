@@ -1548,3 +1548,14 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   largest entry, below the 5.4e-3 of one ULP; VIP-Seg's head moves the loss by 3.0e-3 and the gradients by 0.66.
   The test now uses that floor (clean within 3x, VIP-Seg's form beyond 5x on the loss); three passes in a row. D-37's
   lemma paragraph records the numbers.
+
+### 16ae - C4 and D-37 measured: the shortcut traced; the clean head is the base
+
+* VM run 2026-09-24 17:34–23:48 UTC, commit 0fe4723 (`results/phase16_d37/SUMMARY.md`, logs, JSON; counts not
+  committed). All checks exact (scrambled = native 0.00e+00; E1 re-scored |diff| 0.000 on four draws).
+* C4.1: with the clean cross-term on the trained weights E1 and VIP-Seg lose all order dependence (37.91 / 35.45 in
+  both orders): the reshape is the sole carrier.
+* D-37 `last`: VF (E1) 73.20 / swapped 0.92; VR 53.26 / 52.75; CR 54.84 / 54.84. Shortcut worth +19.94 [+18.40,
+  +21.52]; CR − VR +1.58 [+0.50, +2.66] → clean head is the base (D37.3); `best` a tie, clean by the tie rule.
+  Without the shortcut the head equals plain prototype matching (CR 54.84, its support rule 55.02). Leak-free draw:
+  E1 17.89, VR 24.04, CR 28.10. Oracle gap of the base +28.5, not +12–14.

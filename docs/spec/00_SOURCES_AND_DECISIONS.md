@@ -1371,6 +1371,15 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   `pipeline/episodes.py` (`QueryOrder`), `train.py` (`--query_order`), `experiments/d37_eval.py`,
   `experiments/c3_query_order.py` (`--out`), `experiments/run_d37.sh`, 05 §3.8o.
 
+* **Outcome (2026-09-25, `results/phase16_d37/SUMMARY.md`).** C4: checks C4.0a/b pass exactly; with `clean` both
+  checkpoints are order-free (E1 37.91 / 37.91, VIP-Seg 35.45 / 35.45, shift 0.000) → C4.1 holds, the reshape is the
+  sole carrier. D-37 on `last`: D37.2 holds (CR 54.84 / 54.84); D37.1 origin (VR 53.26 / 52.75, shift +0.004);
+  D37.3 clean head (CR − VR +1.58 [+0.50, +2.66], random600 +1.39 / +0.65 / +1.35); D37.4 shortcut worth VF − VR
+  +19.94 [+18.40, +21.52], leak-free E1 17.89 / VR 24.04 / CR 28.10, the base's oracle gap +28.54 (unit). On `best`:
+  D37.3 tie (+0.73 [−0.32, +1.85]) → clean head by the tie rule. Without the shortcut the head is level with plain
+  prototype matching (CR 54.84 against its support rule 55.02). **The clean head (`stage_type=vip_clean`, random
+  query order) is the base of every later arm.**
+
 ---
 
 ## 5. Official VIP-Seg files: restore, reuse, avoid
@@ -1474,4 +1483,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-24 | D-35 (maintainer request): P5, an inference-only split of E1's oracle gap by sampling condition and class presence, with a sampling intervention, test-time batch statistics, a leak-free draw and training-free dual-condition prototypes; evidence from C1/C2 and the saved P4/E1 counts; rules fixed before the run. |
 | 2026-09-24 | D-35 outcome: the smoke run passed its checks but showed E1 naming the foreground by query position; C3 measured it on all of fixed100 (E1 73.20 → 0.92, VIP-Seg released 75.36 → 0.87 with the two query blocks swapped). The full P5 is not run as registered. |
 | 2026-09-24 | D-36 (maintainer request): C4, VIP-Seg's cross-term re-run in a per-query form on the trained weights; D-37 (maintainer request): the 2 × 2 of head × training query order. Amended before any code: CF = CR by a lemma checked by tests, the relabel shift replaces the raw relabel share, E1 re-scored as an evaluation check, a tie in D37.3 goes to the clean head. |
+| 2026-09-25 | D-36 measured: C4.1, the cross-term reshape is the sole carrier. D-37 measured: the fixed query order is the origin (D37.1); the clean head is the base (D37.3); the shortcut is worth +19.9 on S1 fixed100, and the oracle gap of the clean base is +28.5. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

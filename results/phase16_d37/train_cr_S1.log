@@ -1,0 +1,81 @@
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'stage_type': 'vip_clean', 'gate_target': 'prototype', 'eq19_self': 'none', 'query_order': 'random', 'train_classes': 'split', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'neck': 'none', 'neck_alpha_init': 0.0, 'init_checkpoint': None, 'distill_beta': 0.0, 'epochs': 50, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 15, 'batch_size': 1, 'lr_gamma': 0.5, 'valid_every': 4, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_d37', 'dry_run': False, 'resume': True}
+data: /home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+train classes [0, 3, 4, 8, 10, 11] | test classes [6, 1, 9, 7, 2, 5] | 24000 training episodes, 480 steps/epoch
+model config: {'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'gate_target': 'prototype', 'eq19_self': 'none', 'stage_type': 'vip_clean', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'distill_beta': 0.0, 'neck': 'none', 'neck_alpha_init': 0.0}
+epoch 1/50 | loss 0.5409 | L_GMMN 0.0000 | lr 1.00e-03 | 94s | L_distill 0.2028
+epoch 2/50 | loss 0.3806 | L_GMMN 0.0000 | lr 1.00e-03 | 186s | L_distill 0.1370
+epoch 3/50 | loss 0.3675 | L_GMMN 0.0000 | lr 1.00e-03 | 278s | L_distill 0.1155
+epoch 4/50 | loss 0.3504 | L_GMMN 0.0000 | lr 1.00e-03 | 371s | L_distill 0.1207
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 4 | valid mIoU 0.4863
+epoch 5/50 | loss 0.3325 | L_GMMN 0.0000 | lr 1.00e-03 | 577s | L_distill 0.1084
+epoch 6/50 | loss 0.3193 | L_GMMN 0.0000 | lr 1.00e-03 | 670s | L_distill 0.1016
+epoch 7/50 | loss 0.3012 | L_GMMN 0.0000 | lr 1.00e-03 | 762s | L_distill 0.0986
+epoch 8/50 | loss 0.2823 | L_GMMN 0.0000 | lr 1.00e-03 | 855s | L_distill 0.0988
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 8 | valid mIoU 0.4915
+epoch 9/50 | loss 0.3020 | L_GMMN 0.0000 | lr 1.00e-03 | 1063s | L_distill 0.1004
+epoch 10/50 | loss 0.2666 | L_GMMN 0.0000 | lr 1.00e-03 | 1156s | L_distill 0.0913
+epoch 11/50 | loss 0.2552 | L_GMMN 0.0000 | lr 1.00e-03 | 1248s | L_distill 0.0909
+epoch 12/50 | loss 0.2614 | L_GMMN 0.0000 | lr 1.00e-03 | 1340s | L_distill 0.0885
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 12 | valid mIoU 0.4994
+epoch 13/50 | loss 0.2419 | L_GMMN 0.0000 | lr 1.00e-03 | 1545s | L_distill 0.0783
+epoch 14/50 | loss 0.2390 | L_GMMN 0.0000 | lr 1.00e-03 | 1638s | L_distill 0.0874
+epoch 15/50 | loss 0.2596 | L_GMMN 0.0000 | lr 5.00e-04 | 1730s | L_distill 0.0963
+epoch 16/50 | loss 0.2015 | L_GMMN 0.0000 | lr 5.00e-04 | 1822s | L_distill 0.0836
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 16 | valid mIoU 0.5233
+epoch 17/50 | loss 0.1940 | L_GMMN 0.0000 | lr 5.00e-04 | 2027s | L_distill 0.0818
+epoch 18/50 | loss 0.1910 | L_GMMN 0.0000 | lr 5.00e-04 | 2119s | L_distill 0.0841
+epoch 19/50 | loss 0.1905 | L_GMMN 0.0000 | lr 5.00e-04 | 2212s | L_distill 0.0811
+epoch 20/50 | loss 0.1855 | L_GMMN 0.0000 | lr 5.00e-04 | 2304s | L_distill 0.0786
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 20 | valid mIoU 0.5108
+epoch 21/50 | loss 0.2040 | L_GMMN 0.0000 | lr 5.00e-04 | 2509s | L_distill 0.0752
+epoch 22/50 | loss 0.1923 | L_GMMN 0.0000 | lr 5.00e-04 | 2602s | L_distill 0.0840
+epoch 23/50 | loss 0.1741 | L_GMMN 0.0000 | lr 5.00e-04 | 2694s | L_distill 0.0853
+epoch 24/50 | loss 0.1796 | L_GMMN 0.0000 | lr 5.00e-04 | 2786s | L_distill 0.0784
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 24 | valid mIoU 0.5254
+epoch 25/50 | loss 0.1936 | L_GMMN 0.0000 | lr 5.00e-04 | 2992s | L_distill 0.0854
+epoch 26/50 | loss 0.1531 | L_GMMN 0.0000 | lr 5.00e-04 | 3085s | L_distill 0.0728
+epoch 27/50 | loss 0.1890 | L_GMMN 0.0000 | lr 5.00e-04 | 3177s | L_distill 0.0807
+epoch 28/50 | loss 0.1753 | L_GMMN 0.0000 | lr 5.00e-04 | 3269s | L_distill 0.0823
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 28 | valid mIoU 0.5329
+epoch 29/50 | loss 0.1677 | L_GMMN 0.0000 | lr 5.00e-04 | 3476s | L_distill 0.0740
+epoch 30/50 | loss 0.1756 | L_GMMN 0.0000 | lr 2.50e-04 | 3568s | L_distill 0.0735
+epoch 31/50 | loss 0.1568 | L_GMMN 0.0000 | lr 2.50e-04 | 3660s | L_distill 0.0728
+epoch 32/50 | loss 0.1547 | L_GMMN 0.0000 | lr 2.50e-04 | 3753s | L_distill 0.0691
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 32 | valid mIoU 0.5518
+epoch 33/50 | loss 0.1474 | L_GMMN 0.0000 | lr 2.50e-04 | 3960s | L_distill 0.0694
+epoch 34/50 | loss 0.1494 | L_GMMN 0.0000 | lr 2.50e-04 | 4052s | L_distill 0.0760
+epoch 35/50 | loss 0.1391 | L_GMMN 0.0000 | lr 2.50e-04 | 4145s | L_distill 0.0720
+epoch 36/50 | loss 0.1378 | L_GMMN 0.0000 | lr 2.50e-04 | 4237s | L_distill 0.0731
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 36 | valid mIoU 0.5521
+epoch 37/50 | loss 0.1450 | L_GMMN 0.0000 | lr 2.50e-04 | 4443s | L_distill 0.0695
+epoch 38/50 | loss 0.1444 | L_GMMN 0.0000 | lr 2.50e-04 | 4535s | L_distill 0.0702
+epoch 39/50 | loss 0.1433 | L_GMMN 0.0000 | lr 2.50e-04 | 4627s | L_distill 0.0681
+epoch 40/50 | loss 0.1442 | L_GMMN 0.0000 | lr 2.50e-04 | 4719s | L_distill 0.0767
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 40 | valid mIoU 0.5434
+epoch 41/50 | loss 0.1404 | L_GMMN 0.0000 | lr 2.50e-04 | 4926s | L_distill 0.0692
+epoch 42/50 | loss 0.1476 | L_GMMN 0.0000 | lr 2.50e-04 | 5018s | L_distill 0.0712
+epoch 43/50 | loss 0.1422 | L_GMMN 0.0000 | lr 2.50e-04 | 5110s | L_distill 0.0711
+epoch 44/50 | loss 0.1463 | L_GMMN 0.0000 | lr 2.50e-04 | 5202s | L_distill 0.0725
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 44 | valid mIoU 0.5193
+epoch 45/50 | loss 0.1352 | L_GMMN 0.0000 | lr 1.25e-04 | 5408s | L_distill 0.0725
+epoch 46/50 | loss 0.1254 | L_GMMN 0.0000 | lr 1.25e-04 | 5500s | L_distill 0.0673
+epoch 47/50 | loss 0.1335 | L_GMMN 0.0000 | lr 1.25e-04 | 5592s | L_distill 0.0723
+epoch 48/50 | loss 0.1128 | L_GMMN 0.0000 | lr 1.25e-04 | 5684s | L_distill 0.0670
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 48 | valid mIoU 0.5582
+epoch 49/50 | loss 0.1230 | L_GMMN 0.0000 | lr 1.25e-04 | 5890s | L_distill 0.0665
+epoch 50/50 | loss 0.1341 | L_GMMN 0.0000 | lr 1.25e-04 | 5983s | L_distill 0.0703
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 50 | valid mIoU 0.5517
+done: best valid mIoU 0.5582; evaluate best.pt and last.pt with eval.py [D-15]

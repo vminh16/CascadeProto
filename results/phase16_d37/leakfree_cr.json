@@ -1,0 +1,80 @@
+{
+ "seed": 4,
+ "episodes": 1500,
+ "skipped": 0,
+ "test_classes": [
+  6,
+  1,
+  9,
+  7,
+  2,
+  5
+ ],
+ "miou": {
+  "model": 0.28103230343052604,
+  "support_rule": 0.32147032495896566,
+  "oracle_unit": 0.6109761951092213
+ },
+ "class_iou": {
+  "model": [
+   0.4911821700722013,
+   0.2287086572844924,
+   0.3945845032486221,
+   0.24778665085293747,
+   0.19093310366390862,
+   0.3839310034678927,
+   0.24024990206530283
+  ],
+  "support_rule": [
+   0.49932212244326835,
+   0.24508811220814689,
+   0.5302763505463896,
+   0.27061881477382677,
+   0.21872129150469635,
+   0.41724829573629496,
+   0.24686908498443969
+  ],
+  "oracle_unit": [
+   0.7549516790143923,
+   0.61399112135992,
+   0.7149119127906994,
+   0.6043161442294639,
+   0.3859316266055925,
+   0.7373730626896252,
+   0.6093333029800262
+  ]
+ },
+ "name": "cr",
+ "protocol": "clean",
+ "config": {
+  "use_lma": false,
+  "num_stages": 4,
+  "use_gate": true,
+  "use_adrm": true,
+  "modality": "text",
+  "logit_scale": "none",
+  "l2norm_point_proto": true,
+  "clip_variant": "ViT-B/16",
+  "eval_noise": "zero",
+  "gmmn_fg_mode": "joint",
+  "gmmn_detach_point": false,
+  "cross_attn": "channel",
+  "cross_attn_scale": "sqrt_d",
+  "cross_attn_norm": "none",
+  "cross_attn_support": "class_slots",
+  "gate_target": "prototype",
+  "eq19_self": "none",
+  "stage_type": "vip_clean",
+  "fusion_weight": "per_query",
+  "diffusion_input": "post_relu",
+  "distill_beta": 0.0,
+  "neck": "none",
+  "neck_alpha_init": 0.0
+ },
+ "checkpoint": {
+  "name": "cr",
+  "kind": "ours",
+  "fold": 1,
+  "path": "log_d37/s3dis_S1_N2_K1_point_T4_vip_clean_b1_qrandom/last.pt"
+ }
+}

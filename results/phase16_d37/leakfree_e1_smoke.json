@@ -1,0 +1,80 @@
+{
+ "seed": 4,
+ "episodes": 3,
+ "skipped": 0,
+ "test_classes": [
+  6,
+  1,
+  9,
+  7,
+  2,
+  5
+ ],
+ "miou": {
+  "model": 0.006510950627435713,
+  "support_rule": 0.20169815865568838,
+  "oracle_unit": 0.29874074256033456
+ },
+ "class_iou": {
+  "model": [
+   0.3863023523555104,
+   0.0,
+   0.0009142855053061702,
+   0.0,
+   0.0,
+   0.03815141825930811,
+   0.0
+  ],
+  "support_rule": [
+   0.6412703349044554,
+   0.0,
+   0.6134720328363721,
+   0.0,
+   0.0,
+   0.596716919097758,
+   0.0
+  ],
+  "oracle_unit": [
+   0.8452993166800244,
+   0.0,
+   0.90400981875282,
+   0.0,
+   0.0,
+   0.8884346366091874,
+   0.0
+  ]
+ },
+ "name": "e1",
+ "protocol": "clean",
+ "config": {
+  "use_lma": false,
+  "num_stages": 4,
+  "use_gate": true,
+  "use_adrm": true,
+  "modality": "text",
+  "logit_scale": "none",
+  "l2norm_point_proto": true,
+  "clip_variant": "ViT-B/16",
+  "eval_noise": "zero",
+  "gmmn_fg_mode": "joint",
+  "gmmn_detach_point": false,
+  "cross_attn": "channel",
+  "cross_attn_scale": "sqrt_d",
+  "cross_attn_norm": "none",
+  "cross_attn_support": "class_slots",
+  "gate_target": "prototype",
+  "eq19_self": "none",
+  "stage_type": "vip",
+  "fusion_weight": "per_query",
+  "diffusion_input": "post_relu",
+  "distill_beta": 0.0,
+  "neck": "none",
+  "neck_alpha_init": 0.0
+ },
+ "checkpoint": {
+  "name": "e1",
+  "kind": "ours",
+  "fold": 1,
+  "path": "log_r2/s3dis_S1_N2_K1_point_T4_vip_b1/last.pt"
+ }
+}
