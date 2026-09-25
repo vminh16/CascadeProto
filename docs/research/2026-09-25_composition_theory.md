@@ -259,3 +259,57 @@ re-check.
 
 Not verified here: Zhu, Ghahramani, Lafferty (ICML 2003) harmonic functions; the exact COSeg corrected numbers
 (taken in D-35 from the paper's Table 1).
+
+## 10. Addendum: second literature pass (Opus research agent), re-checked
+
+An Opus research agent answered eight questions; I re-checked the items marked **re-checked** in the primary source
+(arXiv HTML tables, the official SSP code). The rest are **agent-reported**.
+
+* **The honest protocol changes the scale.** COSeg Table 2, the corrected setting (no foreground leakage), S3DIS
+  2-way 1-shot, S0 / S1: AttMPTI 31.09 / 29.62, QGE 33.45 / 30.95, QGPA 25.52 / 26.26, COSeg 37.44 / 36.45
+  (**re-checked**). Under the old setting the same methods report 53.77 / 55.94 (AttMPTI, **re-checked** in its
+  Table 1), 58.85 / 60.29 (QGE) and 59.45 / 66.08 (QGPA) (agent-reported). COSeg's Table 1 (1-way 1-shot) shows the
+  leak alone is worth about 20–28 points per method (AttMPTI 64.89 / 66.15 → 41.56 / 41.27, **re-checked**). Our
+  55–58 are on the old (leaky) protocol; our leak-free draw (uniform 2,048-point sampling) is **not** COSeg's
+  corrected protocol (1 m blocks, 0.02 m grid, up to 20,480 points, a different backbone), so neither of our numbers
+  is comparable with the corrected-protocol table.
+* **Best verified corrected-protocol results, S3DIS 2-way 1-shot, S0 / S1 (mean):** MM-FSS (An et al., ICLR 2025,
+  text + 2D, arXiv:2410.22489) 41.98 / 46.61 (44.30), +6.2 over COSeg; DA-FSS (arXiv:2601.01456) 42.07 / 47.16
+  (44.62); WARM (arXiv:2509.13907) 50.91 / 38.34 (44.63), whose training-free "FPS + min-dist." baseline scores
+  44.48 / 33.00 (all **re-checked** in the papers' tables). Multimodality is a measured lever under the honest
+  protocol (MM-FSS +6.2), which bears on the maintainer's multimodal goal.
+* **AttMPTI's propagation is not isolated.** ProtoNet → MPTI (multiple prototypes **and** label propagation) is
+  48.39 / 49.98 → 52.27 / 51.48 on S3DIS 2-way 1-shot (**re-checked**); no with/without-propagation ablation exists.
+  Its best propagation setting is α = 0.99, k = 200 (agent-reported). Under the corrected protocol AttMPTI is below
+  COSeg.
+* **SSP is prediction-based at inference and ground-truth-based in its training loss.** In the official code the
+  matching path pools the query at predicted probability > 0.7 (fg) / > 0.6 (bg), while the self-support loss in
+  training pools the query with the **ground-truth** mask (`model/SSP_matching.py` lines 94–96, **re-checked**). The
+  paper's ablation removes the self-support background prototype for −1.7 and the foreground one for −0.8
+  (agent-reported): the background matters more, as in our P6. A faithful 3D SSP (with the ground-truth self-support
+  loss) is untested here; D-39's A1 was a different, weaker form.
+* **Prototype rectification (BD-CSPN, ECCV 2020)** bounds the expected cosine assuming the added samples belong to the
+  class; mislabelled pseudo-labels are not modelled, and transductive rectification loses under class-imbalanced
+  query sets (Veilleux et al., NeurIPS 2021) (agent-reported). Consistent with §4: the benefit rests on pseudo-label
+  purity, which the theory assumes rather than proves.
+* **Propagation with noisy seeds and heterophily** (Cheng et al., KDD 2024, arXiv:2310.16560; the paper's existence
+  and venue re-checked, its Theorem 1 agent-reported): one propagation step with symmetric noise e and homophily p
+  shifts the class-mean gap to (1 − 2e)(1 − 2α(1 − p)). The algebra is re-checked here from the stated expectations:
+  the gap stays positive iff p > 1 − 1/(2α) (≈ 0.5 for α near 1). With symmetric seeds (a = 1 − e, b = e) our vote
+  condition of §5 reduces to the same p > 1/2; with the U rule's asymmetric seeds (a ≈ 0.75, b ≈ 0.08) it is stricter
+  (p > 0.63). Propagation also lowers variance, so it can help even when the mean gap shrinks slightly; P7a must
+  measure both.
+* **Projection head theory** (Xue et al., ICLR 2024, agent-reported): training weights features increasingly
+  unequally with depth; features that training suppresses (disrupted by augmentation, weak, or too strong) keep
+  weight before the head and lose it after. Applied here: episodic training on base classes suppresses features
+  useless for base classes but useful for novel ones; the head can absorb that suppression. A testable reading, not
+  a result.
+* **Order dependence across the query batch** has no report in the few-shot segmentation literature that the agent
+  could find; the closest is TaskNorm (Bronskill et al., ICML 2020): transductive batch normalisation makes each
+  prediction depend on the other targets, with a large accuracy drop when targets are processed one at a time
+  (agent-reported). Absence of evidence, not evidence of absence.
+
+**Consequences for the plan.** (1) A paper claim needs COSeg's corrected protocol as well as the standard one; that is
+a data-pipeline and backbone change, to be decided separately. (2) P7a's homophily threshold is now backed by two
+derivations (§5 and Cheng et al.). (3) Two untested trained variants remain legitimate: a faithful SSP with the
+ground-truth self-support loss, and multimodal prototypes, the one lever measured to help under the honest protocol.
