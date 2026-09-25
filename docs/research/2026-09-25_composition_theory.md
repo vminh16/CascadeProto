@@ -106,10 +106,15 @@ Consequences that match the measurements [`results/phase16_p6/SUMMARY.md`, test 
   the contaminant mean, not at o_c; the recall errors (true c points outside every cone) never enter S_c.
 * Training (A1) cannot change the sign unless it raises π_c on **novel** classes; it learned α_fg ≈ 0.70 on base
   classes and lost 0.66 on novel ones.
-* The self-training theory of Wei et al. [2] gives the same threshold from another side: its denoising bound needs
-  the pseudo-labeller's error below 1/3 (with expansion c > 3). The U rule's foreground pseudo-label error (1 − π) is
-  0.45 (table), 0.38 (door), 0.34 (sofa), 0.29 (floor), 0.28 (window), 0.20 (wall): half the classes are outside the
-  regime where denoising is guaranteed, the background (0.12) is inside it.
+* The self-training theory of Wei et al. [2] does **not** give this threshold, and an earlier draft of this note said
+  it did (corrected after re-reading Assumption 4.1 and Theorem 4.3 in the paper). Its precondition is on the
+  pseudo-labeller's **per-class error** ā = max_i P_i(mislabelled), i.e. 1 − recall, with ā < 1/3 and
+  (ā, c̄)-expansion, c̄ > 3; under it a student trained to fit the pseudo-labels **with an input-consistency
+  regulariser** provably has error ≤ 2/(c − 1) · Err(G_pl) + 2c/(c − 1) · μ. The U rule's per-class error is
+  0.14–0.32 (wall 0.32 at the edge), so the error precondition holds; what self-support lacks is the rest of the
+  theorem: it is a prototype average, not a consistency-regularised student, and nothing in it uses expansion. The
+  theorem is therefore an argument **for** a graph-based, consistency-regularised propagation on the query (§5),
+  provided the query graph expands, which P7a measures.
 * A1 was not a faithful SSP [7]: SSP trains with an additional self-support loss that drives the self-support matching
   itself, while A1's auxiliary term only trained the support-only prediction. The negative result is about A1's form,
   not about every trained self-support.
@@ -163,7 +168,7 @@ measurement.
 **Theory of when propagation denoises pseudo-labels.** The expansion assumption of Wei et al. (ICLR 2021) and Cai et
 al. (ICML 2021) — every small subset of a class has a proportionally larger neighbourhood inside the same class —
 is the condition under which propagating from a noisy labeller provably reduces error [2, 3]; [2] also
-needs the labeller's error below 1/3. On a point cloud it is
+needs the labeller's per-class error (1 − recall) below 1/3 and a consistency-regularised student. On a point cloud it is
 the statement that each object is a connected, well-sampled region of the kNN graph. It is plausible for dense,
 own-condition objects and doubtful for sparse, other-condition ones; the diagnostic measures it per condition.
 
@@ -189,7 +194,8 @@ own-condition objects and doubtful for sparse, other-condition ones; the diagnos
 Observations: on CR's backbone, the U rule (55.74) beats the head's own prediction (54.84); a backbone trained
 without the head (A0) is 2.2 worse under the same rule (53.52). In SimCLR the representation *before* the nonlinear
 projection head beats the one after it by more than 10 points in linear evaluation, because the head, trained for the
-contrastive loss, discards information useful downstream [8]; Xue et al. give a theoretical account of why training
+contrastive loss, discards information useful downstream, and training with a head gives a better backbone than
+training with none (> 10 points) [8]; the latter is the direct analogue of CR against A0; Xue et al. give a theoretical account of why training
 with a head and discarding it helps in self-supervised, supervised-contrastive and supervised settings [8b]. The reading: PEM/PDM absorb episode-specific, base-class-specific adjustments
 during training, so the backbone does not have to; at inference on novel classes those adjustments do not transfer.
 
@@ -212,11 +218,18 @@ one training run.
 
 ## 9. References (verified against primary sources on 2026-09-25 unless marked)
 
+Verification: a research agent collected the items; the maintainer's rule is that agent reports are re-checked. I
+re-read [2] (Assumption 4.1, Theorem 4.3), [7] (abstract) and [8] (§4.2, Table 3) in the papers themselves; the
+re-check of [2] found and corrected an error in §4 of this note. The other items are agent-reported and pending
+re-check.
+
 1. D. Zhou, O. Bousquet, T. N. Lal, J. Weston, B. Schölkopf. Learning with local and global consistency. NIPS 2003.
    S = D^{−1/2}WD^{−1/2}, F(t+1) = αSF(t) + (1 − α)Y, convergence to F* = (1 − α)(I − αS)^{−1}Y.
 2. C. Wei, K. Shen, Y. Chen, T. Ma. Theoretical analysis of self-training with deep networks on unlabeled data.
-   ICLR 2021, arXiv:2010.03622. (a, c)-expansion (Def. 3.1); Thm 4.3: under expansion with c > 3 and pseudo-labeller
-   error below 1/3, the self-trained classifier's error is bounded by (2/(c − 1)) Err(G_pl) plus a consistency term.
+   ICLR 2021, arXiv:2010.03622. (a, c)-expansion (Def. 3.1: P_i(N(V)) ≥ min{c P_i(V), 1} for P_i(V) ≤ a).
+   Assumption 4.1: ā = max_i P_i(M(G_pl)) (the largest per-class fraction of mislabelled examples) < 1/3 and
+   (ā, c̄)-expansion with c̄ > 3. Thm 4.3: a minimiser of the consistency-regularised pseudo-label objective (4.1)
+   has Err ≤ 2/(c − 1) · Err(G_pl) + 2c/(c − 1) · μ, c = min{1/ā, c̄}. (Re-read in the paper, pp. 6 and 9.)
 3. T. Cai, R. Gao, J. D. Lee, Q. Lei. A theory of label propagation for subpopulation shift. ICML 2021,
    arXiv:2102.11203. Expansion between source and target subpopulations; propagation from a source teacher provably
    improves on it in the target.
@@ -229,10 +242,12 @@ one training run.
    an ablation of the propagation step alone was not found.
 7. Q. Fan, W. Pei, Y.-W. Tai, C.-K. Tang. Self-support few-shot semantic segmentation (SSP). ECCV 2022,
    arXiv:2207.11549. Self-support prototypes from confident query predictions, adaptive self-support background
-   prototypes, trained with an additional self-support loss.
-8. T. Chen, S. Kornblith, M. Norouzi, G. Hinton. SimCLR. ICML 2020, arXiv:2002.05709. Representation before the
-   projection head beats the one after by > 10 points (linear evaluation); the head removes information such as
-   colour or orientation. 8b. Y. Xue, E. Gan, J. Ni, S. Joshi, B. Mirzasoleiman. Investigating the benefits of
+   prototypes, trained with an additional self-support loss (abstract re-read: "an adaptive self-support background
+   prototype generation module and self-support loss to further facilitate the self-support matching procedure").
+8. T. Chen, S. Kornblith, M. Norouzi, G. Hinton. SimCLR. ICML 2020, arXiv:2002.05709. §4.2 (re-read): a nonlinear
+   head is better than a linear one (+3 %) and much better than no head (> 10 %); the layer before the head is much
+   better (> 10 %) than the layer after; the head, trained to be invariant to augmentation, removes information such
+   as colour or orientation (Table 3). 8b. Y. Xue, E. Gan, J. Ni, S. Joshi, B. Mirzasoleiman. Investigating the benefits of
    projection head for representation learning. ICLR 2024, arXiv:2403.11391. (Also K. Gupta et al.,
    arXiv:2212.11491, 2022.)
 9. T. Yu et al. Gradient surgery for multi-task learning (PCGrad). NeurIPS 2020, arXiv:2001.06782. Conflicting
