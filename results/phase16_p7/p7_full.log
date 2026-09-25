@@ -1,0 +1,50 @@
+=== 2026-09-25T17:32:22+00:00 commit b9c64a9 P7 full
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] model 55.17, U 55.96, Y0 58.09 | frozen lp_feat_k16_b0.99 (+0.91) | gate pass
+=== select done 2026-09-25T18:14:35+00:00
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] fixed100: U 55.74 | both 57.63 | lp 58.55 | lp_u 56.67 | model 54.84 | 1500 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:0: U 53.18 | both 54.84 | lp 55.75 | lp_u 54.07 | model 51.83 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:1: U 57.55 | both 59.54 | lp 60.57 | lp_u 58.25 | model 56.73 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:2: U 57.10 | both 58.93 | lp 60.35 | lp_u 58.32 | model 54.76 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] leakfree: U 33.02 | both 33.14 | lp 33.31 | lp_u 33.49 | model 28.10 | 1500 episodes
+P7.1 gate pass                               lp_feat_k16_b0.99 - Y0 on valid +0.91 (gate +0.5)
+P7.2 adopt                                   lp - Y0 fixed100 +0.92 [+0.72, +1.13], above 0; random600 [0.91, 1.03, 1.42]
+P7.5 leak-free reported                      lp - Y0 +0.17 (Y0 33.14)
+P7.6 mechanism unexplained                   foreground fixed 53173 (mean p 0.944), broken 41824 (mean p 0.947)
+P7.7 composition                             lp_u - U +0.92, lp - Y0 +0.92, Y0 - U +1.88
+P7.7 levels fixed100                         model 54.84, U 55.74, Y0 57.63, lp 58.55
+P7a xyz_k8                                   fg_own R 0.774 p_miss 0.968 p_hit 0.984 a_miss 0.069 fixable 0.042 breakable 0.010 reach 0.831 | fg_other R 0.162 p_miss 0.946 p_hit 0.958 a_miss 0.019 fixable 0.010 breakable 0.059 reach 0.462 | background R 0.887 p_miss 0.920 p_hit 0.988 a_miss 0.123 fixable 0.058 breakable 0.009 reach 0.958
+P7a xyz_k16                                  fg_own R 0.774 p_miss 0.955 p_hit 0.976 a_miss 0.086 fixable 0.053 breakable 0.011 reach 0.836 | fg_other R 0.162 p_miss 0.923 p_hit 0.940 a_miss 0.023 fixable 0.012 breakable 0.076 reach 0.466 | background R 0.887 p_miss 0.896 p_hit 0.981 a_miss 0.156 fixable 0.069 breakable 0.012 reach 0.965
+P7a xyzf_k8                                  fg_own R 0.774 p_miss 0.972 p_hit 0.987 a_miss 0.065 fixable 0.042 breakable 0.009 reach 0.831 | fg_other R 0.162 p_miss 0.950 p_hit 0.962 a_miss 0.017 fixable 0.010 breakable 0.055 reach 0.462 | background R 0.887 p_miss 0.920 p_hit 0.990 a_miss 0.108 fixable 0.054 breakable 0.008 reach 0.958
+P7a xyzf_k16                                 fg_own R 0.774 p_miss 0.963 p_hit 0.982 a_miss 0.079 fixable 0.050 breakable 0.010 reach 0.836 | fg_other R 0.162 p_miss 0.933 p_hit 0.949 a_miss 0.020 fixable 0.011 breakable 0.065 reach 0.466 | background R 0.887 p_miss 0.896 p_hit 0.986 a_miss 0.131 fixable 0.059 breakable 0.009 reach 0.965
+P7a feat_k8                                  fg_own R 0.774 p_miss 0.970 p_hit 0.988 a_miss 0.039 fixable 0.024 breakable 0.006 reach 0.831 | fg_other R 0.162 p_miss 0.948 p_hit 0.968 a_miss 0.011 fixable 0.006 breakable 0.033 reach 0.467 | background R 0.887 p_miss 0.924 p_hit 0.991 a_miss 0.058 fixable 0.032 breakable 0.004 reach 0.965
+P7a feat_k16                                 fg_own R 0.774 p_miss 0.962 p_hit 0.986 a_miss 0.049 fixable 0.028 breakable 0.006 reach 0.843 | fg_other R 0.162 p_miss 0.934 p_hit 0.960 a_miss 0.013 fixable 0.007 breakable 0.040 reach 0.480 | background R 0.887 p_miss 0.906 p_hit 0.989 a_miss 0.074 fixable 0.036 breakable 0.004 reach 0.981
+=== P7 full FINISHED 2026-09-25T19:21:08+00:00

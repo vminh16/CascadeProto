@@ -1577,6 +1577,14 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   temperature that no evidence fixes.
 * **Affects.** `experiments/p7_propagation_probe.py`, `experiments/run_p7.sh`, `tests/test_propagation_probe.py`,
   05 §3.8r.
+* **Outcome (2026-09-26, `results/phase16_p7/SUMMARY.md`).** P7.1 gate pass (`lp_feat_k16_b0.99`, +0.91 on valid).
+  P7.2 adopt: `lp` − Y0 +0.92 [+0.72, +1.13] on fixed100 (58.55), random600 +0.91 / +1.03 / +1.42; P7.3 not reached.
+  P7.5 leak-free +0.17. P7.6 unexplained: foreground fixed 53,173 against broken 41,824, but the fixed points' mean
+  homophily (0.944) is not above the broken points' (0.947); the gain is mostly precision (false positives removed),
+  not recall. P7.7: fully additive with the background rules (`lp_u` − U +0.92). P7a: homophily is high (0.93–0.96
+  around missed points) but the seeds around a missed own-condition point are almost all wrong (local seed recall
+  0.04–0.09): recall errors are whole regions. Other-condition foreground points have recall 0.162 (own 0.774) and are
+  32.6 % of the missed foreground points while 11.5 % of the foreground; propagation lowers their recall further.
 
 ---
 
@@ -1687,4 +1695,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-25 | D-39 (maintainer request): trained self-support prototypes on the clean base (A0 prototype matching, A1 + two self-support steps) and the combined background rule; rules fixed before the run. |
 | 2026-09-25 | D-39 measured: combined background rule adopted (CR + U + both 57.63, S1 fixed100); trained self-support stops (−0.66); training without the head costs 2.2. |
 | 2026-09-25 | D-40 (maintainer request): P7, label propagation on the query's own point graph (xyz, xyz with feature weights, feature kNN) seeded by U + both, with its preconditions measured (P7a); gate on the valid gain, rules fixed before the run. |
+| 2026-09-26 | D-40 measured: propagation adopted at inference (CR + U + both + LP 58.55, S1 fixed100, +0.92), as a denoiser, not a recall mechanism (P7.6 unexplained); recall errors are whole regions, and other-condition points (recall 0.16) are a third of the missed foreground. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

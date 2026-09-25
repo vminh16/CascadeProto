@@ -1614,3 +1614,12 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * `experiments/p7_propagation_probe.py` (select / test / decide; checks: model identity, the solve's residual,
   VIP-Seg's metric, D-37's CR, D-39's U and U + both, P6's valid numbers), `experiments/run_p7.sh smoke|full`,
   `tests/test_propagation_probe.py` P7-1...10 (05 §3.8r); mutation check 22/22 killed.
+
+### 16al - P7 measured: propagation adopted (+0.92, 58.55), a denoiser rather than a recall mechanism
+
+* VM run 2026-09-25 17:32-19:21 UTC, commit b9c64a9 (`results/phase16_p7/SUMMARY.md`, JSON, log). Frozen on valid:
+  label spreading on the feature kNN graph (k 16, beta 0.99). CR + U + both + propagation 58.55 on S1 fixed100
+  (+0.92 [+0.72, +1.13] over U + both), positive on every random600 draw (P7.2 adopt; P7.3's +1.0 not reached),
+  leak-free +0.17. The gain is mostly foreground precision; the registered recall mechanism is not confirmed (P7.6).
+  P7a: recall errors are whole regions (local seed recall around missed points 0.04-0.09) and other-condition points
+  (recall 0.16 against 0.77 own) are a third of the missed foreground.
