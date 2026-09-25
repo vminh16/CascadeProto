@@ -493,6 +493,23 @@ D37-T6's first GPU run used a fixed 1e-2 margin for VIP-Seg's positional effect,
 does not reach in evaluation (8e-4); the test now compares every quantity with the one-ULP rounding floor, and passed
 three runs in a row on the L4.
 
+### 3.8p `tests/test_prototype_probe.py` (G1) — prototype probe P6 [DECISION D-38]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| P6-1 | U's rows are D-35's support directions, the same unit rows for every query block | [DECISION D-38] |
+| P6-2 | Row oracles replace only the present rows of their set (bg / fg / all) with the query's unit-feature direction; absent rows and other rows untouched; all rows unit | [DECISION D-38], [DECISION D-35] |
+| P6-3 | Self-support by hand: the lowest-entropy fraction ρ of a class's predicted points, mixed with weight 1 − α | [DECISION D-38] |
+| P6-4 | Self-support: α = 1 and too few points leave the rows; T = 2 is T = 1 twice; per query block and order-free; the row set is respected | [DECISION D-38] |
+| P6-5 | Spherical k-means: deterministic, recovers separated modes, k = 1 is the unit-feature mean; the multi-background logit is the maximum over centroids, foreground untouched | [DECISION D-38] |
+| P6-6 | The 54-arm grid, arm predictions, oracle arms refuse to run without labels | [DECISION D-38] |
+| P6-7 | Selection (ties to the earlier arm) and the P6.1 location rule | [DECISION D-38] |
+| P6-8 | Rules P6.2–P6.4, including a negative random600 draw blocking a go, and "incomplete" | [DECISION D-38] |
+| P6-9 | The new files parse as Python 3.10 | 00 §5.2 |
+
+Mutation check (2026-09-25), 9 mutants: 9 killed. The first check left a go without its CI / random600 condition
+alive; P6-8 gained that case.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

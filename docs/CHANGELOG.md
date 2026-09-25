@@ -1559,3 +1559,12 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   +21.52]; CR − VR +1.58 [+0.50, +2.66] → clean head is the base (D37.3); `best` a tie, clean by the tie rule.
   Without the shortcut the head equals plain prototype matching (CR 54.84, its support rule 55.02). Leak-free draw:
   E1 17.89, VR 24.04, CR 28.10. Oracle gap of the base +28.5, not +12–14.
+
+### 16af - D-38 recorded and P6 implemented (not run)
+
+* **D-38** in `docs/spec/00`: P6, an inference-only probe on the clean base CR: row-wise oracle in one geometry
+  (background / foreground / all), entropy-gated self-support (54 arms) and a spherical k-means background (k = 3, 5),
+  frozen on S1 valid, tested on fixed100, random600 x 3 and the leak-free draw; rules P6.1-P6.5 fixed before the run.
+* `experiments/p6_prototype_probe.py` (select / test / decide; checks: model identity, VIP-Seg's metric, D-37's CR
+  number), `experiments/run_p6.sh smoke|full`, `tests/test_prototype_probe.py` P6-1...9 (05 §3.8p); mutation check
+  9/9 killed.
