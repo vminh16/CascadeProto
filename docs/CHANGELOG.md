@@ -1587,3 +1587,11 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   (`prototype_rule`, `self_support_steps`, `support_aux`), `pipeline/model_api.py` (`loss_aux`, `aux_weight`),
   `train.py` flags, `experiments/d39_eval.py`, `experiments/run_d39.sh smoke|full`, `tests/test_self_support.py`
   SS-1...10 (05 §3.8q); G1 503 passed; mutation check 10/10.
+
+### 16ai - D-39 measured: combined background rule on CR (57.63); trained self-support stops
+
+* VM run 2026-09-25 07:02-11:34 UTC, commit 5fbd441 (`results/phase16_d39/SUMMARY.md`, logs, JSON). CR's features with
+  support directions, query-adapted background and a 3-component background: 57.63 on S1 fixed100 (+2.79 over CR's
+  head), positive on every random600 draw; D39.1 adopts the combined rule. A1 (trained self-support) − A0 (no head)
+  −0.66 (D39.2 stop); A0 itself 53.52, below the same rule on CR's features (55.74): the clean VIP head helps the
+  features in training though it adds nothing at inference. Oracle gap of the best rule still ≈ +23.

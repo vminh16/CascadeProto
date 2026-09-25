@@ -1494,6 +1494,11 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 * **Affects.** `models/self_support.py` (new), `models/prototypes.py` (`unit_prototypes`), `models/cascadeproto.py`
   (`prototype_rule`, `self_support_steps`, `support_aux`), `pipeline/model_api.py` (`loss_aux`), `train.py`,
   `experiments/d39_eval.py`, `experiments/run_d39.sh`, `tests/test_self_support.py`, 05 §3.8q.
+* **Outcome (2026-09-25, `results/phase16_d39/SUMMARY.md`).** D39.1 → both (+0.51 [+0.24, +0.78] over km3, all
+  random600 > 0). D39.2 stop: A1 − A0 −0.66 [−1.30, +0.02] (learned α_bg 0.43, α_fg 0.70). D39.3 CR stays with the
+  combined background rule: CR + U + both scores 57.63 on S1 fixed100 (+2.79 over CR's head; random600 +3.0 / +2.8
+  / +4.2), inference only. Training without the head (A0) gives features 2.2 worse for the same rule (53.52 against
+  55.74 on CR's features).
 
 ---
 
@@ -1602,4 +1607,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-25 | D-38 (maintainer request): P6, an inference-only probe on the clean base: row-wise oracle in one geometry, entropy-gated self-support and a multi-component background, selected on valid, rules fixed before the run. |
 | 2026-09-25 | D-38 measured: the gap is joint (foreground +16, background +6); training-free background adaptation (self-support, k-means) gives +1.2–1.3 on every draw, foreground self-support hurts, entropy selection adds nothing. |
 | 2026-09-25 | D-39 (maintainer request): trained self-support prototypes on the clean base (A0 prototype matching, A1 + two self-support steps) and the combined background rule; rules fixed before the run. |
+| 2026-09-25 | D-39 measured: combined background rule adopted (CR + U + both 57.63, S1 fixed100); trained self-support stops (−0.66); training without the head costs 2.2. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |
