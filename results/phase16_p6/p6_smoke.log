@@ -1,0 +1,44 @@
+=== 2026-09-25T00:53:08+00:00 commit 5fdda57 P6 smoke
+...........                                                              [100%]
+11 passed in 4.67s
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] U 76.26, model 72.43 | frozen ssp_bg_T2_a0.25_r1 (+1.02), km3 (+0.47) on valid
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] fixed100: model 54.58 | support_rule 60.63 | U 60.80 | oracle_bg 56.54 | oracle_fg 79.91 | oracle_all 82.68 | ssp_bg_T2_a0.25_r1 60.54 | km3 62.18 | 5 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:0: model 72.82 | support_rule 72.19 | U 73.03 | oracle_bg 74.98 | oracle_fg 86.65 | oracle_all 87.07 | ssp_bg_T2_a0.25_r1 72.37 | km3 73.80 | 5 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:1: model 47.06 | support_rule 46.74 | U 46.67 | oracle_bg 51.37 | oracle_fg 55.79 | oracle_all 60.09 | ssp_bg_T2_a0.25_r1 50.33 | km3 44.57 | 5 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:2: model 53.44 | support_rule 48.51 | U 48.79 | oracle_bg 50.89 | oracle_fg 52.35 | oracle_all 54.05 | ssp_bg_T2_a0.25_r1 48.34 | km3 49.64 | 5 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] leakfree: model 15.66 | support_rule 17.22 | U 17.22 | oracle_bg 19.19 | oracle_fg 24.52 | oracle_all 27.60 | ssp_bg_T2_a0.25_r1 17.85 | km3 16.36 | 5 episodes
+P6.1 location fixed100         foreground: oracle bg -4.26, fg +19.11, all +21.88 over U 60.80
+P6.1 location leakfree         foreground: oracle bg +1.98, fg +7.30, all +10.38 over U 17.22
+P6.2 self-support stop         ssp_bg_T2_a0.25_r1 - U fixed100 -0.27 [-0.48, +0.33], contains 0; random600 [-0.65, 3.65, -0.45]
+P6.3 multi-background between  km3 - U fixed100 +1.38 [+0.40, +1.93], above 0; random600 [0.77, -2.11, 0.86]
+P6.5 reported                  model 54.58, support rule 60.63, U 60.80; share of the oracle gap closed ssp_bg_T2_a0.25_r1 -1.2 %, km3 6.3 %; leak-free model 15.66, U 17.22, ssp_bg_T2_a0.25_r1 17.85, km3 16.36, oracle_all 27.60
+=== P6 smoke FINISHED 2026-09-25T00:53:46+00:00

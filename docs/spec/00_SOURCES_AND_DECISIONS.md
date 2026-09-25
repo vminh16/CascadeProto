@@ -1434,6 +1434,12 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   an L4 (not measured) and fixes which rows it must act on and whether query-side selection is the mechanism.
 * **Affects.** `experiments/p6_prototype_probe.py`, `experiments/run_p6.sh`, `tests/test_prototype_probe.py`,
   05 §3.8p.
+* **Outcome (2026-09-25, `results/phase16_p6/SUMMARY.md`).** P6.1 joint on both protocols (fixed100: oracle bg
+  +6.14, fg +16.31, all +25.12 over U 55.74). P6.2 go: `ssp_bg_T2_a0.25_r1` +1.19 [+0.85, +1.52], random600 +1.34 /
+  +1.58 / +1.13; P6.3 go: km3 +1.32 [+0.95, +1.69], +1.05 / +0.96 / +1.04. Each closes ~5 % of the gap and neither
+  moves the leak-free draw. Every self-support arm that helps acts on the background row only, with ρ = 1 (no
+  entropy selection); foreground self-support lowers the score (best −0.35 on valid). U alone beats the trained
+  model by +0.9.
 
 ---
 
@@ -1540,4 +1546,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-24 | D-36 (maintainer request): C4, VIP-Seg's cross-term re-run in a per-query form on the trained weights; D-37 (maintainer request): the 2 × 2 of head × training query order. Amended before any code: CF = CR by a lemma checked by tests, the relabel shift replaces the raw relabel share, E1 re-scored as an evaluation check, a tie in D37.3 goes to the clean head. |
 | 2026-09-25 | D-36 measured: C4.1, the cross-term reshape is the sole carrier. D-37 measured: the fixed query order is the origin (D37.1); the clean head is the base (D37.3); the shortcut is worth +19.9 on S1 fixed100, and the oracle gap of the clean base is +28.5. |
 | 2026-09-25 | D-38 (maintainer request): P6, an inference-only probe on the clean base: row-wise oracle in one geometry, entropy-gated self-support and a multi-component background, selected on valid, rules fixed before the run. |
+| 2026-09-25 | D-38 measured: the gap is joint (foreground +16, background +6); training-free background adaptation (self-support, k-means) gives +1.2–1.3 on every draw, foreground self-support hurts, entropy selection adds nothing. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

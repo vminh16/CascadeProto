@@ -1,0 +1,42 @@
+=== 2026-09-25T00:54:01+00:00 commit 5fdda57 P6 full
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] U 55.96, model 55.17 | frozen ssp_bg_T2_a0.25_r1 (+1.56), km3 (+1.27) on valid
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] fixed100: model 54.84 | support_rule 55.02 | U 55.74 | oracle_bg 61.89 | oracle_fg 72.05 | oracle_all 80.86 | ssp_bg_T2_a0.25_r1 56.93 | km3 57.06 | 1500 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:0: model 51.83 | support_rule 52.56 | U 53.18 | oracle_bg 59.41 | oracle_fg 71.13 | oracle_all 80.52 | ssp_bg_T2_a0.25_r1 54.52 | km3 54.23 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:1: model 56.73 | support_rule 56.92 | U 57.55 | oracle_bg 63.99 | oracle_fg 73.09 | oracle_all 82.05 | ssp_bg_T2_a0.25_r1 59.13 | km3 58.51 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:2: model 54.76 | support_rule 56.66 | U 57.10 | oracle_bg 62.21 | oracle_fg 73.60 | oracle_all 81.57 | ssp_bg_T2_a0.25_r1 58.22 | km3 58.14 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] leakfree: model 28.10 | support_rule 32.15 | U 33.02 | oracle_bg 40.03 | oracle_fg 45.35 | oracle_all 56.12 | ssp_bg_T2_a0.25_r1 33.01 | km3 33.05 | 1500 episodes
+P6.1 location fixed100         joint: oracle bg +6.14, fg +16.31, all +25.12 over U 55.74
+P6.1 location leakfree         joint: oracle bg +7.02, fg +12.33, all +23.10 over U 33.02
+P6.2 self-support go           ssp_bg_T2_a0.25_r1 - U fixed100 +1.19 [+0.85, +1.52], above 0; random600 [1.34, 1.58, 1.13]
+P6.3 multi-background go       km3 - U fixed100 +1.32 [+0.95, +1.69], above 0; random600 [1.05, 0.96, 1.04]
+P6.5 reported                  model 54.84, support rule 55.02, U 55.74; share of the oracle gap closed ssp_bg_T2_a0.25_r1 4.7 %, km3 5.3 %; leak-free model 28.10, U 33.02, ssp_bg_T2_a0.25_r1 33.01, km3 33.05, oracle_all 56.12
+=== P6 full FINISHED 2026-09-25T01:25:15+00:00

@@ -1568,3 +1568,11 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * `experiments/p6_prototype_probe.py` (select / test / decide; checks: model identity, VIP-Seg's metric, D-37's CR
   number), `experiments/run_p6.sh smoke|full`, `tests/test_prototype_probe.py` P6-1...9 (05 §3.8p); mutation check
   9/9 killed.
+
+### 16ag - P6 measured: gap joint, background adaptation +1.2-1.3, foreground self-support hurts
+
+* VM run 2026-09-25 00:54-01:25 UTC, commit 5fdda57 (`results/phase16_p6/SUMMARY.md`). U (support directions, unit
+  geometry) 55.74 on fixed100, already +0.9 over the trained CR head. Oracle bounds: background +6.14, foreground
+  +16.31, all +25.12 (P6.1 joint). Frozen background self-support (rho 1, alpha 0.25, T 2) +1.19 and k-means
+  background (k 3) +1.32 on fixed100, positive on every random600 draw (P6.2, P6.3 go); both flat on the leak-free
+  draw. No foreground self-support arm beats U; no rho < 1 arm helps.
