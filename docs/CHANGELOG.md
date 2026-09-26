@@ -1623,3 +1623,12 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   leak-free +0.17. The gain is mostly foreground precision; the registered recall mechanism is not confirmed (P7.6).
   P7a: recall errors are whole regions (local seed recall around missed points 0.04-0.09) and other-condition points
   (recall 0.16 against 0.77 own) are a third of the missed foreground.
+
+### 16am - D-41 recorded and P8 implemented: the gap split by sampling condition (not run)
+
+* **D-41** in `docs/spec/00`: P8, condition oracles on U (own / other / both) on S1 valid (fixed100 reported), D-35's
+  arm B intervention (seed 3) re-run on the clean base under U with D-35's phi bands, cos(s_c, o_c) by condition;
+  rules P8.1-P8.5 choose the next training run (condition-balanced or instance-alignment training).
+* `experiments/p8_condition_probe.py` (split / intervene / decide; checks: model identity, the oracle partition,
+  VIP-Seg's metric, D-37's CR, D-39's U and U + both, P6's oracle_fg and valid numbers), `experiments/run_p8.sh
+  smoke|full`, `tests/test_condition_split.py` P8-1...8 (05 §3.8s); mutation check 16/16 killed.

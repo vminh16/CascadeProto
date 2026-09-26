@@ -546,6 +546,22 @@ without its CI condition, gained tests). LOSS-3 (§3.6) now lists the optional `
 Mutation check (2026-09-25), 22 mutants: 22 killed (four survivors of the first check, the seed source, the leak-free
 reading, the missed-point homophily summand and the gate threshold, gained tests).
 
+### 3.8s `tests/test_condition_split.py` (G1) — the condition split [DECISION D-41]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| P8-1 | Own mask: block b is sampled for local class b + 1; one query block per way | [DECISION D-35], [DECISION D-41] |
+| P8-2 | `oracle_own` and `oracle_other` replace the present foreground rows of their condition only and partition `oracle_fg` (P6's arm); background and absent rows untouched | [DECISION D-38], [DECISION D-41] |
+| P8-3 | Alignment records by hand: class, condition, cos(s_c, o_c), GT and TP per block and present class | [DECISION D-41] |
+| P8-4 | U and U + both read no label; each oracle equals the rule on its rows | [DECISION D-39], [DECISION D-41] |
+| P8-5 | Per-class counts; rank correlation (average ranks for ties, nan when undefined) | [DECISION D-41] |
+| P8-6 | Alignment summary per class and condition, pooled recall, rank correlation | [DECISION D-41] |
+| P8-7 | Rules P8.1–P8.4 (bounds, φ bands with the CI condition, undefined φ, the order of the admissible runs, none), "incomplete" | [DECISION D-35], [DECISION D-41] |
+| P8-8 | The new files parse as Python 3.10 | 00 §5.2 |
+
+Mutation check (2026-09-26), 16 mutants: 16 killed. The intervention loop reads the dataset and runs on the GPU; the
+smoke run covers it, and P5's sampler copy is checked against the inherited sampler on every re-sampled block.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.
