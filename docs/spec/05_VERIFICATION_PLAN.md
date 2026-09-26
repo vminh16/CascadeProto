@@ -562,6 +562,25 @@ reading, the missed-point homophily summand and the gate threshold, gained tests
 Mutation check (2026-09-26), 16 mutants: 16 killed. The intervention loop reads the dataset and runs on the GPU; the
 smoke run covers it, and P5's sampler copy is checked against the inherited sampler on every re-sampled block.
 
+### 3.8t `tests/test_density_encoder.py` (G1; DE-9..11 G2, marker `cuda`) — the density-invariant encoder [DECISION D-43]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| DE-1 | Ball grouping against brute force: the first k points within the radius in point order, padded with the first; a centre without a point and a non-positive radius raise | [DECISION D-43] |
+| DE-2 | Per-block scale and standardisation equal the statistics of each block alone; the batch-global form does not | [DECISION D-43] |
+| DE-3 | Configuration: `encoder` defaults to `vipseg`, an unknown value raises, a configuration written before D-43 loads | [DECISION D-43] |
+| DE-4 | `train.py --encoder density`: run tag `_dens`, model configuration, resuming a checkpoint without the flag | [DECISION D-43] |
+| DE-5 | Rule D43.1 by hand (both deficits must fall to half of CR's) | [DECISION D-43] |
+| DE-6 | Rules D43.1–D43.4, including a leak-free gain with a CI across 0, and "incomplete" | [DECISION D-43] |
+| DE-7 | The reader's U, U + both and U + both + LP equal P7's composition | [DECISION D-40], [DECISION D-43] |
+| DE-8 | The new and changed files parse as Python 3.10 | 00 §5.2 |
+| DE-9 | The density encoder has VIP-Seg's parameter names and shapes | [DECISION D-43] |
+| DE-10 | A block encoded alone and inside a batch gives the same features with the density encoder (relative change < 1e-4, TF32 off); VIP-Seg's encoder changes at least ten times more (D-42's coupling, printed) | [DECISION D-42], [DECISION D-43] |
+| DE-11 | On one block the overridden LoConv, DyHiConv and decoder equal VIP-Seg's (same weights): the forwards are faithful copies apart from the statistics | [DECISION D-43] |
+
+Mutation check (2026-09-26), 12 mutants on the CPU part: 12 killed (one survivor of the first check, a leak-free
+gain accepted without its CI, gained a test).
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

@@ -204,7 +204,9 @@ def decide(split: Dict[str, Dict], interv: Optional[Dict]) -> List[Tuple[str, st
 # ------------------------------------------------------------------ GPU passes
 
 @torch.no_grad()
-def score_split(rule, draw: str, data_path: str, device, max_episodes: Optional[int]) -> Tuple[Dict, Dict]:
+def score_split(rule, draw: str, data_path: str, device, max_episodes: Optional[int],
+                check_refs: bool = True) -> Tuple[Dict, Dict]:
+    """Part A on one draw; `check_refs` compares with CR's earlier numbers (off for another checkpoint, D-43)."""
     from pipeline.episodes import make_episode, read_class_names
 
     names = read_class_names(data_path, "s3dis")
@@ -236,7 +238,7 @@ def score_split(rule, draw: str, data_path: str, device, max_episodes: Optional[
     stacked = {k: np.stack(v) for k, v in counts.items()}
     miou = {k: float(p0.miou_from_counts(v.sum(0))) for k, v in stacked.items()}
     rec = np.concatenate(records)
-    full = max_episodes is None
+    full = max_episodes is None and check_refs
     if draw == "fixed100":
         from pipeline.evaluation import accumulated_miou
 

@@ -1641,3 +1641,14 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   own-condition class (0.833); a class in its own block sampled uniformly falls from 0.837 to 0.463 recall.
   P8.4: instance-alignment training first, condition-balanced training admissible; density invariance becomes the
   condition for the D-42 stack.
+
+### 16aq - D-43 recorded and M1 implemented: a density-invariant encoder (not run)
+
+* **D-43** in `docs/spec/00`: M1, the first block of D-42's stack; D-42 amended (P9's module preconditions are
+  measured on the base D-43 adopts). The encoder keeps VIP-Seg's modules and parameter shapes and changes the four
+  places where density enters: metric ball neighbourhoods (0.1 / 0.2 / 0.4 m, 16 points), offsets in units of the
+  radius, per-block statistics instead of batch-global ones, metric coordinates. One run against CR on E1's schedule;
+  rules D43.1-D43.5 (mechanism on P8's arm B, leak-free, standard) fixed before the run.
+* `models/density_ops.py`, `models/density_encoder.py` (new), `CascadeProtoConfig.encoder`, `train.py --encoder`,
+  `experiments/d43_eval.py`, `experiments/run_d43.sh smoke|full`, P8's reference checks optional,
+  `tests/test_density_encoder.py` DE-1...11 (05 §3.8t); mutation check 12/12.

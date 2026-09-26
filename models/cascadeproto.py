@@ -45,6 +45,7 @@ LOGIT_SCALES = ("none", "sqrt_D")  # [DECISION D-10]
 CROSS_ATTN = ("channel", "two_hop")  # [DECISION D-01]
 DIFFUSION_INPUTS = ("post_relu", "pre_relu")  # [DECISION D-14]
 PROTOTYPE_RULES = ("mean", "unit")  # [DECISION D-39], "unit" beyond the paper
+ENCODERS = ("vipseg", "density")  # [DECISION D-43], "density" beyond the paper
 
 
 @dataclass(frozen=True)
@@ -81,8 +82,11 @@ class CascadeProtoConfig:
     prototype_rule: str = "mean"  # [DECISION D-39]; "unit" = support directions, no head
     self_support_steps: int = 0  # [DECISION D-39]; trained self-support steps on the unit rule
     support_aux: float = 0.0  # [DECISION D-39]; weight of the CE on the step-0 (support-only) logits
+    encoder: str = "vipseg"  # [DECISION D-43]; "density" = metric-ball, per-block, metric-coordinate encoder
 
     def __post_init__(self):
+        if self.encoder not in ENCODERS:
+            raise ValueError(f"encoder must be one of {ENCODERS}, got {self.encoder!r} [DECISION D-43]")
         if not 0 <= self.num_stages <= 6:
             raise ValueError(f"num_stages must be in 0..6 (01 §3), got {self.num_stages}")
         if not math.isfinite(self.neck_alpha_init) or (self.neck_alpha_init != 0 and self.neck == "none"):
@@ -168,7 +172,13 @@ class CascadeProto(nn.Module):
         if feature_extractor is None:
             from models.vipseg_backbone import PointFeatureExtractor
 
-            feature_extractor = PointFeatureExtractor()
+            if config.encoder == "density":  # [DECISION D-43]
+                from models.density_encoder import DensityEncoder
+                from models.vipseg_backbone import ENCODER_CONFIG
+
+                feature_extractor = PointFeatureExtractor(encoder=DensityEncoder(**ENCODER_CONFIG))
+            else:
+                feature_extractor = PointFeatureExtractor()
         self.features = feature_extractor
         # Support -> query attention before the prototypes, identity at initialisation [DECISION D-33]
         self.neck = build_neck(config.neck, alpha_init=config.neck_alpha_init)
