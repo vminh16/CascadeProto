@@ -97,6 +97,12 @@ def split_logits(f_q: torch.Tensor, f_s: torch.Tensor, support_y: torch.Tensor,
     return out
 
 
+def has_support_background(support_y: np.ndarray, min_points: int = 3) -> bool:
+    """True when the support blocks hold at least `min_points` background points in total: U's background row needs
+    one and the 3-component background of D-39 needs three [DECISION D-41, amended]."""
+    return int((np.asarray(support_y) == 0).sum()) >= min_points
+
+
 def class_counts(y: np.ndarray, pred: np.ndarray, k: int) -> Tuple[float, float]:
     """(GT, TP) of local class k in one block."""
     is_k = y == k
@@ -286,9 +292,12 @@ def score_intervention(rule, data_path: str, device, max_episodes: Optional[int]
                                                                                    dtype=rows.dtype))
         return {r: lg[r].argmax(-1).cpu().numpy() for r in RULES}, cos.cpu().numpy()  # [B_q, P], [B_q, N+1]
 
-    n_ep = 0
+    n_ep, no_bg = 0, 0
     for ep in p5.draw_episodes(data_path, 1, seed, p5.EPISODES_PER_PAIR, False, max_episodes):
         sx, sy, qx, qy, classes = ep["item"]
+        if not has_support_background(sy):
+            no_bg += 1  # the background prototype is undefined for every rule [DECISION D-41, amended]
+            continue
         pred0, cos0 = predict(ep["item"])
         n_ep += 1
         for b in range(qy.shape[0]):
@@ -322,7 +331,7 @@ def score_intervention(rule, data_path: str, device, max_episodes: Optional[int]
                 cos_rec.append([c, v, float(cos[c_local])])
             for r in RULES:
                 events[r].append({"episode": ep["index"], "c": c, "a": a, **per[r]})
-    out = {"seed": seed, "episodes": n_ep, "min_raw_points": p5.MIN_RAW_POINTS}
+    out = {"seed": seed, "episodes": n_ep, "skipped_no_background": no_bg, "min_raw_points": p5.MIN_RAW_POINTS}
     for r in RULES:
         r_own = {k: own_tp[r][k] / own_gt[r][k] for k in own_gt[r] if own_gt[r][k] > 0}
         out[r] = p5.intervention_summary(events[r], r_own)

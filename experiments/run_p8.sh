@@ -14,14 +14,15 @@
 #
 # Usage on the VM:  bash experiments/run_p8.sh smoke          (tests, 5 episodes per stage, files *_smoke)
 #                   AUTOSTOP=1 nohup bash experiments/run_p8.sh full > /tmp/p8.log 2>&1 &
+#                   AUTOSTOP=1 nohup bash experiments/run_p8.sh intervene > /tmp/p8.log 2>&1 &   (arm B only)
 #   AUTOSTOP=1 shuts the VM down 15 minutes after the script ends, success or failure.
 set -u
 cd "$(dirname "$0")/.." || exit 1
 MODE=${1:-}
 case "$MODE" in
   smoke) EXTRA=(--max_episodes 5 --tag _smoke) ;;
-  full) EXTRA=() ;;
-  *) echo "usage: $0 smoke|full"; exit 1 ;;
+  full|intervene) EXTRA=() ;;
+  *) echo "usage: $0 smoke|full|intervene"; exit 1 ;;
 esac
 OUT=results/phase16_p8
 mkdir -p "$OUT"
@@ -39,8 +40,10 @@ LOG="$OUT/p8_${MODE}.log"
     $PY -m pytest tests/test_condition_split.py tests/test_propagation_probe.py tests/test_prototype_probe.py -q \
         -p no:cacheprovider || exit 1
   fi
-  $PY experiments/p8_condition_probe.py split --data_path "$D" --checkpoint "cr:ours:1:$CR" "${EXTRA[@]}" || exit 1
-  echo "=== split done $(date -Is)"
+  if [ "$MODE" != intervene ]; then  # intervene: re-run arm B only, the split files already exist
+    $PY experiments/p8_condition_probe.py split --data_path "$D" --checkpoint "cr:ours:1:$CR" "${EXTRA[@]}" || exit 1
+    echo "=== split done $(date -Is)"
+  fi
   $PY experiments/p8_condition_probe.py intervene --data_path "$D" --checkpoint "cr:ours:1:$CR" "${EXTRA[@]}" || exit 1
   if [ "$MODE" = smoke ]; then
     $PY experiments/p8_condition_probe.py decide --tag _smoke

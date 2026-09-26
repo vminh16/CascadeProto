@@ -81,6 +81,8 @@ def test_p8_4_split_logits_read_labels_only_in_the_oracles():
 
 
 def test_p8_5_counts_and_rank_correlation():
+    assert p8.has_support_background(np.array([[[0, 1, 1, 0, 0]]])) and not p8.has_support_background(np.ones((2, 1, 5)))
+    assert not p8.has_support_background(np.array([[[0, 1, 1, 0, 1]]]))  # two background points are too few
     y, pred = np.array([0, 1, 1, 2, 1]), np.array([1, 1, 0, 2, 1])
     assert p8.class_counts(y, pred, 1) == (3.0, 2.0)
     x = np.array([0.1, 0.5, 0.3, 0.9])

@@ -1644,6 +1644,11 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   training arms without spending either. About 1 h on an L4 (not measured).
 * **Affects.** `experiments/p8_condition_probe.py`, `experiments/run_p8.sh`, `tests/test_condition_split.py`,
   05 §3.8s.
+* **Amendment (2026-09-26, before arm B's result was read).** The first full run stopped in arm B on an episode of the
+  seed-3 draw whose two support blocks hold no background point: the background prototype is then undefined for
+  every rule (U's row is the zero vector, the 3-component background has no point). Such episodes are skipped and
+  counted (`skipped_no_background`); part A (both draws) had none and is unchanged. Arm B alone is re-run
+  (`run_p8.sh intervene`).
 
 ---
 
