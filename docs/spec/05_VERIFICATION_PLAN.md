@@ -581,6 +581,28 @@ smoke run covers it, and P5's sampler copy is checked against the inherited samp
 Mutation check (2026-09-26), 12 mutants on the CPU part: 12 killed (one survivor of the first check, a leak-free
 gain accepted without its CI, gained a test).
 
+### 3.8u `tests/test_placement_probe.py` (G1; P9-15 G2, marker `cuda`) — the placement probe [DECISION D-44]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| P9-1 | The FPS replay equals pointnet2's kernel written as a loop (float32, start at 0, points with x² + y² + z² <= 1e-3 never chosen) | [DECISION D-44] |
+| P9-2 | Distinct points per ball against a set of coordinates, duplicates counted once | [DECISION D-44] |
+| P9-3 | The cap: cap >= m leaves the ball unchanged, cap 1 pads everything with the first entry, the distinct count after the cap is min(m, cap), the first distinct entries stay in place | [DECISION D-44] |
+| P9-4 | The replay follows the centres from stage to stage, labels included | [DECISION D-44] |
+| P9-5 | m statistics by hand | [DECISION D-44] |
+| P9-6 | psi and its episode bootstrap by hand | [DECISION D-44] |
+| P9-7 | Caps fall only on the target class and come from the source counts | [DECISION D-44] |
+| P9-8 | Shared raw points by hand, with repeated indices | [DECISION D-44] |
+| P9-9 | The slices cover the 900-d encoder output in the decoder's order; per-slice cosines | [DECISION D-44] |
+| P9-10 | LDA forms (oracle and centred), shrinkage, class means, within-class and total covariance against explicit formulas | [DECISION D-42] |
+| P9-11 | The LDA oracle separates two classes along a quiet axis where the cosine rule does not | [DECISION D-42] |
+| P9-12 | Subspace shares, head shares (sum to one), the ratio CV, the participation ratio, the projected rule ignores the subspace | [DECISION D-42] |
+| P9-13 | Support means, foreground components (k = 1 is U, k = 2 the max over centroids), retrieval purity and shift vectors by hand | [DECISION D-42] |
+| P9-14 | Rules D44.0–D44.3 on every branch, thresholds at their edges; the files parse as Python 3.10 | [DECISION D-44] |
+| P9-15 | GPU: the capped grouping without caps equals M1's grouping; the replay agrees with the CUDA FPS; a cap reaches the target centres only; slice `emb` is the embedding layer's output | [DECISION D-44] |
+
+Mutation check (2026-09-27), 27 mutants on the CPU part: 27 killed.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

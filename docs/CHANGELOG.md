@@ -1660,3 +1660,13 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   of CR's); D43.2 fails (leak-free U + both + LP -0.30 [-1.41, +0.85]); D43.4 stop, fixed100 -9.31. Descriptive: the
   model head gains +2.07 on the leak-free draw and loses 6.89 on fixed100; the CR-selected rules "both" and LP do not
   transfer. Candidate residual pathway (not measured): ball padding below 16 distinct points; P9 next.
+
+### 16as - D-44 recorded and P9 implemented: ball-count geometry, the pathway intervention on M1, module preconditions on CR
+
+* **D-44** in `docs/spec/00`: step 0 replays M1's grouping on P8's arm-B events and counts the distinct points each
+  ball keeps (D-43's assumption that a max over a metric ball does not count points holds only at >= 16 distinct
+  points); part A encodes each block alone with M1 and caps the balls of the dense version to the sparse version's
+  counts (psi, D-35's bands); part B measures D-42's P9.3-P9.8 on CR. P9 decides admissibility; the one remaining
+  run is chosen in a new decision. D44.4 amended before any run: label-free rules are reported alone on fixed100.
+* `experiments/p9_placement_probe.py` (geometry / trace / modules / decide), `experiments/run_p9.sh smoke|full`,
+  `tests/test_placement_probe.py` P9-1...15 (05 §3.8u); mutation check 27/27 killed.

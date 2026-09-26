@@ -1877,7 +1877,8 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   * D44.3 the choice: P9 decides admissibility only. The one training run is chosen in a new decision from D44.1 and
     D44.2, with the measured size of each candidate's bound, before any code for it.
   * D44.4 reported: every measurement per stage, class and direction; for label-free rules that pass on valid, their
-    fixed100 score with U + both + LP composed (P9.9).
+    fixed100 score against U, the rule alone (P9.9's composition with both + LP needs the rules re-selected on the
+    rule's own logits, D-43 outcome, and is left to the decision that adopts it).
 * **Cost.** Step 0 on the local CPU. Parts A and B in one VM session, about 1–1.5 h on an L4 (not measured; part A is
   about 11 single-block encodings per event, part B two passes of 1,500 episodes).
 * **Affects.** `experiments/p9_placement_probe.py`, `experiments/run_p9.sh`, `tests/test_placement_probe.py`,
