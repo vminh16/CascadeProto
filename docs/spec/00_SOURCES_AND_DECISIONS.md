@@ -1798,6 +1798,16 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
 * **Affects.** `models/density_encoder.py` (new), `models/vipseg_backbone.py` (encoder choice), `models/cascadeproto.py`
   (`encoder` field), `train.py` (`--encoder`, run tag `_dens`), `experiments/p8_condition_probe.py` (reference checks
   optional), `experiments/d43_eval.py`, `experiments/run_d43.sh`, `tests/test_density_encoder.py`, 05 §3.8t.
+* **Outcome (2026-09-26, `results/phase16_d43/SUMMARY.md`).** **D43.1 fails**: other-condition deficit 0.588 → 0.432
+  (limit 0.294), own-class drop under uniform sampling 0.374 → 0.431 (limit 0.187); φ 1.14. **D43.2 fails**: leak-free
+  U + both + LP −0.30 [−1.41, +0.85]. **D43.4 stop**: M1 is not adopted, CR stays the base; fixed100 −9.31
+  [−10.82, −7.85], random600 −7.50, −10.28, −12.52. Descriptive, not pre-registered: M1's model head and U are better
+  on the leak-free draw (+2.07 [+1.21, +2.93], +1.55 [+0.79, +2.30]) and worse on fixed100 (−6.89, −6.33); "both" and
+  LP, selected on CR's features, remove that gain. The features move (cos of the sparse vs dense object 0.72 / 0.83,
+  CR 0.55 / 0.86) but the decision still follows density. Input assumption found wrong: a max over a metric ball does
+  not count points only when the ball holds at least K distinct points; r₁ = 0.1 m holds fewer on sparse objects, so
+  padding with duplicates keeps a count dependence (candidate, not measured). P9 locates the remaining pathway before
+  any other encoder change.
 
 ---
 
@@ -1913,4 +1923,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-26 | D-42 (maintainer request): the stacked architecture of the 2026-09-26 research note as the direction; P9 checks the input assumptions at each insertion point (block coupling, density, extent, common component) and each module's precondition before any training; rules fixed before the run. |
 | 2026-09-26 | D-41 measured: other-condition bound +5.25, own +13.71; density causal (φ 1.00); uniform sampling halves the own class's recall (0.84 → 0.46). |
 | 2026-09-26 | D-42 amended: P9's module preconditions are measured on the base D-43 adopts. D-43 (maintainer request): M1, a density-invariant encoder (metric ball neighbourhoods, offsets in metres, per-block standardisation, metric coordinates), one training run against CR; rules on the mechanism, the leak-free and the standard protocol fixed before the run. |
+| 2026-09-26 | D-43 measured: D43.1 and D43.2 fail, stop (D43.4); CR stays the base. M1's head gains on the leak-free draw (+2.07) and loses on fixed100 (−6.89); the decision still follows density (φ 1.14). |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

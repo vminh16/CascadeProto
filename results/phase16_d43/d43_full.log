@@ -1,0 +1,152 @@
+=== 2026-09-26T12:29:11+00:00 commit 8504462 D43 full
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'stage_type': 'vip_clean', 'gate_target': 'prototype', 'eq19_self': 'none', 'query_order': 'random', 'train_classes': 'split', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'density', 'init_checkpoint': None, 'distill_beta': 0.0, 'epochs': 50, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 15, 'batch_size': 1, 'lr_gamma': 0.5, 'valid_every': 4, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_d43', 'dry_run': False, 'resume': True}
+data: /home/nguyenvanminh16082k5/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+train classes [0, 3, 4, 8, 10, 11] | test classes [6, 1, 9, 7, 2, 5] | 24000 training episodes, 480 steps/epoch
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config: {'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'gate_target': 'prototype', 'eq19_self': 'none', 'stage_type': 'vip_clean', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'distill_beta': 0.0, 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'density'}
+epoch 1/50 | loss 0.7027 | L_GMMN 0.0000 | lr 1.00e-03 | 108s | L_distill 0.2525
+epoch 2/50 | loss 0.5185 | L_GMMN 0.0000 | lr 1.00e-03 | 216s | L_distill 0.1986
+epoch 3/50 | loss 0.4742 | L_GMMN 0.0000 | lr 1.00e-03 | 323s | L_distill 0.1627
+epoch 4/50 | loss 0.4319 | L_GMMN 0.0000 | lr 1.00e-03 | 430s | L_distill 0.1545
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 4 | valid mIoU 0.4397
+epoch 5/50 | loss 0.4300 | L_GMMN 0.0000 | lr 1.00e-03 | 697s | L_distill 0.1587
+epoch 6/50 | loss 0.3994 | L_GMMN 0.0000 | lr 1.00e-03 | 804s | L_distill 0.1399
+epoch 7/50 | loss 0.3945 | L_GMMN 0.0000 | lr 1.00e-03 | 911s | L_distill 0.1491
+epoch 8/50 | loss 0.3753 | L_GMMN 0.0000 | lr 1.00e-03 | 1018s | L_distill 0.1366
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 8 | valid mIoU 0.4143
+epoch 9/50 | loss 0.3753 | L_GMMN 0.0000 | lr 1.00e-03 | 1285s | L_distill 0.1267
+epoch 10/50 | loss 0.3442 | L_GMMN 0.0000 | lr 1.00e-03 | 1393s | L_distill 0.1327
+epoch 11/50 | loss 0.3266 | L_GMMN 0.0000 | lr 1.00e-03 | 1500s | L_distill 0.1163
+epoch 12/50 | loss 0.3291 | L_GMMN 0.0000 | lr 1.00e-03 | 1607s | L_distill 0.1214
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 12 | valid mIoU 0.4260
+epoch 13/50 | loss 0.3235 | L_GMMN 0.0000 | lr 1.00e-03 | 1874s | L_distill 0.1139
+epoch 14/50 | loss 0.3055 | L_GMMN 0.0000 | lr 1.00e-03 | 1981s | L_distill 0.1138
+epoch 15/50 | loss 0.2930 | L_GMMN 0.0000 | lr 5.00e-04 | 2088s | L_distill 0.1056
+epoch 16/50 | loss 0.2502 | L_GMMN 0.0000 | lr 5.00e-04 | 2195s | L_distill 0.0956
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 16 | valid mIoU 0.4240
+epoch 17/50 | loss 0.2321 | L_GMMN 0.0000 | lr 5.00e-04 | 2463s | L_distill 0.0913
+epoch 18/50 | loss 0.2485 | L_GMMN 0.0000 | lr 5.00e-04 | 2570s | L_distill 0.1012
+epoch 19/50 | loss 0.2412 | L_GMMN 0.0000 | lr 5.00e-04 | 2677s | L_distill 0.0951
+epoch 20/50 | loss 0.2167 | L_GMMN 0.0000 | lr 5.00e-04 | 2784s | L_distill 0.0862
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 20 | valid mIoU 0.4318
+epoch 21/50 | loss 0.2282 | L_GMMN 0.0000 | lr 5.00e-04 | 3052s | L_distill 0.0824
+epoch 22/50 | loss 0.2288 | L_GMMN 0.0000 | lr 5.00e-04 | 3159s | L_distill 0.0904
+epoch 23/50 | loss 0.2252 | L_GMMN 0.0000 | lr 5.00e-04 | 3266s | L_distill 0.0955
+epoch 24/50 | loss 0.1984 | L_GMMN 0.0000 | lr 5.00e-04 | 3373s | L_distill 0.0790
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 24 | valid mIoU 0.4199
+epoch 25/50 | loss 0.2231 | L_GMMN 0.0000 | lr 5.00e-04 | 3641s | L_distill 0.0858
+epoch 26/50 | loss 0.2092 | L_GMMN 0.0000 | lr 5.00e-04 | 3748s | L_distill 0.0865
+epoch 27/50 | loss 0.2075 | L_GMMN 0.0000 | lr 5.00e-04 | 3855s | L_distill 0.0853
+epoch 28/50 | loss 0.2058 | L_GMMN 0.0000 | lr 5.00e-04 | 3962s | L_distill 0.0837
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 28 | valid mIoU 0.4312
+epoch 29/50 | loss 0.1918 | L_GMMN 0.0000 | lr 5.00e-04 | 4228s | L_distill 0.0778
+epoch 30/50 | loss 0.2030 | L_GMMN 0.0000 | lr 2.50e-04 | 4335s | L_distill 0.0790
+epoch 31/50 | loss 0.1839 | L_GMMN 0.0000 | lr 2.50e-04 | 4442s | L_distill 0.0718
+epoch 32/50 | loss 0.1690 | L_GMMN 0.0000 | lr 2.50e-04 | 4549s | L_distill 0.0711
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 32 | valid mIoU 0.4855
+epoch 33/50 | loss 0.1554 | L_GMMN 0.0000 | lr 2.50e-04 | 4817s | L_distill 0.0668
+epoch 34/50 | loss 0.1501 | L_GMMN 0.0000 | lr 2.50e-04 | 4924s | L_distill 0.0648
+epoch 35/50 | loss 0.1488 | L_GMMN 0.0000 | lr 2.50e-04 | 5031s | L_distill 0.0678
+epoch 36/50 | loss 0.1472 | L_GMMN 0.0000 | lr 2.50e-04 | 5138s | L_distill 0.0661
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 36 | valid mIoU 0.4475
+epoch 37/50 | loss 0.1574 | L_GMMN 0.0000 | lr 2.50e-04 | 5405s | L_distill 0.0652
+epoch 38/50 | loss 0.1525 | L_GMMN 0.0000 | lr 2.50e-04 | 5512s | L_distill 0.0636
+epoch 39/50 | loss 0.1454 | L_GMMN 0.0000 | lr 2.50e-04 | 5619s | L_distill 0.0603
+epoch 40/50 | loss 0.1529 | L_GMMN 0.0000 | lr 2.50e-04 | 5726s | L_distill 0.0696
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 40 | valid mIoU 0.4782
+epoch 41/50 | loss 0.1392 | L_GMMN 0.0000 | lr 2.50e-04 | 5994s | L_distill 0.0638
+epoch 42/50 | loss 0.1600 | L_GMMN 0.0000 | lr 2.50e-04 | 6101s | L_distill 0.0644
+epoch 43/50 | loss 0.1374 | L_GMMN 0.0000 | lr 2.50e-04 | 6208s | L_distill 0.0580
+epoch 44/50 | loss 0.1424 | L_GMMN 0.0000 | lr 2.50e-04 | 6315s | L_distill 0.0605
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 44 | valid mIoU 0.5055
+epoch 45/50 | loss 0.1360 | L_GMMN 0.0000 | lr 1.25e-04 | 6582s | L_distill 0.0609
+epoch 46/50 | loss 0.1302 | L_GMMN 0.0000 | lr 1.25e-04 | 6688s | L_distill 0.0568
+epoch 47/50 | loss 0.1392 | L_GMMN 0.0000 | lr 1.25e-04 | 6795s | L_distill 0.0617
+epoch 48/50 | loss 0.1167 | L_GMMN 0.0000 | lr 1.25e-04 | 6902s | L_distill 0.0549
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 48 | valid mIoU 0.5163
+epoch 49/50 | loss 0.1186 | L_GMMN 0.0000 | lr 1.25e-04 | 7170s | L_distill 0.0548
+epoch 50/50 | loss 0.1282 | L_GMMN 0.0000 | lr 1.25e-04 | 7277s | L_distill 0.0565
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 50 | valid mIoU 0.4817
+done: best valid mIoU 0.5163; evaluate best.pt and last.pt with eval.py [D-15]
+=== TRAIN m1 exit=0 2026-09-26T14:33:16+00:00
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] fixed100: cr:model 54.84 | cr:U 55.74 | cr:both 57.63 | cr:lp 58.55 | m1:model 47.94 | m1:U 49.42 | m1:both 48.54 | m1:lp 49.24 | m1_best:model 51.50 | m1_best:U 51.72 | m1_best:both 50.72 | m1_best:lp 51.56 | 1500 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:0: cr:model 51.83 | cr:U 53.18 | cr:both 54.84 | cr:lp 55.75 | m1:model 46.49 | m1:U 48.43 | m1:both 47.64 | m1:lp 48.25 | m1_best:model 49.25 | m1_best:U 49.59 | m1_best:both 49.15 | m1_best:lp 50.03 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:1: cr:model 56.73 | cr:U 57.55 | cr:both 59.54 | cr:lp 60.57 | m1:model 49.70 | m1:U 50.87 | m1:both 49.59 | m1:lp 50.28 | m1_best:model 51.93 | m1_best:U 52.76 | m1_best:both 51.79 | m1_best:lp 52.62 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:2: cr:model 54.76 | cr:U 57.10 | cr:both 58.93 | cr:lp 60.35 | m1:model 46.85 | m1:U 49.48 | m1:both 47.28 | m1:lp 47.82 | m1_best:model 50.12 | m1_best:U 51.53 | m1_best:both 49.68 | m1_best:lp 50.32 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] leakfree: cr:model 28.10 | cr:U 33.02 | cr:both 33.14 | cr:lp 33.31 | m1:model 30.17 | m1:U 34.57 | m1:both 32.93 | m1:lp 33.01 | m1_best:model 30.98 | m1_best:U 34.93 | m1_best:both 33.68 | m1_best:lp 33.85 | 1500 episodes
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[condition] m1: U 49.53 oracle_own 68.12 oracle_other 54.36 | arm B R_V0 0.276 R_V1 0.770 R_own 0.708
+D43.1 mechanism fails                                        other deficit CR 0.588 -> M1 0.432; uniform drop CR 0.374 -> M1 0.431 (limit 0.5 of CR)
+D43.2 leak-free fails                                        m1 - cr (U + both + LP) -0.30 [-1.41, +0.85], contains 0
+D43.4 stop: density still enters; P9 locates it              m1 - cr fixed100 -9.31 [-10.82, -7.85], below 0; random600 [-7.5, -10.28, -12.52]
+D43.5 cr                                                     model 54.84 | U 55.74 | both 57.63 | lp 58.55 | leak-free model 28.10 U 33.02 both 33.14 lp 33.31
+D43.5 m1                                                     model 47.94 | U 49.42 | both 48.54 | lp 49.24 | leak-free model 30.17 U 34.57 both 32.93 lp 33.01
+D43.5 m1 arm B                                               R_V0 0.276 R_V1 0.770 R_own 0.708 phi 1.143; a V0 / V2 0.789 / 0.358
+D43.5 m1 condition oracles (valid)                           U 49.53, g_own +18.59, g_other +4.83, g_fg +22.25
+=== D43 full FINISHED 2026-09-26T16:20:36+00:00

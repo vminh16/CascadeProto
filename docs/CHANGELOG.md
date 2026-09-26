@@ -1652,3 +1652,11 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * `models/density_ops.py`, `models/density_encoder.py` (new), `CascadeProtoConfig.encoder`, `train.py --encoder`,
   `experiments/d43_eval.py`, `experiments/run_d43.sh smoke|full`, P8's reference checks optional,
   `tests/test_density_encoder.py` DE-1...11 (05 §3.8t); mutation check 12/12.
+
+### 16ar - D-43 measured: M1 does not remove the density dependence; stop, CR stays the base
+
+* VM run 2026-09-26, commit 8504462 (`results/phase16_d43/SUMMARY.md`). Training: best valid 51.63 (epoch 48),
+  last 48.17 (CR 55.82 / 55.17). D43.1 fails (other deficit 0.588 -> 0.432, uniform drop 0.374 -> 0.431, limits half
+  of CR's); D43.2 fails (leak-free U + both + LP -0.30 [-1.41, +0.85]); D43.4 stop, fixed100 -9.31. Descriptive: the
+  model head gains +2.07 on the leak-free draw and loses 6.89 on fixed100; the CR-selected rules "both" and LP do not
+  transfer. Candidate residual pathway (not measured): ball padding below 16 distinct points; P9 next.
