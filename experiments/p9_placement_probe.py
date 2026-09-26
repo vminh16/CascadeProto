@@ -410,8 +410,9 @@ def events(data_path: str, max_episodes: Optional[int]) -> Iterator[Dict]:
             if p5.raw_count(data_path, ep["q_scans"][b], c) < p5.MIN_RAW_POINTS:
                 continue
             scan = ep["q_scans"][b]
+            within = ep["index"] - ep["pair"] * p5.EPISODES_PER_PAIR  # draw_episodes seeds V0 by the index within the pair
             blocks = {"V0": (qx[b], qy[b].astype(np.int64),
-                             raw_indices(data_path, scan, a, False, [seed, ep["pair"], ep["index"], 0, b], qx[b]))}
+                             raw_indices(data_path, scan, a, False, [seed, ep["pair"], within, 0, b], qx[b]))}
             for v, (cls, uniform) in ((1, (c, False)), (2, (a, True))):
                 s = [seed, ep["pair"], ep["index"], 2 + v, b]
                 x, y, _ = p5.sample_block(data_path, scan, classes, cls, uniform, s)
@@ -523,8 +524,9 @@ def trace(rule, data_path: str, device, max_episodes: Optional[int], run_caps: b
     refs = {k: [0.0, 0.0] for k in ("c_V0", "c_V1", "a_V0", "a_V2")}  # [gt, tp]
     cos_sum = {}  # (pair, group, slice) -> [sum, count]
     checks = {"encode_max_rel": 0.0, "uncapped_equal": 0}
-    last_ep, rows, f_model = None, None, None
+    last_ep, rows, f_model, n_events = None, None, None, 0
     for n_ev, ev in enumerate(events(data_path, max_episodes)):
+        n_events += 1
         if ev["episode"] != last_ep:
             e = make_episode(ev["item"], names).to(device)
             f_q, m_eff, _, logits = rule(e)
@@ -588,7 +590,7 @@ def trace(rule, data_path: str, device, max_episodes: Optional[int], run_caps: b
                 gt_cap, tp_cap = counts(y[ref_v], pred_cap, t)
                 gt_low, tp_low = g[(cls, src_v)]
                 rec[d][arm].append([ev["episode"], gt_ref, gt_cap, gt_low, tp_ref, tp_cap, tp_low])
-    result = {"checks": checks,
+    result = {"checks": checks, "events": n_events,
               "refs": {k: v[1] / max(v[0], 1.0) for k, v in refs.items()},
               "cos": {k: v[0] / max(v[1], 1) for k, v in cos_sum.items()},
               "cos_points": {k: v[1] for k, v in cos_sum.items()}}
@@ -602,10 +604,18 @@ def trace(rule, data_path: str, device, max_episodes: Optional[int], run_caps: b
     return result
 
 
+def p8_events() -> int:
+    """Number of arm-B events of P8 and D-43 (1,045)."""
+    with open(os.path.join(REPO, D43_INTERVENE)) as f:
+        return int(json.load(f)["U"]["events"])
+
+
 def check_trace_refs(result: Dict) -> None:
-    """Part A's reference recalls against D-43's intervene_m1.json (per-block against pair encoding)."""
+    """Part A's events and reference recalls against D-43's intervene_m1.json (per-block against pair encoding)."""
     with open(os.path.join(REPO, D43_INTERVENE)) as f:
         u = json.load(f)["U"]
+    if result["events"] != u["events"]:
+        raise RuntimeError(f"{result['events']} events, D-43 had {u['events']}")
     pairs = {"c_V0": u["r_v0"], "c_V1": u["r_v1"], "a_V0": u["r_a_v0"], "a_V2": u["r_a_v2"]}
     for k, ref in pairs.items():
         if abs(result["refs"][k] - ref) > REF_TOL:
@@ -787,6 +797,8 @@ def main(argv=None) -> int:
         p.error("--data_path is required")
     if args.stage == "geometry":
         res = geometry(args.data_path, args.max_episodes)
+        if args.max_episodes is None and res["events"] != p8_events():
+            raise RuntimeError(f"{res['events']} events, P8 and D-43 had {p8_events()}")
         p6.save(res, None, f"geometry{args.tag}", out_dir)
         for s, st in res["stages"].items():
             print(f"[geometry] stage {int(s) + 1} r {BALL_RADII[int(s)]}: " + " | ".join(

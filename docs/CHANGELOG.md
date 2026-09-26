@@ -1670,3 +1670,8 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   run is chosen in a new decision. D44.4 amended before any run: label-free rules are reported alone on fixed100.
 * `experiments/p9_placement_probe.py` (geometry / trace / modules / decide), `experiments/run_p9.sh smoke|full`,
   `tests/test_placement_probe.py` P9-1...15 (05 §3.8u); mutation check 27/27 killed.
+* Step 0 first run locally: it stopped on its own check (V0's raw indices seeded by the global episode index; the
+  draw seeds V0 by the index within the class pair; fixed), then drew 1,053 events against P8's 1,045: the seeded
+  draw depends on each machine's `class2scans_100.pkl` order. D-44 amended: step 0 runs on the VM next to part B,
+  and geometry and trace check their event count against D-43's; the local run is kept as a preview
+  (`results/phase16_p9/geometry_local.json`: stage 1, c-centres' mean m 11.81 as sampled, 15.13 dense).
