@@ -575,7 +575,7 @@ smoke run covers it, and P5's sampler copy is checked against the inherited samp
 | DE-7 | The reader's U, U + both and U + both + LP equal P7's composition | [DECISION D-40], [DECISION D-43] |
 | DE-8 | The new and changed files parse as Python 3.10 | 00 §5.2 |
 | DE-9 | The density encoder has VIP-Seg's parameter names and shapes | [DECISION D-43] |
-| DE-10 | A block encoded alone and inside a batch gives the same features with the density encoder (relative change < 1e-4, TF32 off); VIP-Seg's encoder changes at least ten times more (D-42's coupling, printed) | [DECISION D-42], [DECISION D-43] |
+| DE-10 | Block a encoded next to b and next to c: with the density encoder its features do not depend on the partner (relative change < 1e-6, TF32 off; batch size 1 against 2 differs only by rounding, at the one-ULP floor); VIP-Seg's encoder changes by > 1e-3 (D-42's coupling, printed) | [DECISION D-42], [DECISION D-43] |
 | DE-11 | On one block the overridden LoConv, DyHiConv and decoder equal VIP-Seg's (same weights): the forwards are faithful copies apart from the statistics | [DECISION D-43] |
 
 Mutation check (2026-09-26), 12 mutants on the CPU part: 12 killed (one survivor of the first check, a leak-free

@@ -187,17 +187,19 @@ def test_de9_same_parameters_as_vipseg():
 
 @pytest.mark.cuda
 def test_de10_blocks_are_encoded_independently_only_by_the_density_encoder():
+    """Block a encoded next to b and next to c: with the density encoder its features must not depend on the partner
+    (measured 2026-09-26: exactly 0.0). Batch size 1 against 2 differs by rounding only (1.4e-4, equal to the change
+    caused by a one-ULP input perturbation, 1.3e-4), so the partner, not the batch size, is compared."""
     vip, dens = encoders()
-    x = blocks(2)
+    x = blocks(3)
+    ab, ac = x[[0, 1]], x[[0, 2]]
     with torch.no_grad(), torch.backends.cudnn.flags(enabled=True, benchmark=False, deterministic=True,
                                                      allow_tf32=False):
-        d_pair, d_alone = dens(x)[:1], dens(x[:1])
-        v_pair, v_alone = vip(x)[:1], vip(x[:1])
-    d_rel = float((d_pair - d_alone).abs().max() / d_alone.abs().max())
-    v_rel = float((v_pair - v_alone).abs().max() / v_alone.abs().max())
-    print(f"DE-10 relative change of block 0 when encoded with block 1: density {d_rel:.2e}, VIP-Seg {v_rel:.2e}")
-    assert d_rel < 1e-4
-    assert v_rel > 10 * d_rel  # VIP-Seg's batch-global statistics couple the blocks (D-42)
+        d_rel = float((dens(ab)[:1] - dens(ac)[:1]).abs().max() / dens(ab)[:1].abs().max())
+        v_rel = float((vip(ab)[:1] - vip(ac)[:1]).abs().max() / vip(ab)[:1].abs().max())
+    print(f"DE-10 relative change of block a when its partner changes: density {d_rel:.2e}, VIP-Seg {v_rel:.2e}")
+    assert d_rel < 1e-6
+    assert v_rel > 1e-3  # VIP-Seg's batch-global statistics couple the blocks (D-42)
 
 
 @pytest.mark.cuda
