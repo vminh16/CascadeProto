@@ -1632,3 +1632,12 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * `experiments/p8_condition_probe.py` (split / intervene / decide; checks: model identity, the oracle partition,
   VIP-Seg's metric, D-37's CR, D-39's U and U + both, P6's oracle_fg and valid numbers), `experiments/run_p8.sh
   smoke|full`, `tests/test_condition_split.py` P8-1...8 (05 §3.8s); mutation check 16/16 killed.
+
+### 16ap - P8 measured: the other-condition deficit is entirely density; own recall rests on density too
+
+* VM runs 2026-09-26, commits f4c3593 (part A) and f220854 (arm B re-run after the D-41 amendment:
+  `results/phase16_p8/SUMMARY.md`). Condition oracles on S1 valid: own +13.71, other +5.25 over U (other points are
+  11.5 % of the foreground). Arm B: phi 1.00 [0.96, 1.03]; the same object made dense is found as often as an
+  own-condition class (0.833); a class in its own block sampled uniformly falls from 0.837 to 0.463 recall.
+  P8.4: instance-alignment training first, condition-balanced training admissible; density invariance becomes the
+  condition for the D-42 stack.

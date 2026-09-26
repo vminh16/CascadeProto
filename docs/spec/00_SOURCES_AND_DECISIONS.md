@@ -1649,6 +1649,14 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   every rule (U's row is the zero vector, the 3-component background has no point). Such episodes are skipped and
   counted (`skipped_no_background`); part A (both draws) had none and is unchanged. Arm B alone is re-run
   (`run_p8.sh intervene`).
+* **Outcome (2026-09-26, `results/phase16_p8/SUMMARY.md`).** P8.1 holds (g_other +5.25 on valid), P8.3 holds
+  (g_own +13.71; g_fg +16.12). P8.2 density causal: φ 1.001 [0.962, 1.034] over 1,045 blocks (1 episode skipped);
+  the same object re-sampled dense is found as often as an own-condition class (R_V1 0.833 = R_own 0.833, from
+  R_V0 0.245), and its direction moves from cos 0.55 to 0.86 of the support's. Uniform sampling lowers the own class's
+  recall from 0.837 to 0.463: the model finds foreground largely by density. P8.4: both training arms admissible;
+  instance-alignment training first by the rule (bound +13.71), condition-balanced second. Alignment: own cos 0.889,
+  other 0.540 (Spearman with recall 0.79). Reading for D-42: density invariance is the condition for every later
+  block, and the own bound is measured on points that density helps.
 
 ---
 
@@ -1832,4 +1840,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-26 | D-40 measured: propagation adopted at inference (CR + U + both + LP 58.55, S1 fixed100, +0.92), as a denoiser, not a recall mechanism (P7.6 unexplained); recall errors are whole regions, and other-condition points (recall 0.16) are a third of the missed foreground. |
 | 2026-09-26 | D-41 (maintainer request): P8, the clean base's oracle gap split by sampling condition (own / other oracles) and D-35's condition intervention re-run on it with its φ bands; rules choose the next training run. |
 | 2026-09-26 | D-42 (maintainer request): the stacked architecture of the 2026-09-26 research note as the direction; P9 checks the input assumptions at each insertion point (block coupling, density, extent, common component) and each module's precondition before any training; rules fixed before the run. |
+| 2026-09-26 | D-41 measured: other-condition bound +5.25, own +13.71; density causal (φ 1.00); uniform sampling halves the own class's recall (0.84 → 0.46). |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

@@ -1,0 +1,20 @@
+=== 2026-09-26T07:37:26+00:00 commit f220854 P8 intervene
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[intervene] 1045 blocks | U: R_V0 0.245 R_V1 0.833 R_own 0.833 phi 1.001
+P8.1 other-condition bound holds             g_other +5.25 (valid; U 55.96)
+P8.3 own-condition bound holds               g_own +13.71, g_fg +16.12
+P8.2 density causal                          phi 1.001; R_V0 0.245, R_V1 0.833, R_V2 0.540, R_own 0.833; R_V1 - R_V0 CI [+0.552, +0.621]; 1045 blocks
+P8.4 next run: instance-alignment training   admissible: condition-balanced training (bound +5.25), instance-alignment training (bound +13.71)
+P8.5 reported                                a under V0 / V2 0.837 / 0.463; phi under U + both 1.005; fixed100 model 54.84, U 55.74, both 57.63, oracle_own 69.49, oracle_other 60.91, oracle_fg 72.05
+P8.5 cos valid                               all_own cos 0.889 recall 0.824 rho 0.42 | all_other cos 0.540 recall 0.273 rho 0.79
+P8.5 cos fixed100                            all_own cos 0.885 recall 0.820 rho 0.43 | all_other cos 0.533 recall 0.260 rho 0.79
+=== P8 intervene FINISHED 2026-09-26T07:52:17+00:00

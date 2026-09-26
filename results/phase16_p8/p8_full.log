@@ -1,0 +1,44 @@
+=== 2026-09-26T05:03:48+00:00 commit f4c3593 P8 full
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[split] valid: model 55.17 | U 55.96 | both 58.09 | oracle_own 69.68 | oracle_other 61.21 | oracle_fg 72.08 | 1500 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[split] fixed100: model 54.84 | U 55.74 | both 57.63 | oracle_own 69.49 | oracle_other 60.91 | oracle_fg 72.05 | 1500 episodes
+=== split done 2026-09-26T05:15:34+00:00
+/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+Traceback (most recent call last):
+  File "/home/nguyenvanminh16082k5/CascadeProto/experiments/p8_condition_probe.py", line 386, in <module>
+    raise SystemExit(main())
+  File "/home/nguyenvanminh16082k5/CascadeProto/experiments/p8_condition_probe.py", line 373, in main
+    result = score_intervention(rule, args.data_path, device, args.max_episodes)
+  File "/home/nguyenvanminh16082k5/CascadeProto/.venv/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/nguyenvanminh16082k5/CascadeProto/experiments/p8_condition_probe.py", line 292, in score_intervention
+    pred0, cos0 = predict(ep["item"])
+  File "/home/nguyenvanminh16082k5/CascadeProto/experiments/p8_condition_probe.py", line 282, in predict
+    lg = split_logits(f_q, f_s, e.support_y, e.query_y)
+  File "/home/nguyenvanminh16082k5/CascadeProto/experiments/p8_condition_probe.py", line 94, in split_logits
+    out = {"U": p6.rule_logits(f_q, rows), "both": p7.both_logits(f_q, f_s, support_y)}
+  File "/home/nguyenvanminh16082k5/CascadeProto/experiments/p7_propagation_probe.py", line 138, in both_logits
+    cent = p6.spherical_kmeans(p6.background_units(f_s, support_y), d39.KM)  # [3, D]
+  File "/home/nguyenvanminh16082k5/CascadeProto/experiments/p6_prototype_probe.py", line 132, in spherical_kmeans
+    raise ValueError(f"{x.shape[0]} points cannot give {k} centroids")
+ValueError: 0 points cannot give 3 centroids
