@@ -1745,11 +1745,11 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   rule tried in D-26…D-40. Reading the encoder shows where [VIPSEG models/encoder.py]:
   1. neighbourhoods are the k = 16 nearest points (`FPS_kNN`, `knn_point`), so their metric extent grows where points
      are sparse and reaches other surfaces;
-  2. DyHiConv feeds the neighbour offsets and their norm ‖p_j − p_i‖ into its kernel generator (lines 355–363), and
+  2. DyHiConv feeds the neighbour offsets and their norm ‖p_j − p_i‖ into its kernel generator (lines 365–369), and
      DyPowerConv divides the offsets by one std of the whole batch (lines 182–189): the offset scale is a density
      measurement;
-  3. LoConv, DyHiConv and the decoder standardise by a mean and std over the whole batch tensor (lines 187, 283–285,
-     414–416, 582–584), which also couples the blocks encoded together (D-42 input assumption 1);
+  3. LoConv, DyHiConv and the decoder standardise by a mean and std over the whole batch tensor (lines 182–189, 282–285,
+     413–416, 582–584), which also couples the blocks encoded together (D-42 input assumption 1);
   4. the encoder reads the per-axis normalised coordinates (channels 6–8), so no radius is metric (D-42 assumption 2).
   The aggregations themselves are max-pools (lines 101–104, 457), which do not count points: once the neighbourhood is
   a fixed metric region, a max over it depends on the surface, not on how many samples fell on it.
