@@ -813,7 +813,8 @@ def train_statistics(rule, data_path: str, device, n_episodes: int) -> Dict[str,
 
 
 @torch.no_grad()
-def modules(rule, data_path: str, device, max_episodes: Optional[int], train_episodes: int) -> Tuple[Dict, Dict]:
+def modules(rule, data_path: str, device, max_episodes: Optional[int], train_episodes: int,
+            check_cr: bool = True) -> Tuple[Dict, Dict]:
     """Part B [DECISION D-44] on CR's valid draw."""
     from pipeline.episodes import make_episode, read_class_names
 
@@ -882,7 +883,7 @@ def modules(rule, data_path: str, device, max_episodes: Optional[int], train_epi
                 purity[key][1] += int(sel.sum())
     stacked = {k: np.stack(v) for k, v in counts.items()}
     miou = {k: float(p0.miou_from_counts(v.sum(0))) for k, v in stacked.items()}
-    if max_episodes is None:
+    if max_episodes is None and check_cr:  # CR's valid U; other checkpoints have no reference [DECISION D-45]
         with open(os.path.join(REPO, P8_VALID)) as f:
             ref = json.load(f)["miou"]["U"]
         if abs(miou["U"] - ref) > U_TOL:
@@ -986,7 +987,8 @@ def main(argv=None) -> int:
         return 0
     if config.get("encoder", "vipseg") != "vipseg":
         raise ValueError("modules reads CR (encoder=vipseg), the base after D-43 [DECISION D-44]")
-    res, stacked = modules(rule, args.data_path, device, args.max_episodes, args.train_episodes)
+    res, stacked = modules(rule, args.data_path, device, args.max_episodes, args.train_episodes,
+                           check_cr=ck.name == "cr")
     res.update(models=meta, peak_vram_gib=torch.cuda.max_memory_allocated() / 2**30)
     p6.save(res, stacked, f"modules_cr_valid{args.tag}", out_dir)
     print("[modules] " + " | ".join(f"{k} {100 * v:.2f}" for k, v in res["miou"].items()), flush=True)

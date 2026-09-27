@@ -91,6 +91,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="weight of the CE on the support-only logits [D-39]")
     p.add_argument("--encoder", default="vipseg", choices=["vipseg", "density"],
                    help="density = metric-ball, per-block, metric-coordinate encoder [D-43], beyond the paper")
+    p.add_argument("--vicreg_var", type=float, default=0.0,
+                   help="weight of VICReg's variance term on the query features [D-45], beyond the paper")
+    p.add_argument("--vicreg_cov", type=float, default=0.0,
+                   help="weight of VICReg's covariance term on the query features [D-45], beyond the paper")
     p.add_argument("--init_checkpoint", default=None,
                    help="warm start from one of our own checkpoints (strict except the neck's parameters) [D-33]")
     p.add_argument("--distill_beta", type=float, default=0.0,
@@ -146,7 +150,7 @@ def model_config(args):
                               distill_beta=args.distill_beta, neck=args.neck,
                               neck_alpha_init=args.neck_alpha_init, prototype_rule=args.prototype_rule,
                               self_support_steps=args.self_support_steps, support_aux=args.support_aux,
-                              encoder=args.encoder)
+                              encoder=args.encoder, vicreg_var=args.vicreg_var, vicreg_cov=args.vicreg_cov)
 
 
 def build_model(config, feature_extractor=None) -> torch.nn.Module:
@@ -193,6 +197,8 @@ def run_dir(args) -> str:
     tag += "" if not getattr(args, "self_support_steps", 0) else f"_ssp{args.self_support_steps}"  # [D-39]
     tag += "" if not getattr(args, "support_aux", 0.0) else f"_aux{args.support_aux:g}"  # [D-39]
     tag += "" if getattr(args, "encoder", "vipseg") == "vipseg" else "_dens"  # [D-43]
+    if getattr(args, "vicreg_var", 0.0) or getattr(args, "vicreg_cov", 0.0):  # [D-45]
+        tag += f"_vic{args.vicreg_var:g}_{args.vicreg_cov:g}"
     return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 
 

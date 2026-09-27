@@ -606,6 +606,24 @@ gain accepted without its CI, gained a test).
 
 Mutation check (2026-09-27), 27 mutants on the CPU part: 27 killed; after amendment 2, 9 more on the tap and D44.1b: 9 killed.
 
+### 3.8v `tests/test_vicreg.py` (G1) — VICReg's terms against the collapse, the D-45 monitor [DECISION D-45]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| VR-1 | v(Z) by hand: constant columns give γ − sqrt(ε), a column with std above γ gives 0; shape errors raise | [Bardes et al. 2022, Eqs. 1–2], [DECISION D-45] |
+| VR-2 | c(Z) against numpy's covariance (1/(n − 1)), squared off-diagonals over d; perfectly correlated columns by hand | [Bardes et al. 2022, Eqs. 3–4] |
+| VR-3 | The regulariser flattens the block and point axes only and applies μ and ν | [DECISION D-45] |
+| VR-4 | Adam on μ v + ν c through a learned map raises the participation ratio of a rank-2 output by more than 1.5 | [DECISION D-45] |
+| VR-5 | Configuration: both weights default to 0, negative or non-finite values raise, a configuration written before D-45 loads | [DECISION D-45] |
+| VR-6 | Training mode adds exactly μ v + ν c of the query features to the loss, only when a weight is set; evaluation never builds it; gradients reach the extractor | [DECISION D-45] |
+| VR-7 | `train.py --vicreg_var/--vicreg_cov`: run tag `_vic<μ>_<ν>`, model configuration, resuming a run from before D-45 | [DECISION D-45] |
+| VR-8 | The monitor's running moments equal the covariance of all rows; the early-stop rule at epoch 24 and ratio 8 | [DECISION D-45] |
+| VR-9 | Rules D45.1–D45.4 on every branch, including a random600 draw below 0 | [DECISION D-45] |
+| VR-10 | The new and changed files parse as Python 3.10 | 00 §5.2 |
+
+Mutation check (2026-09-27), 11 mutants: 11 killed. LOSS-3 (`tests/test_adrm_loss.py`) now lists `loss_reg` among the
+model contract's optional fields.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

@@ -24,6 +24,8 @@ class EpisodeOutput(NamedTuple):
     # Beyond the paper [DECISION D-39]: CE of the support-only logits in training mode, and its weight.
     loss_aux: Optional[torch.Tensor] = None
     aux_weight: float = 0.0
+    # Beyond the paper [DECISION D-45]: μ v(Z) + ν c(Z) on the query features in training mode, weights included.
+    loss_reg: Optional[torch.Tensor] = None
 
 
 def episode_loss(output: EpisodeOutput, episode: Episode) -> torch.Tensor:
@@ -45,6 +47,8 @@ def episode_loss(output: EpisodeOutput, episode: Episode) -> torch.Tensor:
         if output.loss_aux is None:
             raise ValueError("aux_weight > 0 without loss_aux: the model was not in training mode [D-39]")
         total = total + output.aux_weight * output.loss_aux
+    if output.loss_reg is not None:
+        total = total + output.loss_reg  # weighted inside the model [DECISION D-45]
     return total
 
 

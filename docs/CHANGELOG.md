@@ -1706,3 +1706,17 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   LDA oracle 96.04 vs cosine oracle 80.84 (P9.3 admissible by its oracle clause); every label-free rule loses to U
   (LDA 35.44, projection 44.86, components 53.86, composite 36.55); nuisance kappa < rho; retrieval purity of missed
   points 0.109; participation ratio 5.56 with the novel discriminant 86 % inside the base-class span.
+
+### 16aw - D-45 recorded and M2 implemented: VICReg's variance and covariance terms on the query features (not run)
+
+* **D-45** in `docs/spec/00`: the collapse P9 measured (participation ratio 5.56) read as the training target, post
+  hoc and marked so; VICReg's variance and covariance terms (Bardes et al. 2022, Eqs. 1-4 and §4.2, re-checked in
+  the PDF) on the 128-d query features, two weights (1 / 0.04 and 4 / 0.16), one seed each, trained together on the
+  3090 with a monitor (ratio and U every validation; ratio < 8 at epoch 24 stops the arm) and a collapse census of
+  every kept S1 checkpoint. Rules D45.1-D45.5 fixed before the run.
+* `models/vicreg.py` (new), `vicreg_var`/`vicreg_cov` in the configuration (off by default), `loss_reg` in the model
+  contract, `train.py --vicreg_var/--vicreg_cov`, `experiments/d45_monitor.py` (census / watch / decide),
+  `experiments/run_d45.sh smoke|full`, part B's valid reference check only for CR. Tests VR-1...10 (05 §3.8v),
+  LOSS-3 updated; mutation check 11/11. VR-4 first tested one gradient step on the features and found it barely
+  moves the spectrum (the variance term's gradient is proportional to a point's deviation, near zero on a dead
+  direction); through learned weights with Adam it does (1.66 -> 3.74 in 300 steps), which is how training applies it.

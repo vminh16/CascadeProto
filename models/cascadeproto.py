@@ -28,6 +28,7 @@ from models.eppm import (CROSS_ATTN_NORMS, CROSS_ATTN_SCALES, CROSS_ATTN_SUPPORT
                          GATE_TARGETS, EPPMStage, stage_logits)
 from models.lma import EVAL_NOISE, LearnableModalityAdapter
 from models.neck import NECKS, build_neck
+from models.vicreg import vicreg_regulariser
 from models.oracle_distill import oracle_distill_loss
 from models.prototypes import point_prototypes, unit_prototypes
 from models.self_support import SelfSupport
@@ -83,6 +84,8 @@ class CascadeProtoConfig:
     self_support_steps: int = 0  # [DECISION D-39]; trained self-support steps on the unit rule
     support_aux: float = 0.0  # [DECISION D-39]; weight of the CE on the step-0 (support-only) logits
     encoder: str = "vipseg"  # [DECISION D-43]; "density" = metric-ball, per-block, metric-coordinate encoder
+    vicreg_var: float = 0.0  # [DECISION D-45]; μ, weight of VICReg's variance term on the query features
+    vicreg_cov: float = 0.0  # [DECISION D-45]; ν, weight of VICReg's covariance term
 
     def __post_init__(self):
         if self.encoder not in ENCODERS:
@@ -92,6 +95,10 @@ class CascadeProtoConfig:
         if not math.isfinite(self.neck_alpha_init) or (self.neck_alpha_init != 0 and self.neck == "none"):
             raise ValueError(f"neck_alpha_init must be finite and needs a neck [DECISION D-34], got "
                              f"{self.neck_alpha_init} with neck={self.neck!r}")
+        for name in ("vicreg_var", "vicreg_cov"):
+            value = getattr(self, name)
+            if not (math.isfinite(value) and value >= 0):
+                raise ValueError(f"{name} must be a finite value >= 0 [DECISION D-45], got {value}")
         if not (math.isfinite(self.distill_beta) and self.distill_beta >= 0):
             raise ValueError(f"distill_beta must be a finite value >= 0 [DECISION D-29], got {self.distill_beta}")
         if self.prototype_rule not in PROTOTYPE_RULES:
@@ -250,8 +257,11 @@ class CascadeProto(nn.Module):
         else:  # logged for comparison, no gradient and no effect on training [DECISION D-29]
             with torch.no_grad():
                 loss_distill = oracle_distill_loss(logits.detach(), f_q, episode.query_y)  # scalar
+        reg = None
+        if self.config.vicreg_var > 0 or self.config.vicreg_cov > 0:  # against the features' collapse [D-45]
+            reg = vicreg_regulariser(f_q, self.config.vicreg_var, self.config.vicreg_cov)  # scalar
         return EpisodeOutput(logits=logits, loss_gmmn=loss_gmmn, loss_distill=loss_distill, distill_weight=beta,
-                             loss_aux=aux, aux_weight=self.config.support_aux)
+                             loss_aux=aux, aux_weight=self.config.support_aux, loss_reg=reg)
 
     def effective_prototype(self, f_q: torch.Tensor, p0: torch.Tensor, steps) -> torch.Tensor:
         """M_eff [B_q, N+1, D] with `L_final = F^q M_effᵀ` (up to logit_scale), for diagnostics [DECISION D-29].
