@@ -1720,3 +1720,9 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   LOSS-3 updated; mutation check 11/11. VR-4 first tested one gradient step on the features and found it barely
   moves the spectrum (the variance term's gradient is proportional to a point's deviation, near zero on a dead
   direction); through learned weights with Adam it does (1.66 -> 3.74 in 300 steps), which is how training applies it.
+* Review before the run (no GPU yet): (1) the monitor and the census also report VICReg's v(Z) and c(Z) on the
+  valid query features, so a regulariser that is near zero (no effect) is visible; (2) CR's references (D-37, D-39,
+  P7 on fixed100; the LP graph is built on the features, so rounding on a new GPU could move it) are checked at the
+  start of the run, next to the trainings, with `d43_eval.py test --draw fixed100`, and a failing final test no longer
+  stops the script; (3) `decide` returned D45.4 ("VICReg fails") when part B's results were simply missing: a missing
+  result now reads "incomplete", and D45.4 needs every arm stopped early or measured below 12 (tests added).

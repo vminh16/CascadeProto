@@ -168,6 +168,8 @@ def main(argv=None) -> int:
     p.add_argument("--max_episodes", type=int, default=None, help="smoke runs only")
     p.add_argument("--tag", default="")
     p.add_argument("--out_dir", default=OUT_DIR)
+    p.add_argument("--draw", action="append", default=None, choices=list(DRAWS),
+                   help="test only these draws (default: all) [DECISION D-45]")
     args = p.parse_args(argv)
     if args.stage == "decide":
         draws = {}
@@ -197,7 +199,7 @@ def main(argv=None) -> int:
     try:
         if args.stage == "test":
             arm = p7.arm_of(json.load(open(os.path.join(REPO, P7_FIXED)))["frozen"])  # P7's frozen arm
-            for draw in DRAWS:
+            for draw in (args.draw or DRAWS):
                 result, stacked = score(rules, draw, args.data_path, device, arm, args.max_episodes)
                 result.update(models=meta, lp_arm=arm)
                 p6.save(result, stacked, p6.stem(draw, args.tag), args.out_dir)

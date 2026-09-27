@@ -74,6 +74,9 @@ LOG="$OUT/d45_${MODE}.log"
     $PY experiments/d45_monitor.py watch --data_path "$D" --run "m2a:log_d45/${RUN}_vic1_0.04:$PA" \
         --run "m2b:log_d45/${RUN}_vic4_0.16:$PB" > "$OUT/monitor.log" 2>&1 &
     PW=$!
+    # CR's references on this GPU (D-37, D-39, P7 on fixed100), early, so a tolerance problem shows before the
+    # trainings end; the final test repeats it with the arms
+    $PY experiments/d43_eval.py test --data_path "$D" --checkpoint "cr:ours:1:$CR" --draw fixed100         --out_dir "$OUT/cr_check" > "$OUT/cr_check.log" 2>&1 && echo "=== CR references hold on this GPU"         || { echo "=== CR REFERENCE CHECK FAILED"; tail -3 "$OUT/cr_check.log"; }
     $PY experiments/d45_monitor.py census --data_path "$D" "${CENSUS[@]}" > "$OUT/census.log" 2>&1
     grep "^\[census\]" "$OUT/census.log"
     wait $PA; echo "=== TRAIN m2a exit=$? $(date -Is)"
@@ -93,7 +96,7 @@ LOG="$OUT/d45_${MODE}.log"
         echo "=== $name has no last.pt (stopped early)"
       fi
     done
-    $PY experiments/d43_eval.py test --data_path "$D" "${CKS[@]}" --out_dir "$OUT" || exit 1
+    $PY experiments/d43_eval.py test --data_path "$D" "${CKS[@]}" --out_dir "$OUT"         || echo "=== TEST FAILED (see d45_full.log); part B and the monitor are kept"
     for p in "${PIDS[@]}"; do wait "$p" || echo "=== a part B run failed"; done
     grep -h "^\[modules\]" "$OUT"/modules_m2*.log | cut -c1-200
     $PY experiments/d45_monitor.py decide

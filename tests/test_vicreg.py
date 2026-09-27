@@ -170,15 +170,18 @@ def draws(gain_a, gain_b, rand_a=(1.0, 1.0, 1.0)):
 
 def test_vr9_rules():
     names = lambda *a: [n for n, _ in d45.decide(*a)]  # noqa: E731
-    stopped = [{"arm": "m2a", "stopped": True}, {"arm": "m2b", "stopped": True}]
+    stopped = [{"arm": "m2a", "stopped": True, "ratio": 6.0, "epoch": 24},
+               {"arm": "m2b", "stopped": True, "ratio": 7.0, "epoch": 24}]
     assert any("D45.4" in n for n in names({"m2a": None, "m2b": None}, {}, stopped))
+    assert names({"m2a": None, "m2b": None}, {}, []) == ["incomplete"]  # a missing result is never a verdict
+    assert "incomplete" in names({"m2a": part(15.0), "m2b": None}, draws(3, 3), [])
     assert any("D45.4" in n for n in names({"m2a": part(11.9), "m2b": part(6.0)}, draws(3, 3), []))
     got = names({"m2a": part(12.0), "m2b": part(6.0)}, draws(3, 3), [])
     assert "D45.1 m2a mechanism holds" in got and "D45.1 m2b mechanism fails" in got
     assert "D45.2 m2a U holds at +1" in got and "D45.2 base" in got and not any("m2b U" in n for n in got)
     weak = names({"m2a": part(15.0), "m2b": part(6.0)}, draws(3, 3, rand_a=(1.0, -0.1, 1.0)), [])
     assert "D45.2 m2a U fails at +1" in weak and any("D45.3" in n for n in weak)
-    assert any(n == "incomplete" for n in names({"m2a": part(15.0), "m2b": None}, {}, []))
+    assert any(n == "incomplete" for n in names({"m2a": part(15.0), "m2b": None}, {}, stopped[1:]))  # no draws
 
 
 def test_vr10_files_parse_as_python_310():

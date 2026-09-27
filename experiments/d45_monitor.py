@@ -32,6 +32,7 @@ from experiments import p5_condition_probe as p5  # noqa: E402
 from experiments import p6_prototype_probe as p6  # noqa: E402
 from experiments import p9_placement_probe as p9  # noqa: E402
 from experiments import r2_distill_eval as r2  # noqa: E402
+from models.vicreg import covariance_term, variance_term  # noqa: E402
 
 OUT_DIR = "results/phase16_d45"
 MONITOR_EPISODES = 300  # the first valid episodes [DECISION D-45]
@@ -77,7 +78,10 @@ def decide(parts: Dict[str, Optional[Dict]], draws: Dict, monitor: List[Dict]) -
         part = parts.get(arm)
         stopped = [r for r in monitor if r.get("arm") == arm and r.get("stopped")]
         if part is None:
-            v.append((f"D45.1 {arm} not measured", "stopped early" if stopped else "no part B result"))
+            if not stopped:  # neither measured nor stopped: a missing result, never a verdict
+                return v + [("incomplete", f"{arm}: no part B result and no early stop")]
+            v.append((f"D45.1 {arm} fails: stopped early", f"ratio {stopped[0]['ratio']:.2f} at epoch "
+                                                            f"{stopped[0]['epoch']}"))
             mech[arm] = False
             continue
         pr = part["collapse"]["participation_ratio"]
@@ -122,18 +126,21 @@ def measure(rule, data_path: str, device, n_episodes: int) -> Dict[str, float]:
     items, test_classes = p6.episodes("valid", data_path, n_episodes)
     mom = Moments()
     counts = {"U": [], "model": []}
+    terms = {"v": [], "c": []}  # VICReg's terms on the raw query features, per episode [DECISION D-45]
     for item in items:
         e = make_episode(item, names).to(device)
         f_q, m_eff, _, logits = rule(e)
         p0.check_identity(f_q, m_eff, logits)
         f_s = p5.support_features(rule, e)
         mom.add(F.normalize(f_q, dim=-1).reshape(-1, f_q.shape[-1]))  # [B_q·P, D], blocks and points only
+        z = f_q.reshape(-1, f_q.shape[-1])  # [B_q·P, D], as the training loss sees it
+        terms["v"].append(float(variance_term(z))), terms["c"].append(float(covariance_term(z)))
         gt = e.query_y.cpu().numpy()
         preds = {"U": p6.rule_logits(f_q, p6.base_rows(f_q, f_s, e.support_y)).argmax(-1), "model": logits.argmax(-1)}
         for k, pr in preds.items():
             counts[k].append(p0.episode_counts(pr.cpu().numpy(), gt, e.sampled_classes, test_classes))
     out = {k: float(p0.miou_from_counts(np.stack(v).sum(0))) for k, v in counts.items()}
-    out.update(ratio=mom.ratio(), episodes=len(counts["U"]))
+    out.update(ratio=mom.ratio(), episodes=len(counts["U"]), v=float(np.mean(terms["v"])), c=float(np.mean(terms["c"])))
     return out
 
 
@@ -193,7 +200,8 @@ def watch(runs: List[Tuple[str, str, int]], data_path: str, device, n_episodes: 
             with open(log, "a") as f:
                 f.write(json.dumps(rec) + "\n")
             print(f"[watch] {name} epoch {epoch} ratio {res['ratio']:.2f} U {100 * res['U']:.2f} "
-                  f"model {100 * res['model']:.2f}" + (" STOPPED" if rec.get("stopped") else ""), flush=True)
+                  f"model {100 * res['model']:.2f} v {res['v']:.3f} c {res['c']:.3f}"
+                  + (" STOPPED" if rec.get("stopped") else ""), flush=True)
         if not running:
             return
         time.sleep(poll)
@@ -251,7 +259,7 @@ def main(argv=None) -> int:
             finally:
                 torch.cuda.empty_cache()
             print(f"[census] {name}: ratio {res[name]['ratio']:.2f} U {100 * res[name]['U']:.2f} "
-                  f"model {100 * res[name]['model']:.2f}", flush=True)
+                  f"model {100 * res[name]['model']:.2f} v {res[name]['v']:.3f} c {res[name]['c']:.3f}", flush=True)
         p6.save(res, None, f"census{args.tag}", out_dir)
         return 0
     runs = []
