@@ -1675,3 +1675,15 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   draw depends on each machine's `class2scans_100.pkl` order. D-44 amended: step 0 runs on the VM next to part B,
   and geometry and trace check their event count against D-43's; the local run is kept as a preview
   (`results/phase16_p9/geometry_local.json`: stage 1, c-centres' mean m 11.81 as sampled, 15.13 dense).
+
+### 16at - D-44 amendment 2: a block-statistics arm in part A (not run)
+
+* A dense class also takes a larger share of its block, and M1 standardises by the block's statistics at twelve
+  places, so the features of an object depend on the rest of the block. The cap arm keeps those statistics; the new
+  arms swap in the low version's statistics (alone, and with the cap at all stages): psi_stats, psi_caps+stats and
+  rule D44.1b (M1c candidate, or the encoder branch closed if neither carries the gap).
+* `models/density_encoder.py`: a statistics tap on the four density modules, off by default (`stats_tap = None`
+  runs D-43's code unchanged). `experiments/p9_placement_probe.py`: `StatsTap`, `stat_modules`, the two arms, checks
+  on the first five events (recording invisible, own statistics reproduce the encoding). Found while reviewing the
+  GPU path: single blocks are now cast to float32 as `make_episode` does, and the uncapped check unpacks the new
+  return value. Tests P9-16...18 (05 §3.8u); mutation check 9/9 on the new code, the earlier 27 still killed.

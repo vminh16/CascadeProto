@@ -277,6 +277,52 @@ def trace_result(other, own, single=None):
     return {"caps": caps}
 
 
+def stats_result(stats, joint):
+    return {"stats": {d: {"stats": {"psi": stats[i]}, "caps+stats": {"psi": joint[i]}}
+                      for i, d in enumerate(p9.DIRECTIONS)}}
+
+
+def test_p9_16_stats_tap_records_and_injects():
+    from models.density_ops import per_block_scale, per_block_standardize
+
+    g = torch.Generator().manual_seed(6)
+    a, b = torch.randn(1, 30, 4, 8, generator=g), 3.0 + 2.0 * torch.randn(1, 30, 4, 8, generator=g)
+    rec = p9.StatsTap()
+    assert torch.equal(rec.standardize(a, 1e-6), per_block_standardize(a, 1e-6))
+    assert torch.equal(rec.scale(a, 1e-5), per_block_scale(a, 1e-5))
+    assert [k for k, _, _ in rec.record] == ["standardize", "scale"] and rec.record[0][2].shape == (1, 1, 1, 1)
+    own = p9.StatsTap(inject=rec.record)
+    assert torch.equal(own.standardize(a, 1e-6), per_block_standardize(a, 1e-6))
+    assert torch.equal(own.scale(a, 1e-5), per_block_scale(a, 1e-5))
+    own.finish()
+    other = p9.StatsTap(inject=rec.record)
+    swapped = other.standardize(b, 1e-6)
+    mean, std = a.mean(), (a - a.mean()).std()
+    assert torch.allclose(swapped, (b - mean) / (std + 1e-6)) and not torch.allclose(swapped, per_block_standardize(b, 1e-6))
+    with pytest.raises(RuntimeError, match="used"):
+        other.finish()  # the scale was never asked for
+    with pytest.raises(RuntimeError, match="recorded standardize"):
+        p9.StatsTap(inject=rec.record[:1]).scale(a, 1e-5)  # wrong kind at that position
+    with pytest.raises(RuntimeError, match="more normalisations"):
+        t = p9.StatsTap(inject=[])
+        t.standardize(a, 1e-6)
+    with pytest.raises(RuntimeError, match="called standardize"):
+        p9.StatsTap(inject=rec.record).standardize(torch.randn(2, 30, 4, 8, generator=g), 1e-6)  # batch mismatch
+
+
+def test_p9_17_statistics_rule():
+    name = lambda r: [n for n, _ in p9.decide(None, r, None) if n.startswith("D44.1b")][0]  # noqa: E731
+    assert "carry density" in name(stats_result([0.5, 0.1], [0.6, 0.1]))
+    assert "carry density" in name(stats_result([0.1, 0.55], [0.1, 0.1]))
+    assert "closed" in name(stats_result([0.1, 0.1], [0.2, 0.15]))
+    assert "below" in name(stats_result([0.3, 0.1], [0.3, 0.1]))
+    only_stats = {"stats": {d: {"stats": {"psi": 0.1}} for d in p9.DIRECTIONS}}  # step 0 full: no joint arm
+    assert "below" in name(only_stats)
+    both = {**trace_result(0.6, 0.1), **stats_result([0.1, 0.1], [0.7, 0.2])}
+    names = [n for n, _ in p9.decide(None, both, None)]
+    assert any("M1b" in n for n in names) and any("below" in n for n in names if n.startswith("D44.1b"))
+
+
 def test_p9_14_rules():
     assert "full" in p9.decide(geo([15.6, 16, 16]), None, None)[0][0]
     assert "sparse" in p9.decide(geo([10.3, 15.4, 16]), None, None)[0][0]
@@ -352,3 +398,45 @@ def test_p9_15_capped_grouping_fps_replay_and_slices_on_the_gpu():
         emb = enc.EncNP.Embedding_layer(pts[:, :, 0:3].permute(0, 2, 1))  # [1, 60, 2048]
         lo, hi = p9.SLICES["emb"]
         assert torch.equal(out[:, lo:hi], emb)
+
+
+@pytest.mark.cuda
+def test_p9_18_trace_path_on_the_gpu():
+    """encode_block with the capped groupings and the statistics tap on a real M1 feature extractor: recording is
+    invisible, a block's own statistics reproduce it, another block's change it, caps at K change nothing."""
+    from types import SimpleNamespace
+
+    from models.density_encoder import DensityEncoder
+    from models.vipseg_backbone import ENCODER_CONFIG, PointFeatureExtractor
+
+    torch.manual_seed(0)
+    feats = PointFeatureExtractor(encoder=DensityEncoder(**ENCODER_CONFIG)).cuda().eval()
+    model = SimpleNamespace(features=feats)
+    mods, taps = p9.install_capped(model), p9.stat_modules(model)
+    assert len(taps) == 10 and p9.N_STAT_SITES == 12  # 3 modules per stage + the decoder, which runs 3 times
+    g = torch.Generator().manual_seed(7)
+
+    def block(scale):
+        xyz = torch.rand(2048, 3, generator=g) * torch.tensor([1.0, 1.0, 2.5]) * scale
+        return torch.cat([xyz, torch.rand(2048, 3, generator=g), xyz / xyz.max(0).values], dim=-1).cuda()
+
+    a, b = block(1.0), block(0.6)
+    lab = torch.randint(0, 3, (1, 2048), generator=g).cuda()
+    with torch.no_grad():
+        enc0, f0 = p9.encode_block(model, mods, a, p9.Plan(lab))
+        rec = p9.StatsTap()
+        enc1, f1 = p9.encode_block(model, mods, a, p9.Plan(lab), rec, taps)
+        assert torch.equal(enc0, enc1) and torch.equal(f0, f1) and len(rec.record) == p9.N_STAT_SITES
+        enc2, f2 = p9.encode_block(model, mods, a, p9.Plan(lab), p9.StatsTap(inject=rec.record), taps)
+        assert torch.equal(enc0, enc2) and torch.equal(f0, f2)
+        rec_b = p9.StatsTap()
+        p9.encode_block(model, mods, b, p9.Plan(lab), rec_b, taps)
+        _, f3 = p9.encode_block(model, mods, a, p9.Plan(lab), p9.StatsTap(inject=rec_b.record), taps)
+        assert not torch.allclose(f3, f0, atol=1e-4)
+        full = {s: (lambda t: torch.full_like(t, BALL_K)) for s in range(3)}
+        enc4, f4 = p9.encode_block(model, mods, a, p9.Plan(lab, full))
+        assert torch.equal(enc0, enc4) and torch.equal(f0, f4)
+        one = {0: lambda t: torch.ones_like(t)}
+        _, f5 = p9.encode_block(model, mods, a, p9.Plan(lab, one))
+        assert not torch.allclose(f5, f0, atol=1e-4)
+    assert all(m.stats_tap is None for m in taps)  # the tap is removed after each encoding

@@ -1889,6 +1889,27 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   against D-43's (1,045). The local run is kept as a preview (`results/phase16_p9/geometry_local.json`): stage 1,
   mean m of the c-centres 11.81 as sampled against 15.13 dense (69 % against 32 % of the centres below 16), stages 2
   and 3 at 15.4–16.0.
+* **Amendment 2 (2026-09-27, maintainer request, before any GPU run): a block-statistics arm in part A.** The ball
+  count is not the only way the sampling reaches M1's features. When a class is sampled dense it also takes a larger
+  share of the block, and M1 standardises by the **block's** mean and std at twelve places (LoConv, DyHiConv and the
+  DyPowerConv feature scale at each of three stages, the decoder at three levels [`models/density_encoder.py`], D-43
+  change 3): every feature of the object then depends on what the rest of the block holds. The cap arm keeps these
+  statistics as they are, so ψ_cap is the count's share only; if it is small the probe would not say where the rest
+  enters. Step 0 hints at this: the own class loses 1.8 distinct points per ball under uniform sampling and 0.43 of
+  its recall, the other class 3.3 points and 0.49 (local preview, not a rule input). Two arms are added, both
+  directions, same events:
+  * **stats**: the reference version encoded with the statistics (mean and std at each of the twelve places, in call
+    order) recorded while encoding the low version of the same event (other: V1 with V0's; own: V0 with V2's);
+  * **caps + stats**: the cap at all three stages and the swapped statistics together.
+  ψ_stats and ψ_caps+stats as ψ_cap. The swap is exact bookkeeping: a recording pass returns the plain features bit
+  for bit, and injecting a block's own statistics reproduces them (checked on the first five events; a failure
+  stops the run). The encoder gains a statistics tap that is off by default (`stats_tap = None` runs the code of
+  D-43 unchanged); the Mamba blocks mix the whole block too and are not tested by either arm.
+  * **D44.1b** (D-35's bands): ψ_stats ≥ 0.5 in a direction → the block statistics carry the density dependence;
+    statistics that do not depend on the block's composition become a candidate (M1c). ψ_caps+stats ≤ 0.2 in both
+    directions → neither the count nor the statistics carry it; the remaining paths (Mamba's mixing, the geometry of
+    the sparse surface itself) are not reachable on this budget and the encoder branch is closed. D44.1 is unchanged;
+    M1b and M1c can both be candidates; D44.3 chooses.
 * **Affects.** `experiments/p9_placement_probe.py`, `experiments/run_p9.sh`, `tests/test_placement_probe.py`,
   05 §3.8u.
 

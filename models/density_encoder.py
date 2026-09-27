@@ -24,6 +24,20 @@ from models.model_utils import index_points, square_distance
 from pointnet2_ops_lib.pointnet2_ops import pointnet2_utils
 
 
+class _StatsTap:
+    """Optional statistics tap of the per-block normalisations [DECISION D-44, amendment 2]. `stats_tap = None` (the
+    default) runs D-43's code unchanged; a probe may set an object with `standardize(t, eps)` and `scale(t, eps)` on a
+    module instance to record or replace the block's statistics."""
+
+    stats_tap = None
+
+    def _standardize(self, t, eps):
+        return per_block_standardize(t, eps) if self.stats_tap is None else self.stats_tap.standardize(t, eps)
+
+    def _scale(self, t, eps):
+        return per_block_scale(t, eps) if self.stats_tap is None else self.stats_tap.scale(t, eps)
+
+
 class MetricBallGrouping(nn.Module):
     """`FPS_kNN` with a ball of fixed radius in place of the k nearest points [VIPSEG models/encoder.py:72-93]."""
 
@@ -38,7 +52,7 @@ class MetricBallGrouping(nn.Module):
         return lc_xyz, lc_x, lc_rgb, index_points(xyz, idx), index_points(x, idx), index_points(rgb, idx)
 
 
-class DensityLoConv(LowOrderConvolution):
+class DensityLoConv(_StatsTap, LowOrderConvolution):
     """LoConv with the block's own standardisation [VIPSEG models/encoder.py:236-291]."""
 
     def forward(self, knn_xyz, knn_x, knn_rgb):
@@ -56,11 +70,11 @@ class DensityLoConv(LowOrderConvolution):
         knn_x_new = knn_x_new.permute(0, 2, 3, 1)  # [B, G, K, C]
         pos = self.vv[:, :self.out_dim].T.to(dev) @ torch.arange(self.out_dim, device=dev).unsqueeze(0).float()
         knn_x_new = knn_x_new @ torch.cos(pos * 2 * torch.pi)  # [B, G, K, C]
-        knn_x_new = per_block_standardize(knn_x_new, 1e-6).permute(0, 3, 1, 2)  # [B, C, G, K], was batch-global
+        knn_x_new = self._standardize(knn_x_new, 1e-6).permute(0, 3, 1, 2)  # [B, C, G, K], was batch-global
         return self.pooling(knn_x_new)  # [B, C, G]
 
 
-class DensityDyHiConv(DynamicHighOrderConvolution):
+class DensityDyHiConv(_StatsTap, DynamicHighOrderConvolution):
     """DyHiConv with the block's own standardisation [VIPSEG models/encoder.py:336-421]."""
 
     def forward(self, lc_xyz, knn_xyz, knn_x, knn_rgb):
@@ -91,11 +105,11 @@ class DensityDyHiConv(DynamicHighOrderConvolution):
         knn_x_new = knn_x_new.unsqueeze(-1).permute(0, 2, 3, 1)  # [B, N, 1, C]
         pos = self.ww[:, :self.out_dim].T.to(dev) @ torch.arange(self.out_dim, device=dev).unsqueeze(0).float()
         knn_x_new = knn_x_new @ torch.cos(pos * 2 * torch.pi)  # [B, N, 1, C]
-        knn_x_new = per_block_standardize(knn_x_new, 1e-6)  # was batch-global
+        knn_x_new = self._standardize(knn_x_new, 1e-6)  # was batch-global
         return knn_x_new.permute(0, 3, 1, 2).squeeze(-1)  # [B, C, N]
 
 
-class DensityDyPowerConv(DyPowerConv):
+class DensityDyPowerConv(_StatsTap, DyPowerConv):
     """DyPowerConv with offsets in units of the ball radius and the block's own feature scale
     [VIPSEG models/encoder.py:164-218]."""
 
@@ -106,7 +120,7 @@ class DensityDyPowerConv(DyPowerConv):
         self.radius = radius
 
     def forward(self, lc_xyz, lc_x, lc_rgb, knn_xyz, knn_x, knn_rgb):
-        knn_x = per_block_scale(knn_x - lc_x.unsqueeze(dim=-2), 1e-5)  # [B, G, K, C], was / batch std
+        knn_x = self._scale(knn_x - lc_x.unsqueeze(dim=-2), 1e-5)  # [B, G, K, C], was / batch std
         knn_xyz = (knn_xyz - lc_xyz.unsqueeze(dim=-2)) / self.radius  # [B, G, K, 3], was / batch std
         B, G, K, C = knn_x.shape
         knn_x = torch.cat([knn_x, lc_x.reshape(B, G, 1, -1).repeat(1, 1, K, 1)], dim=-1)  # [B, G, K, 2C]
@@ -114,7 +128,7 @@ class DensityDyPowerConv(DyPowerConv):
         return self.LoConv(knn_xyz, knn_x, knn_rgb) + self.DyHiConv(lc_xyz, knn_xyz, knn_x, knn_rgb)  # [B, C, G]
 
 
-class DensityDecoder(NonParametricDecoder):
+class DensityDecoder(_StatsTap, NonParametricDecoder):
     """The non-parametric decoder with the block's own standardisation [VIPSEG models/encoder.py:549-603]."""
 
     def propagate(self, xyz1, xyz2, points1, points2):
@@ -129,7 +143,7 @@ class DensityDecoder(NonParametricDecoder):
             dist_recip = 1.0 / (dists + 1e-8)
             weight = (dist_recip / torch.sum(dist_recip, dim=2, keepdim=True)).view(B, N, self.de_neighbors, 1)
             interpolated_points = torch.sum(index_points(points2, idx) * weight, dim=2)  # [B, N, C]
-            interpolated_points = per_block_standardize(interpolated_points, 1e-5)  # was batch-global
+            interpolated_points = self._standardize(interpolated_points, 1e-5)  # was batch-global
         if points1 is not None:
             new_points = torch.cat([points1.permute(0, 2, 1), interpolated_points], dim=-1)
         else:

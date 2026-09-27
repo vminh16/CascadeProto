@@ -11,6 +11,8 @@
 #   D44.0 mean m of V0's c-centres >= 15.5 at every stage -> no cap arms
 #   D44.1 psi (all stages) >= 0.5 in a direction -> the ball count carries density (M1b candidate); <= 0.2 in both ->
 #         encoder branch closed; otherwise undecided (not trained on this budget)
+#   D44.1b (amendment 2) the block statistics of the low version swapped in: psi_stats >= 0.5 -> M1c candidate;
+#         psi_caps+stats <= 0.2 in both directions -> neither carries it, encoder branch closed
 #   D44.2 P9.3-P9.8 admissibility;  D44.3 the run is chosen in a new decision
 #
 # Usage on the VM:  bash experiments/run_p9.sh smoke          (GPU tests, 3 episodes per stage, files *_smoke)

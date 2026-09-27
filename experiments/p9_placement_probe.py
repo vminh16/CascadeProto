@@ -34,7 +34,7 @@ from experiments import p0_em_probe as p0  # noqa: E402
 from experiments import p5_condition_probe as p5  # noqa: E402
 from experiments import p6_prototype_probe as p6  # noqa: E402
 from experiments import p8_condition_probe as p8  # noqa: E402
-from models.density_ops import BALL_K, BALL_RADII, ball_group  # noqa: E402
+from models.density_ops import BALL_K, BALL_RADII, ball_group, per_block_scale, per_block_standardize  # noqa: E402
 from models.oracle_distill import oracle_directions  # noqa: E402
 
 OUT_DIR = "results/phase16_p9"
@@ -43,6 +43,8 @@ SLICES = {"emb": (0, 60), "stage1": (60, 180), "stage2": (180, 420), "stage3": (
 FPS_SKIP_MAG = 1e-3  # pointnet2's FPS never selects a point with x² + y² + z² <= 1e-3 [sampling_gpu.cu:100-101]
 VERSIONS = ("V0", "V1", "V2")
 CAP_ARMS = {"s1": (0,), "s2": (1,), "s3": (2,), "all": (0, 1, 2)}  # stages capped (0-based)
+STAT_ARMS = ("stats", "caps+stats")  # the block-statistics swap alone and with the cap at all stages [D-44 amendment 2]
+N_STAT_SITES = 12  # LoConv, DyHiConv and the DyPowerConv scale per stage (9), the decoder per level (3)
 DIRECTIONS = ("other", "own")  # other: V1's c-centres capped to V0's m; own: V0's a-centres capped to V2's m
 CAUSAL, NOT_CAUSAL = p8.PHI_CAUSAL, p8.PHI_NOT  # D-35's bands, 0.5 / 0.2 [DECISION D-44]
 STEP0_FULL = 15.5  # D44.0: mean m of V0's c-centres at least this at every stage -> no cap arms
@@ -188,6 +190,53 @@ def slice_cosines(enc_a: torch.Tensor, enc_b: torch.Tensor, f_a: torch.Tensor, f
     out = {name: F.cosine_similarity(enc_a[lo:hi], enc_b[lo:hi], dim=0) for name, (lo, hi) in SLICES.items()}
     out["feature"] = F.cosine_similarity(f_a, f_b, dim=-1)  # [M]
     return out
+
+
+class StatsTap:
+    """Records the block statistics of M1's twelve normalisations in call order, or replaces them by recorded ones
+    [DECISION D-44, amendment 2]. Recording returns D-43's normalisation itself (bit for bit); injecting applies
+    (t - mean) / (std + eps) or t / (std + eps) with the recorded values, which with a block's own record is the same
+    arithmetic."""
+
+    def __init__(self, inject: Optional[List[Tuple[str, Optional[torch.Tensor], torch.Tensor]]] = None):
+        self.record: List[Tuple[str, Optional[torch.Tensor], torch.Tensor]] = []
+        self.inject = None if inject is None else list(inject)
+        self.used = 0
+
+    @staticmethod
+    def _dims(t: torch.Tensor) -> Tuple[int, ...]:
+        return tuple(range(1, t.dim()))
+
+    def _next(self, kind: str, t: torch.Tensor) -> Tuple[Optional[torch.Tensor], torch.Tensor]:
+        if self.used >= len(self.inject):
+            raise RuntimeError("more normalisations than recorded statistics")
+        k, mean, std = self.inject[self.used]
+        shape = (t.shape[0],) + (1,) * (t.dim() - 1)
+        if k != kind or tuple(std.shape) != shape:
+            raise RuntimeError(f"normalisation {self.used}: recorded {k} {tuple(std.shape)}, called {kind} {shape}")
+        self.used += 1
+        return mean, std
+
+    def standardize(self, t: torch.Tensor, eps: float) -> torch.Tensor:
+        dims = self._dims(t)
+        if self.inject is None:
+            mean = t.mean(dim=dims, keepdim=True)
+            self.record.append(("standardize", mean, (t - mean).std(dim=dims, keepdim=True)))
+            return per_block_standardize(t, eps)
+        mean, std = self._next("standardize", t)
+        return (t - mean) / (std + eps)
+
+    def scale(self, t: torch.Tensor, eps: float) -> torch.Tensor:
+        if self.inject is None:
+            self.record.append(("scale", None, t.std(dim=self._dims(t), keepdim=True)))
+            return per_block_scale(t, eps)
+        _, std = self._next("scale", t)
+        return t / (std + eps)
+
+    def finish(self) -> None:
+        """Every injected statistic must have been used exactly once."""
+        if self.inject is not None and self.used != len(self.inject):
+            raise RuntimeError(f"{self.used} of {len(self.inject)} recorded statistics used")
 
 
 # ------------------------------------------------------------------ part B (pure)
@@ -348,6 +397,17 @@ def decide(geo: Optional[Dict], trace: Optional[Dict], modules: Optional[Dict]) 
                       f"psi all stages other {p['other']:.3f}, own {p['own']:.3f}"))
     elif trace is not None:
         v.append(("D44.1 not run", "step 0 found full balls"))
+    if trace is not None and "stats" in trace:
+        ps = {d: trace["stats"][d]["stats"]["psi"] for d in DIRECTIONS}
+        pj = {d: trace["stats"][d]["caps+stats"]["psi"] for d in DIRECTIONS if "caps+stats" in trace["stats"][d]}
+        text = (f"psi stats other {ps['other']:.3f}, own {ps['own']:.3f}; caps+stats "
+                + ", ".join(f"{d} {x:.3f}" for d, x in pj.items()))
+        if any(x >= CAUSAL for x in ps.values()):
+            v.append(("D44.1b the block statistics carry density: M1c is a candidate", text))
+        elif len(pj) == len(DIRECTIONS) and all(x <= NOT_CAUSAL for x in pj.values()):
+            v.append(("D44.1b neither count nor statistics: encoder branch closed", text))
+        else:
+            v.append(("D44.1b statistics below the causal band", text))
     if modules is not None:
         m, u = modules["miou"], modules["miou"]["U"]
         lda_or = max(m[f"lda_oracle_{lam}"] for lam in LAMBDAS)
@@ -497,11 +557,28 @@ def install_capped(model) -> List:
     return mods
 
 
-def encode_block(model, mods: List, x: torch.Tensor, plan: Plan) -> Tuple[torch.Tensor, torch.Tensor]:
-    """One block encoded alone under a plan -> (encoder output [900, P], feature [P, 128])."""
+def stat_modules(model) -> List:
+    """M1's modules that normalise by block statistics [DECISION D-44, amendment 2]."""
+    from models.density_encoder import _StatsTap
+
+    enc = model.features.encoder
+    mods = []
+    for conv in enc.EncNP.DyPowerConv_list:
+        mods += [conv, conv.LoConv, conv.DyHiConv]
+    mods.append(enc.DecNP)
+    if not all(isinstance(m, _StatsTap) for m in mods):
+        raise ValueError("the statistics tap needs M1's density modules")
+    return mods
+
+
+def encode_block(model, mods: List, x: torch.Tensor, plan: Plan, tap: Optional[StatsTap] = None,
+                 taps: Optional[List] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    """One block encoded alone under a plan (and a statistics tap) -> (encoder output [900, P], feature [P, 128])."""
     store = {}
     for m in mods:
         m.plan = plan
+    for m in taps or []:
+        m.stats_tap = tap
     hook = model.features.encoder.register_forward_hook(lambda mod, inp, out: store.__setitem__("enc", out))
     try:
         f = model.features(x.unsqueeze(0))  # [1, P, 128]
@@ -509,6 +586,12 @@ def encode_block(model, mods: List, x: torch.Tensor, plan: Plan) -> Tuple[torch.
         hook.remove()
         for m in mods:
             m.plan = Plan()
+        for m in taps or []:
+            m.stats_tap = None
+    if tap is not None:
+        tap.finish()
+        if tap.inject is None and len(tap.record) != N_STAT_SITES:
+            raise RuntimeError(f"{len(tap.record)} normalisations recorded, expected {N_STAT_SITES}")
     return store["enc"][0], f[0]
 
 
@@ -520,10 +603,12 @@ def trace(rule, data_path: str, device, max_episodes: Optional[int], run_caps: b
     names = read_class_names(data_path, "s3dis")
     model = p5.module_of(rule)
     mods = install_capped(model)
-    rec = {d: {a: [] for a in CAP_ARMS} for d in DIRECTIONS}  # [episode, gt_ref, gt_cap, gt_low, tp_ref, tp_cap, tp_low]
+    taps = stat_modules(model)
+    # per arm and event: [episode, gt_ref, gt_arm, gt_low, tp_ref, tp_arm, tp_low]
+    rec = {d: {a: [] for a in list(CAP_ARMS) + list(STAT_ARMS)} for d in DIRECTIONS}
     refs = {k: [0.0, 0.0] for k in ("c_V0", "c_V1", "a_V0", "a_V2")}  # [gt, tp]
     cos_sum = {}  # (pair, group, slice) -> [sum, count]
-    checks = {"encode_max_rel": 0.0, "uncapped_equal": 0}
+    checks = {"encode_max_rel": 0.0, "uncapped_equal": 0, "record_equal": 0, "inject_own_equal": 0}
     last_ep, rows, f_model, n_events = None, None, None, 0
     for n_ev, ev in enumerate(events(data_path, max_episodes)):
         n_events += 1
@@ -534,17 +619,28 @@ def trace(rule, data_path: str, device, max_episodes: Optional[int], run_caps: b
             rows = p5.support_directions(p5.support_features(rule, e), e.support_y)  # [N+1, D]
             f_model, last_ep = f_q, ev["episode"]
 
-        def run(v: str, caps=None):
+        def run(v: str, caps=None, tap: Optional[StatsTap] = None):
             x, y, _ = ev["blocks"][v]
             plan = Plan(torch.as_tensor(y, device=device).unsqueeze(0), caps)
-            enc, f = encode_block(model, mods, torch.as_tensor(x, device=device), plan)
+            pts = torch.as_tensor(np.ascontiguousarray(x, dtype=np.float32), device=device)  # [P, 9], as make_episode
+            enc, f = encode_block(model, mods, pts, plan, tap, taps)
             pred = (f @ rows.T).argmax(-1).cpu().numpy()  # [P]
-            return enc, f, pred, plan
+            return enc, f, pred, plan, tap
 
         def counts(y: np.ndarray, pred: np.ndarray, k: int) -> Tuple[float, float]:
             return p8.class_counts(y, pred, k)
 
-        out = {v: run(v) for v in VERSIONS}
+        out = {v: run(v, tap=StatsTap()) for v in VERSIONS}  # plain encodings that also record their statistics
+        if n_ev < 5:  # recording is invisible; injecting a block's own statistics reproduces it
+            for v in VERSIONS:
+                enc_p, f_p = run(v)[:2]
+                if not (torch.equal(enc_p, out[v][0]) and torch.equal(f_p, out[v][1])):
+                    raise RuntimeError(f"{v}: recording the statistics changed the encoding")
+                enc_i, f_i = run(v, tap=StatsTap(inject=out[v][4].record))[:2]
+                if not (torch.equal(enc_i, out[v][0]) and torch.equal(f_i, out[v][1])):
+                    raise RuntimeError(f"{v}: injecting the block's own statistics changed the encoding")
+            checks["record_equal"] += 1
+            checks["inject_own_equal"] += 1
         rel = float((out["V0"][1] - f_model[ev["b"]]).abs().max() / f_model[ev["b"]].abs().max())
         checks["encode_max_rel"] = max(checks["encode_max_rel"], rel)
         if rel > ENCODE_RTOL:
@@ -565,27 +661,34 @@ def trace(rule, data_path: str, device, max_episodes: Optional[int], run_caps: b
                     s = cos_sum.setdefault(f"{pair}|{grp}|{name}", [0.0, 0])
                     s[0] += float(val[torch.as_tensor(sel, device=device)].sum())
                     s[1] += int(sel.sum())
+        spec = {"other": ("V1", "V0", ev["c_local"], "c"), "own": ("V0", "V2", ev["a_local"], "a")}
+        for d, (ref_v, src_v, t, cls) in spec.items():  # the statistics of the low version, nothing else changed
+            pred_s = run(ref_v, tap=StatsTap(inject=out[src_v][4].record))[2]
+            gt_s, tp_s = counts(y[ref_v], pred_s, t)
+            (gt_ref, tp_ref), (gt_low, tp_low) = g[(cls, ref_v)], g[(cls, src_v)]
+            rec[d]["stats"].append([ev["episode"], gt_ref, gt_s, gt_low, tp_ref, tp_s, tp_low])
         if not run_caps:
             continue
         if n_ev < 5:  # the uncapped plan (every cap K) reproduces the plain grouping exactly
             full = {s: (lambda lab: torch.full_like(lab, BALL_K)) for s in range(len(GROUPS))}
-            enc_u, f_u, _, _ = run("V1", full)
+            enc_u, f_u = run("V1", full)[:2]
             if not (torch.equal(enc_u, out["V1"][0]) and torch.equal(f_u, out["V1"][1])):
                 raise RuntimeError("the capped grouping with every cap at K differs from the plain one")
             checks["uncapped_equal"] += 1
-        spec = {"other": ("V1", "V0", ev["c_local"], "c"), "own": ("V0", "V2", ev["a_local"], "a")}
         for d, (ref_v, src_v, t, cls) in spec.items():
             src_plan = out[src_v][3]
             src_m = {s: src_plan.m[s][0][src_plan.centre_labels[s][0] == t].cpu().numpy() for s in range(len(GROUPS))}
-            for arm_i, (arm, stages) in enumerate(CAP_ARMS.items()):
+            arms = list(CAP_ARMS.items()) + [("caps+stats", CAP_ARMS["all"])]
+            for arm_i, (arm, stages) in enumerate(arms):
                 rng = np.random.default_rng([p5.DRAW_SEEDS["intervene"], ev["episode"], ev["b"], arm_i,
                                              DIRECTIONS.index(d)])
 
-                def cap_fn(s):
+                def cap_fn(s, rng=rng):
                     return lambda lab: torch.as_tensor(draw_caps(lab[0].cpu().numpy(), t, src_m[s], rng),
                                                        device=lab.device).unsqueeze(0)
 
-                _, _, pred_cap, _ = run(ref_v, {s: cap_fn(s) for s in stages})
+                tap = StatsTap(inject=out[src_v][4].record) if arm == "caps+stats" else None
+                pred_cap = run(ref_v, {s: cap_fn(s) for s in stages}, tap)[2]
                 gt_ref, tp_ref = g[(cls, ref_v)]
                 gt_cap, tp_cap = counts(y[ref_v], pred_cap, t)
                 gt_low, tp_low = g[(cls, src_v)]
@@ -594,6 +697,13 @@ def trace(rule, data_path: str, device, max_episodes: Optional[int], run_caps: b
               "refs": {k: v[1] / max(v[0], 1.0) for k, v in refs.items()},
               "cos": {k: v[0] / max(v[1], 1) for k, v in cos_sum.items()},
               "cos_points": {k: v[1] for k, v in cos_sum.items()}}
+    result["stats"] = {}
+    for d in DIRECTIONS:
+        result["stats"][d] = {}
+        for arm in STAT_ARMS:
+            if rec[d][arm]:
+                a = np.array(rec[d][arm], dtype=np.float64).reshape(-1, 7)
+                result["stats"][d][arm] = psi_summary(a[:, 0], a[:, 1:4], a[:, 4:7])
     if run_caps:
         result["caps"] = {}
         for d in DIRECTIONS:
@@ -823,9 +933,11 @@ def main(argv=None) -> int:
         res.update(models=meta, run_caps=run_caps)
         p6.save(res, None, f"trace_m1{args.tag}", out_dir)
         print("[trace] refs " + " ".join(f"{k} {v:.3f}" for k, v in res["refs"].items()), flush=True)
-        for d in res.get("caps", {}):
-            print(f"[trace] {d}: " + " | ".join(f"{a} psi {s['psi']:.3f} [{s['psi_ci'][0]:.3f}, {s['psi_ci'][1]:.3f}]"
-                                                 for a, s in res["caps"][d].items()), flush=True)
+        for kind in ("caps", "stats"):
+            for d in res.get(kind, {}):
+                print(f"[trace] {kind} {d}: " + " | ".join(
+                    f"{a} psi {s['psi']:.3f} [{s['psi_ci'][0]:.3f}, {s['psi_ci'][1]:.3f}]"
+                    for a, s in res[kind][d].items()), flush=True)
         return 0
     if config.get("encoder", "vipseg") != "vipseg":
         raise ValueError("modules reads CR (encoder=vipseg), the base after D-43 [DECISION D-44]")

@@ -600,8 +600,11 @@ gain accepted without its CI, gained a test).
 | P9-13 | Support means, foreground components (k = 1 is U, k = 2 the max over centroids), retrieval purity and shift vectors by hand | [DECISION D-42] |
 | P9-14 | Rules D44.0–D44.3 on every branch, thresholds at their edges; the files parse as Python 3.10 | [DECISION D-44] |
 | P9-15 | GPU: the capped grouping without caps equals M1's grouping; the replay agrees with the CUDA FPS; a cap reaches the target centres only; slice `emb` is the embedding layer's output | [DECISION D-44] |
+| P9-16 | The statistics tap: recording returns D-43's normalisations bit for bit, a block's own record reproduces them, another block's changes them; wrong kind, wrong batch, too many calls and unused statistics raise | [DECISION D-44], amendment 2 |
+| P9-17 | Rule D44.1b on every branch, alone and with D44.1 | [DECISION D-44], amendment 2 |
+| P9-18 | GPU: the whole single-block encoding of part A on a real M1 extractor (twelve statistics recorded; record and own-injection invisible; another block's statistics and a cap of 1 change the features; caps at K do not; the tap is removed afterwards) | [DECISION D-44], amendment 2 |
 
-Mutation check (2026-09-27), 27 mutants on the CPU part: 27 killed.
+Mutation check (2026-09-27), 27 mutants on the CPU part: 27 killed; after amendment 2, 9 more on the tap and D44.1b: 9 killed.
 
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
