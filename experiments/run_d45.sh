@@ -76,8 +76,23 @@ LOG="$OUT/d45_${MODE}.log"
     PW=$!
     # CR's references on this GPU (D-37, D-39, P7 on fixed100), early, so a tolerance problem shows before the
     # trainings end; the final test repeats it with the arms
-    $PY experiments/d43_eval.py test --data_path "$D" --checkpoint "cr:ours:1:$CR" --draw fixed100         --out_dir "$OUT/cr_check" > "$OUT/cr_check.log" 2>&1 && echo "=== CR references hold on this GPU"         || { echo "=== CR REFERENCE CHECK FAILED"; tail -3 "$OUT/cr_check.log"; }
-    $PY experiments/d45_monitor.py census --data_path "$D" "${CENSUS[@]}" > "$OUT/census.log" 2>&1
+    # a rerun after an interruption (train.py --resume) skips the steps that already finished
+    if grep -q "^\[test\] fixed100" "$OUT/cr_check.log" 2>/dev/null; then
+      echo "=== CR check already done: $(grep "^\[test\] fixed100" "$OUT/cr_check.log")"
+    else
+      $PY experiments/d43_eval.py test --data_path "$D" --checkpoint "cr:ours:1:$CR" --draw fixed100 \
+          --out_dir "$OUT/cr_check" > "$OUT/cr_check.log" 2>&1 && echo "=== CR references hold on this GPU" \
+          || { echo "=== CR REFERENCE CHECK FAILED"; tail -3 "$OUT/cr_check.log"; }
+    fi
+    TODO=()
+    for ((i = 1; i < ${#CENSUS[@]}; i += 2)); do
+      name=${CENSUS[$i]%%:*}
+      grep -q "^\[census\] $name:" "$OUT/census.log" 2>/dev/null || TODO+=(--checkpoint "${CENSUS[$i]}")
+    done
+    if [ ${#TODO[@]} -gt 0 ]; then
+      $PY experiments/d45_monitor.py census --data_path "$D" "${TODO[@]}" --tag "_$(date +%H%M)" \
+          >> "$OUT/census.log" 2>&1
+    fi
     grep "^\[census\]" "$OUT/census.log"
     wait $PA; echo "=== TRAIN m2a exit=$? $(date -Is)"
     wait $PB; echo "=== TRAIN m2b exit=$? $(date -Is)"
@@ -96,7 +111,8 @@ LOG="$OUT/d45_${MODE}.log"
         echo "=== $name has no last.pt (stopped early)"
       fi
     done
-    $PY experiments/d43_eval.py test --data_path "$D" "${CKS[@]}" --out_dir "$OUT"         || echo "=== TEST FAILED (see d45_full.log); part B and the monitor are kept"
+    $PY experiments/d43_eval.py test --data_path "$D" "${CKS[@]}" --out_dir "$OUT" \
+        || echo "=== TEST FAILED (see d45_full.log); part B and the monitor are kept"
     for p in "${PIDS[@]}"; do wait "$p" || echo "=== a part B run failed"; done
     grep -h "^\[modules\]" "$OUT"/modules_m2*.log | cut -c1-200
     $PY experiments/d45_monitor.py decide
