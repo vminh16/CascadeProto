@@ -67,13 +67,22 @@ LOG="$OUT/d45_${MODE}.log"
     $PY experiments/d45_monitor.py decide --tag _smoke
     echo "=== D45 smoke FINISHED $(date -Is)"
   else
-    $PY train.py "${COMMON[@]}" "${ARM_A[@]}" --save_dir log_d45 --resume true > "$OUT/train_m2a.log" 2>&1 &
-    PA=$!
-    $PY train.py "${COMMON[@]}" "${ARM_B[@]}" --save_dir log_d45 --resume true > "$OUT/train_m2b.log" 2>&1 &
-    PB=$!
-    $PY experiments/d45_monitor.py watch --data_path "$D" --run "m2a:log_d45/${RUN}_vic1_0.04:$PA" \
-        --run "m2b:log_d45/${RUN}_vic4_0.16:$PB" > "$OUT/monitor.log" 2>&1 &
-    PW=$!
+    # an arm the monitor stopped stays stopped when the script is rerun after an interruption
+    TRAIN=(); WATCH=()
+    for arm in m2a:vic1_0.04 m2b:vic4_0.16; do
+      name=${arm%%:*}; tag=${arm#*:}
+      if grep -q "\"arm\": \"$name\".*\"stopped\": true" "$OUT/monitor.jsonl" 2>/dev/null; then
+        echo "=== $name was stopped by the monitor; not resumed"; continue
+      fi
+      [ "$name" = m2a ] && FLAGS=("${ARM_A[@]}") || FLAGS=("${ARM_B[@]}")
+      $PY train.py "${COMMON[@]}" "${FLAGS[@]}" --save_dir log_d45 --resume true >> "$OUT/train_$name.log" 2>&1 &
+      TRAIN+=("$name:$!"); WATCH+=(--run "$name:log_d45/${RUN}_$tag:$!")
+    done
+    PW=
+    if [ ${#WATCH[@]} -gt 0 ]; then
+      $PY experiments/d45_monitor.py watch --data_path "$D" "${WATCH[@]}" >> "$OUT/monitor.log" 2>&1 &
+      PW=$!
+    fi
     # CR's references on this GPU (D-37, D-39, P7 on fixed100), early, so a tolerance problem shows before the
     # trainings end; the final test repeats it with the arms
     # a rerun after an interruption (train.py --resume) skips the steps that already finished
@@ -94,9 +103,9 @@ LOG="$OUT/d45_${MODE}.log"
           >> "$OUT/census.log" 2>&1
     fi
     grep "^\[census\]" "$OUT/census.log"
-    wait $PA; echo "=== TRAIN m2a exit=$? $(date -Is)"
-    wait $PB; echo "=== TRAIN m2b exit=$? $(date -Is)"
-    wait $PW; grep "^\[watch\]" "$OUT/monitor.log"
+    for t in "${TRAIN[@]}"; do wait "${t#*:}"; echo "=== TRAIN ${t%%:*} exit=$? $(date -Is)"; done
+    [ -n "$PW" ] && wait "$PW"
+    grep "^\[watch\]" "$OUT/monitor.log"
     CKS=(--checkpoint "cr:ours:1:$CR")
     PIDS=()
     for arm in m2a:vic1_0.04 m2b:vic4_0.16; do

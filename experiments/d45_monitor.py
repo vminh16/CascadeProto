@@ -177,6 +177,10 @@ def watch(runs: List[Tuple[str, str, int]], data_path: str, device, n_episodes: 
     log = os.path.join(out_dir, "monitor.jsonl")
     target = {name: VALID_EVERY for name, _, _ in runs}
     decided = {name: False for name, _, _ in runs}
+    for rec in read_jsonl(log):  # a restarted watch (run_d45.sh after an interruption) keeps its earlier decisions
+        if rec["arm"] in target:
+            target[rec["arm"]] = max(target[rec["arm"]], (rec["epoch"] // VALID_EVERY + 1) * VALID_EVERY)
+            decided[rec["arm"]] = decided[rec["arm"]] or rec["epoch"] >= STOP_EPOCH
     while True:
         running = False
         for name, run_dir, pid in runs:
@@ -216,6 +220,13 @@ def read_json(path: str) -> Optional[Dict]:
     return None
 
 
+def read_jsonl(path: str) -> List[Dict]:
+    if os.path.isfile(path):
+        with open(path) as f:
+            return [json.loads(line) for line in f if line.strip()]
+    return []
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("stage", choices=["census", "watch", "decide"])
@@ -236,8 +247,7 @@ def main(argv=None) -> int:
             path = os.path.join(out_dir, p6.stem(d, args.tag) + ".json")
             if os.path.isfile(path):
                 draws[d] = (read_json(path), dict(np.load(path.replace(".json", "_counts.npz"))))
-        mon_path = os.path.join(out_dir, "monitor.jsonl")
-        monitor = [json.loads(line) for line in open(mon_path)] if os.path.isfile(mon_path) else []
+        monitor = read_jsonl(os.path.join(out_dir, "monitor.jsonl"))
         for name, text in decide(parts, draws, monitor):
             print(f"{name:70s} {text}")
         return 0
