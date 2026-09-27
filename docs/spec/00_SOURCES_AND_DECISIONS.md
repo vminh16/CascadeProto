@@ -1910,6 +1910,25 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
     directions → neither the count nor the statistics carry it; the remaining paths (Mamba's mixing, the geometry of
     the sparse surface itself) are not reachable on this budget and the encoder branch is closed. D44.1 is unchanged;
     M1b and M1c can both be candidates; D44.3 chooses.
+* **Amendment 3 (2026-09-27, maintainer request, before any GPU run): new machine, local data, a composite arm.**
+  * *Machine and data.* The GCP project is closed. P9 runs on a rented RTX 3090 (vast.ai) with the maintainer's local
+    copy of the blocks: the same points as the old VM's, in another row order, and another `class2scans_100.pkl`
+    (checked: every `.npy`, checkpoint and stored episode folder transferred with identical md5; the stored S1 valid
+    and fixed100 folders are byte-identical to the old VM's). Checked on the 3090 before any P9 code ran: CR scores
+    54.8353 on fixed100 (D-37's 54.84 within 0.01) and U 55.7431 (D-39's 55.74). The seeded draws (P8's events,
+    random600, leak-free) are therefore other samples of the same procedure: step 0 draws 1,053 events in 888
+    episodes (the local preview). The checks that compared the event count and part A's reference recalls with
+    D-43's files are replaced: the references R_V0, R_V1, R_a(V0), R_a(V2) are measured on M1 in the same run and
+    reported next to D-43's; step 0 and part A must draw the same events (their counts must agree). The rules use
+    only quantities of this run, so they are unchanged.
+  * *Composite arm in part B.* A block can fail alone and help after another (the nuisance projection may be what
+    makes a query metric useful). Label-free, at inference: features and support projected by P⊥ (r ∈ {0, 4, 8, 16},
+    r = 0 no projection), the query-whitened LDA of part B (λ ∈ {0.1, 0.3, 0.5}), each way's foreground as k ∈ {1, 2,
+    3} components (spherical k-means of its projected support units; a component's mean is the mean of its members;
+    a class scores the max over its components). With r = 0 and k = 1 it is part B's label-free LDA. **P9.3c**: the
+    best composite on valid ≥ U + 0.5 → the composite is admissible; if it is also ≥ the best single label-free arm
+    (label-free LDA, projected U, components) + 0.5, the blocks interact and are reported as such.
+  * *Scheduling.* Step 0 (CPU) and part B run together; part A starts when step 0 ends, next to part B.
 * **Affects.** `experiments/p9_placement_probe.py`, `experiments/run_p9.sh`, `tests/test_placement_probe.py`,
   05 §3.8u.
 

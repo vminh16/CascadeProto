@@ -2,8 +2,8 @@
 # Phase 16 P9 [DECISION D-44]: where density still enters M1 (D-43), and which module the one remaining run can use.
 # Inference only, S1.
 #
-# step 0  geometry: M1's ball grouping replayed on P8's arm-B events (CPU, on the VM: the draw depends on the machine's
-#         class-to-scan lists, D-44 amendment); runs next to part B
+# step 0  geometry: M1's ball grouping replayed on P8's arm-B procedure (CPU); the draw depends on the machine's data
+#         (D-44 amendments 1 and 3); runs next to part B, part A starts when it ends
 # A       trace, M1 last.pt: per-slice cosine of V0 / V1 (V0 / V2) features at shared raw points; the ball-count
 #         intervention psi = (R_ref - R_cap) / (R_ref - R_low), caps at stage 1, 2, 3 and all three, both directions
 # B       modules, CR last.pt, valid: D-42's P9.3-P9.8 (metric, nuisance, heads, components, collapse, neck)
@@ -43,15 +43,21 @@ LOG="$OUT/p9_${MODE}.log"
   if [ "$MODE" = smoke ]; then
     $PY -m pytest tests/test_placement_probe.py tests/test_density_encoder.py -q -s -p no:cacheprovider || exit 1
   fi
-  OMP_NUM_THREADS=2 $PY experiments/p9_placement_probe.py geometry --data_path "$D" "${EXTRA[@]}" > "$OUT/geometry_${MODE}.log" 2>&1 &
+  # step 0 (CPU) and part B (GPU) together; part A starts when step 0 ends, next to part B [D-44 amendment 3]
+  OMP_NUM_THREADS=4 $PY experiments/p9_placement_probe.py geometry --data_path "$D" "${EXTRA[@]}" > "$OUT/geometry_${MODE}.log" 2>&1 &
   GEO=$!
-  $PY experiments/p9_placement_probe.py modules --data_path "$D" --checkpoint "cr:ours:1:$CR" "${EXTRA[@]}" \
-      "${TRAIN[@]}" || exit 1
-  echo "=== modules done $(date -Is)"
-  wait $GEO || { echo "geometry failed"; tail -5 "$OUT/geometry_${MODE}.log"; exit 1; }
+  $PY experiments/p9_placement_probe.py modules --data_path "$D" --checkpoint "cr:ours:1:$CR" "${EXTRA[@]}"       "${TRAIN[@]}" > "$OUT/modules_${MODE}.log" 2>&1 &
+  MOD=$!
+  wait $GEO || { echo "geometry failed"; tail -5 "$OUT/geometry_${MODE}.log"; kill $MOD; exit 1; }
   grep "^\[geometry\]" "$OUT/geometry_${MODE}.log"
   echo "=== geometry done $(date -Is)"
-  $PY experiments/p9_placement_probe.py trace --data_path "$D" --checkpoint "m1:ours:1:$M1" "${EXTRA[@]}" || exit 1
+  $PY experiments/p9_placement_probe.py trace --data_path "$D" --checkpoint "m1:ours:1:$M1" "${EXTRA[@]}"       > "$OUT/trace_${MODE}.log" 2>&1 &
+  TR=$!
+  wait $MOD || { echo "modules failed"; tail -8 "$OUT/modules_${MODE}.log"; kill $TR; exit 1; }
+  grep "^\[modules\]" "$OUT/modules_${MODE}.log"
+  echo "=== modules done $(date -Is)"
+  wait $TR || { echo "trace failed"; tail -8 "$OUT/trace_${MODE}.log"; exit 1; }
+  grep "^\[trace\]" "$OUT/trace_${MODE}.log"
   echo "=== trace done $(date -Is)"
   if [ "$MODE" = smoke ]; then
     $PY experiments/p9_placement_probe.py decide --tag _smoke

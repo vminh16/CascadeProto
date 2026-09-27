@@ -49,7 +49,6 @@ DIRECTIONS = ("other", "own")  # other: V1's c-centres capped to V0's m; own: V0
 CAUSAL, NOT_CAUSAL = p8.PHI_CAUSAL, p8.PHI_NOT  # D-35's bands, 0.5 / 0.2 [DECISION D-44]
 STEP0_FULL = 15.5  # D44.0: mean m of V0's c-centres at least this at every stage -> no cap arms
 ENCODE_RTOL = 1e-3  # a block encoded alone against the model's pair encoding (DE-10's floor 1.3e-4)
-REF_TOL = 0.005  # part A's reference recalls against D-43's intervene_m1.json
 D43_INTERVENE = "results/phase16_d43/intervene_m1.json"
 P8_VALID = "results/phase16_p8/split_S1_valid.json"
 U_TOL = p6.CR_TOL  # U on valid against P8's split of CR (0.01 points)
@@ -62,6 +61,8 @@ MIN_POINTS = p6.MIN_POINTS  # a class needs this many points in a block for o_{c
 TRAIN_EPISODES = 1500  # base-class episodes for Sigma_eta [DECISION D-42]
 TRAIN_SEED = 0
 GAIN = 0.5  # P9.3, P9.4, P9.6: a label-free rule over U on valid
+COMPOSITE_RANKS = (0,) + RANKS  # r = 0: no projection [DECISION D-44, amendment 3]
+COMPOSITE_KS = (1,) + KS  # k = 1: one mean per way
 ORACLE_GAIN = 1.0  # P9.3: LDA oracle over the cosine oracle
 CV_MIN, SHARE_MAX, PURITY_MIN = 0.5, 0.5, 0.5  # P9.5, P9.7, P9.8, conventions [DECISION D-42]
 BOOT = 2000
@@ -346,6 +347,45 @@ def component_logits(f_q: torch.Tensor, rows: torch.Tensor, f_s: torch.Tensor, s
     return logits
 
 
+def composite_name(r: int, lam: float, k: int) -> str:
+    return f"comp_r{r}_l{lam}_k{k}"
+
+
+def composite_logits(f_q: torch.Tensor, f_s: torch.Tensor, support_y: torch.Tensor, basis: torch.Tensor, lam: float,
+                     k: int) -> torch.Tensor:
+    """N -> query-whitened LDA -> k components, label-free [DECISION D-44, amendment 3] -> [B_q, P, N+1].
+
+    Query and support unit features projected by P⊥ = I - BBᵀ (basis [D, r], r = 0 none) and re-normalised; the
+    background mean over every support background point; each way's foreground as k components (spherical k-means
+    of its projected units, a component's mean = the mean of its members; k = 1 the way's mean); scores
+    m_cᵀ T_λ⁻¹ (u - ū) - ½ (m_c - ū)ᵀ T_λ⁻¹ (m_c - ū) with T the query block's covariance; a class takes the max over
+    its components. With r = 0 and k = 1 this is part B's label-free LDA."""
+    def perp(x: torch.Tensor) -> torch.Tensor:
+        return F.normalize(x - (x @ basis) @ basis.T, dim=-1)
+
+    uq = perp(F.normalize(f_q, dim=-1))  # [B_q, P, D]
+    us = perp(F.normalize(f_s, dim=-1))  # [N, K, P, D]
+    fg = support_y == 1  # [N, K, P]
+    means, owner = [us[~fg].mean(0)], [0]  # background: every way and shot
+    for w in range(f_s.shape[0]):
+        units = us[w][fg[w]]  # [M, D]
+        if k == 1:
+            comps = [units.mean(0)]
+        else:
+            assign = (units @ p6.spherical_kmeans(units, k).T).argmax(dim=1)  # [M]
+            comps = [units[assign == j].mean(0) for j in range(k) if bool((assign == j).any())]
+        means += comps
+        owner += [w + 1] * len(comps)
+    m = torch.stack(means)  # [C, D], C components over all classes
+    own = torch.tensor(owner, device=f_q.device)  # [C]
+    out = []
+    for b in range(uq.shape[0]):
+        mu, t = total_cov(uq[b])
+        s = lda_logits(uq[b], m, shrink(t, lam), centre=mu)  # [P, C]
+        out.append(torch.stack([s[:, own == c].max(dim=-1).values for c in range(f_s.shape[0] + 1)], dim=-1))
+    return torch.stack(out)  # [B_q, P, N+1]
+
+
 def retrieval_purity(u_q: torch.Tensor, y_q: torch.Tensor, u_s: torch.Tensor, y_s: torch.Tensor,
                      k: int = PURITY_K) -> torch.Tensor:
     """[M] share of each query point's k nearest support points (cosine) with its label. u_q [M, D], y_q [M],
@@ -435,6 +475,17 @@ def decide(geo: Optional[Dict], trace: Optional[Dict], modules: Optional[Dict]) 
         v.append((f"D44.2 P9.7 representation {'admissible' if ok7 else 'fails'}",
                   f"base-span share of d* {share:.3f} (limit {SHARE_MAX}); participation ratio "
                   f"{modules['collapse']['participation_ratio']:.1f}"))
+        comp = {composite_name(r, lam, k): m[composite_name(r, lam, k)]
+                for r in COMPOSITE_RANKS for lam in LAMBDAS for k in COMPOSITE_KS if composite_name(r, lam, k) in m}
+        if comp:
+            best_c = max(comp, key=comp.get)
+            single = max([m[f"lda_free_{lam}"] for lam in LAMBDAS] + [m[f"proj_{r}"] for r in RANKS]
+                         + [m[f"km_{k}"] for k in KS])
+            ok3c = comp[best_c] >= u + GAIN / 100
+            inter = ok3c and comp[best_c] >= single + GAIN / 100
+            v.append((f"D44.2 P9.3c composite {'admissible' if ok3c else 'fails'}"
+                      + (", the blocks interact" if inter else ""),
+                      f"{best_c} {100 * comp[best_c]:.2f} vs U {100 * u:.2f}, best single label-free {100 * single:.2f}"))
         pur = modules["purity"]["miss"]
         ok8 = pur >= PURITY_MIN
         v.append((f"D44.2 P9.8 neck {'admissible' if ok8 else 'fails'}",
@@ -714,22 +765,11 @@ def trace(rule, data_path: str, device, max_episodes: Optional[int], run_caps: b
     return result
 
 
-def p8_events() -> int:
-    """Number of arm-B events of P8 and D-43 (1,045)."""
-    with open(os.path.join(REPO, D43_INTERVENE)) as f:
-        return int(json.load(f)["U"]["events"])
-
-
-def check_trace_refs(result: Dict) -> None:
-    """Part A's events and reference recalls against D-43's intervene_m1.json (per-block against pair encoding)."""
+def d43_refs() -> Dict[str, float]:
+    """D-43's reference recalls of M1 on the old VM's draw (reported only) [DECISION D-44, amendment 3]."""
     with open(os.path.join(REPO, D43_INTERVENE)) as f:
         u = json.load(f)["U"]
-    if result["events"] != u["events"]:
-        raise RuntimeError(f"{result['events']} events, D-43 had {u['events']}")
-    pairs = {"c_V0": u["r_v0"], "c_V1": u["r_v1"], "a_V0": u["r_a_v0"], "a_V2": u["r_a_v2"]}
-    for k, ref in pairs.items():
-        if abs(result["refs"][k] - ref) > REF_TOL:
-            raise RuntimeError(f"{k}: {result['refs'][k]:.4f} against D-43's {ref:.4f}")
+    return {"events": u["events"], "c_V0": u["r_v0"], "c_V1": u["r_v1"], "a_V0": u["r_a_v0"], "a_V2": u["r_a_v2"]}
 
 
 # ------------------------------------------------------------------ part B (GPU)
@@ -780,6 +820,7 @@ def modules(rule, data_path: str, device, max_episodes: Optional[int], train_epi
     stats = train_statistics(rule, data_path, device, train_episodes)
     evals, evecs = torch.linalg.eigh(stats["sigma"])  # ascending
     bases = {r: evecs[:, -r:].to(torch.float32) for r in RANKS}  # [D, r]
+    comp_bases = {0: evecs[:, :0].to(torch.float32), **bases}  # r = 0: an empty basis, P⊥ = I
     names = read_class_names(data_path, "s3dis")
     items, test_classes = p6.episodes("valid", data_path, max_episodes)
     counts: Dict[str, List[np.ndarray]] = {}
@@ -813,6 +854,11 @@ def modules(rule, data_path: str, device, max_episodes: Optional[int], train_epi
             preds[f"proj_{r}"] = projected_logits(f_q, rows, bases[r]).argmax(-1)
         for k in KS:
             preds[f"km_{k}"] = component_logits(f_q, rows, f_s, e.support_y, k).argmax(-1)
+        for r in COMPOSITE_RANKS:
+            for lam in LAMBDAS:
+                for k in COMPOSITE_KS:
+                    preds[composite_name(r, lam, k)] = composite_logits(
+                        f_q, f_s, e.support_y, comp_bases[r], lam, k).argmax(-1)
         gt = y.cpu().numpy()
         for name, pr in preds.items():
             counts.setdefault(name, []).append(p0.episode_counts(pr.cpu().numpy(), gt, e.sampled_classes, test_classes))
@@ -907,8 +953,6 @@ def main(argv=None) -> int:
         p.error("--data_path is required")
     if args.stage == "geometry":
         res = geometry(args.data_path, args.max_episodes)
-        if args.max_episodes is None and res["events"] != p8_events():
-            raise RuntimeError(f"{res['events']} events, P8 and D-43 had {p8_events()}")
         p6.save(res, None, f"geometry{args.tag}", out_dir)
         for s, st in res["stages"].items():
             print(f"[geometry] stage {int(s) + 1} r {BALL_RADII[int(s)]}: " + " | ".join(
@@ -928,9 +972,10 @@ def main(argv=None) -> int:
             raise FileNotFoundError("run the geometry stage first (D44.0 decides the cap arms)")
         run_caps = not decide(geo, None, None)[0][0].startswith("D44.0 ball counts full")
         res = trace(rule, args.data_path, device, args.max_episodes, run_caps)
-        if args.max_episodes is None:
-            check_trace_refs(res)
-        res.update(models=meta, run_caps=run_caps)
+        if res["events"] != geo["events"]:
+            raise RuntimeError(f"part A drew {res['events']} events, step 0 {geo['events']}: not the same draw")
+        res["d43_refs"] = d43_refs()  # reported next to this run's, not checked [DECISION D-44, amendment 3]
+        res.update(models=meta, run_caps=run_caps, peak_vram_gib=torch.cuda.max_memory_allocated() / 2**30)
         p6.save(res, None, f"trace_m1{args.tag}", out_dir)
         print("[trace] refs " + " ".join(f"{k} {v:.3f}" for k, v in res["refs"].items()), flush=True)
         for kind in ("caps", "stats"):
@@ -942,7 +987,7 @@ def main(argv=None) -> int:
     if config.get("encoder", "vipseg") != "vipseg":
         raise ValueError("modules reads CR (encoder=vipseg), the base after D-43 [DECISION D-44]")
     res, stacked = modules(rule, args.data_path, device, args.max_episodes, args.train_episodes)
-    res.update(models=meta)
+    res.update(models=meta, peak_vram_gib=torch.cuda.max_memory_allocated() / 2**30)
     p6.save(res, stacked, f"modules_cr_valid{args.tag}", out_dir)
     print("[modules] " + " | ".join(f"{k} {100 * v:.2f}" for k, v in res["miou"].items()), flush=True)
     return 0

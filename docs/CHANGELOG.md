@@ -1687,3 +1687,14 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   on the first five events (recording invisible, own statistics reproduce the encoding). Found while reviewing the
   GPU path: single blocks are now cast to float32 as `make_episode` does, and the uncapped check unpacks the new
   return value. Tests P9-16...18 (05 §3.8u); mutation check 9/9 on the new code, the earlier 27 still killed.
+
+### 16au - D-44 amendment 3: P9 on a rented RTX 3090 with the local data; composite arm in part B (not run)
+
+* The GCP project is closed. Environment rebuilt on vast.ai (Python 3.10, the old VM's package versions); data,
+  checkpoints and stored episodes transferred from the local copy with identical md5. On the 3090: CR 54.8353 on
+  fixed100 (D-37 54.84), U 55.7431; G0 27, CPU 551, GPU 26 tests pass.
+* The seeded draws differ from the old VM's (local row order and scan lists): the checks against D-43's event count
+  and reference recalls are replaced by an internal one (step 0 and part A must draw the same events); D-43's
+  references are reported next to this run's.
+* Part B gains the composite arm N -> query-whitened LDA -> k components (`composite_logits`, 36 settings) and rule
+  P9.3c; step 0 and part B run together and part A starts when step 0 ends. Tests P9-19, P9-20; mutation check 6/6.

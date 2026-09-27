@@ -440,3 +440,47 @@ def test_p9_18_trace_path_on_the_gpu():
         _, f5 = p9.encode_block(model, mods, a, p9.Plan(lab, one))
         assert not torch.allclose(f5, f0, atol=1e-4)
     assert all(m.stats_tap is None for m in taps)  # the tap is removed after each encoding
+
+
+def test_p9_19_composite_arm():
+    g = torch.Generator().manual_seed(8)
+    f_q = torch.rand(2, 60, 6, generator=g, dtype=torch.float64)
+    f_s = torch.rand(2, 1, 60, 6, generator=g, dtype=torch.float64)
+    sy = (torch.rand(2, 1, 60, generator=g) < 0.4).long()
+    empty = torch.zeros(6, 0, dtype=torch.float64)
+    got = p9.composite_logits(f_q, f_s, sy, empty, 0.3, 1)
+    m = p9.support_means(f_s, sy)
+    u = F.normalize(f_q, dim=-1)
+    for b in range(2):
+        mu, t = p9.total_cov(u[b])
+        assert torch.allclose(got[b], p9.lda_logits(u[b], m, p9.shrink(t, 0.3), centre=mu), atol=1e-10)
+    basis = p9.orthonormal(torch.randn(2, 6, generator=g, dtype=torch.float64))  # [6, 2]
+    perp = lambda x: F.normalize(x - x @ basis @ basis.T, dim=-1)  # noqa: E731
+    uq, us = perp(u), perp(F.normalize(f_s, dim=-1))
+    k2 = p9.composite_logits(f_q, f_s, sy, basis, 0.1, 2)
+    comps, owner = [us[sy == 0].mean(0)], [0]
+    for w in range(2):
+        units = us[w][sy[w] == 1]
+        a = (units @ p6.spherical_kmeans(units, 2).T).argmax(1)
+        for j in range(2):
+            if (a == j).any():
+                comps.append(units[a == j].mean(0)), owner.append(w + 1)
+    mm, own = torch.stack(comps), torch.tensor(owner)
+    for b in range(2):
+        mu, t = p9.total_cov(uq[b])
+        s = p9.lda_logits(uq[b], mm, p9.shrink(t, 0.1), centre=mu)
+        ref = torch.stack([s[:, own == c].max(-1).values for c in range(3)], dim=-1)
+        assert torch.allclose(k2[b], ref, atol=1e-10)
+    assert p9.composite_name(8, 0.3, 2) == "comp_r8_l0.3_k2"
+
+
+def test_p9_20_composite_rule():
+    def names(extra):
+        return [n for n, _ in p9.decide(None, None, modules_result(miou=extra)) if "P9.3c" in n]
+
+    assert names({}) == []  # no composite arm recorded
+    assert "fails" in names({"comp_r0_l0.1_k1": 0.5649})[0]
+    ok = names({"comp_r4_l0.1_k2": 0.566})[0]
+    assert "admissible" in ok and "interact" in ok  # single label-free arms sit at U (0.56)
+    no_inter = names({"comp_r4_l0.1_k2": 0.566, "km_3": 0.5625})[0]
+    assert "admissible" in no_inter and "interact" not in no_inter
