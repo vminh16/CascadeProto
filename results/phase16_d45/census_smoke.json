@@ -1,0 +1,148 @@
+{
+ "cr": {
+  "U": 0.15759833070219978,
+  "model": 0.13176561366429562,
+  "ratio": 5.566955765936854,
+  "episodes": 3,
+  "v": 0.8578722675641378,
+  "c": 0.027432092775901157,
+  "checkpoint": {
+   "name": "cr",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_d37/s3dis_S1_N2_K1_point_T4_vip_clean_b1_qrandom/last.pt"
+  }
+ },
+ "vr": {
+  "U": 0.15622833391347654,
+  "model": 0.08975062784677652,
+  "ratio": 6.266605822283396,
+  "episodes": 3,
+  "v": 0.862570603688558,
+  "c": 0.02645368129014969,
+  "checkpoint": {
+   "name": "vr",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_d37/s3dis_S1_N2_K1_point_T4_vip_b1_qrandom/last.pt"
+  }
+ },
+ "e1": {
+  "U": 0.11796280628376743,
+  "model": 0.08214233261771424,
+  "ratio": 6.313379446304332,
+  "episodes": 3,
+  "v": 0.8541884620984396,
+  "c": 0.023312661175926525,
+  "checkpoint": {
+   "name": "e1",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_r2/s3dis_S1_N2_K1_point_T4_vip_b1/last.pt"
+  }
+ },
+ "r0": {
+  "U": 0.14738823081890642,
+  "model": 0.09212026285359003,
+  "ratio": 7.497598467685195,
+  "episodes": 3,
+  "v": 0.6350926955540975,
+  "c": 0.6256118416786194,
+  "checkpoint": {
+   "name": "r0",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_r2/s3dis_S1_N2_K1_point_T4_vip/last.pt"
+  }
+ },
+ "d29": {
+  "U": 0.14165723007138142,
+  "model": 0.1400093620283315,
+  "ratio": 7.509535488697059,
+  "episodes": 3,
+  "v": 0.6600889960924784,
+  "c": 0.779304047425588,
+  "checkpoint": {
+   "name": "d29",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_r2/s3dis_S1_N2_K1_point_T4_vip_distill1/last.pt"
+  }
+ },
+ "n1": {
+  "U": 0.11066359874180859,
+  "model": 0.08088218237099297,
+  "ratio": 6.09544862385145,
+  "episodes": 3,
+  "v": 0.8580296039581299,
+  "c": 0.022238061142464478,
+  "checkpoint": {
+   "name": "n1",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_n1/s3dis_S1_N2_K1_point_T4_vip_b1_ft/last.pt"
+  }
+ },
+ "n1_attn": {
+  "error": "ValueError: P5 reads E1-type checkpoints without a neck [DECISION D-35]"
+ },
+ "n2": {
+  "error": "ValueError: P5 reads E1-type checkpoints without a neck [DECISION D-35]"
+ },
+ "a0": {
+  "U": 0.10800104379724318,
+  "model": 0.10800104379724318,
+  "ratio": 3.660265334109541,
+  "episodes": 3,
+  "v": 0.6076559821764628,
+  "c": 2.119702378908793,
+  "checkpoint": {
+   "name": "a0",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_d39/s3dis_S1_N2_K1_point_T0_b1_qrandom_unit/last.pt"
+  }
+ },
+ "a1": {
+  "U": 0.09985852033264632,
+  "model": 0.09173930622434402,
+  "ratio": 3.6669454710671037,
+  "episodes": 3,
+  "v": 0.6180797417958578,
+  "c": 1.947398583094279,
+  "checkpoint": {
+   "name": "a1",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_d39/s3dis_S1_N2_K1_point_T0_b1_qrandom_unit_ssp2_aux1/last.pt"
+  }
+ },
+ "m1": {
+  "U": 0.15589502883357567,
+  "model": 0.12480478071784341,
+  "ratio": 7.312311836924154,
+  "episodes": 3,
+  "v": 0.8748875657717387,
+  "c": 0.015439961881687244,
+  "checkpoint": {
+   "name": "m1",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_d43/s3dis_S1_N2_K1_point_T4_vip_clean_b1_qrandom_dens/last.pt"
+  }
+ },
+ "vipseg": {
+  "U": 0.13284871497317458,
+  "model": 0.092394307982543,
+  "ratio": 6.604795489662497,
+  "episodes": 3,
+  "v": 0.8412545522054037,
+  "c": 0.03451880564292272,
+  "checkpoint": {
+   "name": "vipseg",
+   "kind": "vipseg",
+   "fold": 1,
+   "path": "vipseg_S1_N2_K1.pt"
+  }
+ }
+}

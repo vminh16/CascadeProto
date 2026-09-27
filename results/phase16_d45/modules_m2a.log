@@ -1,0 +1,13 @@
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[modules] model 48.40 | U 51.12 | cos_oracle 79.74 | lda_oracle_0.1 94.43 | lda_free_0.1 29.47 | lda_oracle_0.3 92.93 | lda_free_0.3 32.07 | lda_oracle_0.5 91.46 | lda_free_0.5 35.25 | proj_4 37.83 | proj_8 35.28 | proj_16 31.46 | km_2 50.62 | km_3 50.15 | comp_r0_l0.1_k1 29.47 | comp_r0_l0.1_k2 30.02 | comp_r0_l0.1_k3 30.68 | comp_r0_l0.3_k1 32.07 | comp_r0_l0.3_k2 32.63 | comp_r0_l0.3_k3 33.40 | comp_r0_l0.5_k1 35.25 | comp_r0_l0.5_k2 35.83 | comp_r0_l0.5_k3 36.58 | comp_r4_l0.1_k1 30.27 | comp_r4_l0.1_k2 30.13 | comp_r4_l0.1_k3 30.29 | comp_r4_l0.3_k1 31.75 | comp_r4_l0.3_k2 32.08 | comp_r4_l0.3_k3 32.41 | comp_r4_l0.5_k1 33.42 | comp_r4_l0.5_k2 34.23 | comp_r4_l0.5_k3 34.75 | comp_r8_l0.1_k1 28.74 | comp_r8_l0.1_k2 28.58 | comp_r8_l0.1_k3 28.49 | comp_r8_l0.3_k1 30.51 | comp_r8_l0.3_k2 30.82 | comp_r8_l0.3_k3 31.10 | comp_r8_l0.5_k1 32.09 | comp_r8_l0.5_k2 32.88 | comp_r8_l0.5_k3 33.46 | comp_r16_l0.1_k1 27.52 | comp_r16_l0.1_k2 27.44 | comp_r16_l0.1_k3 27.37 | comp_r16_l0.3_k1 29.07 | comp_r16_l0.3_k2 29.79 | comp_r16_l0.3_k3 30.07 | comp_r16_l0.5_k1 30.36 | comp_r16_l0.5_k2 31.67 | comp_r16_l0.5_k3 32.29

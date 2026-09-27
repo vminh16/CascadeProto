@@ -1,0 +1,91 @@
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'stage_type': 'vip_clean', 'gate_target': 'prototype', 'eq19_self': 'none', 'query_order': 'random', 'train_classes': 'split', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'vipseg', 'vicreg_var': 4.0, 'vicreg_cov': 0.16, 'init_checkpoint': None, 'distill_beta': 0.0, 'epochs': 50, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 15, 'batch_size': 1, 'lr_gamma': 0.5, 'valid_every': 4, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_d45', 'dry_run': False, 'resume': True}
+data: /workspace/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+train classes [0, 3, 4, 8, 10, 11] | test classes [6, 1, 9, 7, 2, 5] | 24000 training episodes, 480 steps/epoch
+model config: {'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'gate_target': 'prototype', 'eq19_self': 'none', 'stage_type': 'vip_clean', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'distill_beta': 0.0, 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'vipseg', 'vicreg_var': 4.0, 'vicreg_cov': 0.16}
+epoch 1/50 | loss 1.8782 | L_GMMN 0.0000 | lr 1.00e-03 | 127s | L_distill 0.1868
+epoch 2/50 | loss 1.0372 | L_GMMN 0.0000 | lr 1.00e-03 | 253s | L_distill 0.1491
+epoch 3/50 | loss 0.8971 | L_GMMN 0.0000 | lr 1.00e-03 | 380s | L_distill 0.1486
+epoch 4/50 | loss 0.6996 | L_GMMN 0.0000 | lr 1.00e-03 | 507s | L_distill 0.1403
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 4 | valid mIoU 0.4435
+epoch 5/50 | loss 0.6114 | L_GMMN 0.0000 | lr 1.00e-03 | 845s | L_distill 0.1315
+epoch 6/50 | loss 0.6099 | L_GMMN 0.0000 | lr 1.00e-03 | 992s | L_distill 0.1457
+epoch 7/50 | loss 0.5749 | L_GMMN 0.0000 | lr 1.00e-03 | 1133s | L_distill 0.1351
+epoch 8/50 | loss 0.5319 | L_GMMN 0.0000 | lr 1.00e-03 | 1255s | L_distill 0.1257
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 8 | valid mIoU 0.4709
+epoch 9/50 | loss 0.5680 | L_GMMN 0.0000 | lr 1.00e-03 | 1581s | L_distill 0.1332
+epoch 10/50 | loss 0.4787 | L_GMMN 0.0000 | lr 1.00e-03 | 1730s | L_distill 0.1188
+epoch 11/50 | loss 0.4800 | L_GMMN 0.0000 | lr 1.00e-03 | 1870s | L_distill 0.1254
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'stage_type': 'vip_clean', 'gate_target': 'prototype', 'eq19_self': 'none', 'query_order': 'random', 'train_classes': 'split', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'vipseg', 'vicreg_var': 4.0, 'vicreg_cov': 0.16, 'init_checkpoint': None, 'distill_beta': 0.0, 'epochs': 50, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 15, 'batch_size': 1, 'lr_gamma': 0.5, 'valid_every': 4, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_d45', 'dry_run': False, 'resume': True}
+data: /workspace/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+train classes [0, 3, 4, 8, 10, 11] | test classes [6, 1, 9, 7, 2, 5] | 24000 training episodes, 480 steps/epoch
+model config: {'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'gate_target': 'prototype', 'eq19_self': 'none', 'stage_type': 'vip_clean', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'distill_beta': 0.0, 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'vipseg', 'vicreg_var': 4.0, 'vicreg_cov': 0.16}
+resumed from log_d45/s3dis_S1_N2_K1_point_T4_vip_clean_b1_qrandom_vic4_0.16/resume.pt after epoch 11
+epoch 12/50 | loss 0.4294 | L_GMMN 0.0000 | lr 1.00e-03 | 147s | L_distill 0.1158
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 12 | valid mIoU 0.4405
+epoch 13/50 | loss 0.4660 | L_GMMN 0.0000 | lr 1.00e-03 | 536s | L_distill 0.1335
+epoch 14/50 | loss 0.4136 | L_GMMN 0.0000 | lr 1.00e-03 | 657s | L_distill 0.1244
+epoch 15/50 | loss 0.4070 | L_GMMN 0.0000 | lr 5.00e-04 | 770s | L_distill 0.1185
+epoch 16/50 | loss 0.3348 | L_GMMN 0.0000 | lr 5.00e-04 | 867s | L_distill 0.1101
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 16 | valid mIoU 0.4930
+epoch 17/50 | loss 0.3219 | L_GMMN 0.0000 | lr 5.00e-04 | 1110s | L_distill 0.1091
+epoch 18/50 | loss 0.3280 | L_GMMN 0.0000 | lr 5.00e-04 | 1232s | L_distill 0.1165
+epoch 19/50 | loss 0.3099 | L_GMMN 0.0000 | lr 5.00e-04 | 1345s | L_distill 0.1101
+epoch 20/50 | loss 0.2951 | L_GMMN 0.0000 | lr 5.00e-04 | 1443s | L_distill 0.1102
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 20 | valid mIoU 0.4922
+epoch 21/50 | loss 0.3299 | L_GMMN 0.0000 | lr 5.00e-04 | 1688s | L_distill 0.1132
+epoch 22/50 | loss 0.2765 | L_GMMN 0.0000 | lr 5.00e-04 | 1809s | L_distill 0.1039
+epoch 23/50 | loss 0.2804 | L_GMMN 0.0000 | lr 5.00e-04 | 1922s | L_distill 0.1072
+epoch 24/50 | loss 0.2831 | L_GMMN 0.0000 | lr 5.00e-04 | 2019s | L_distill 0.1069
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 24 | valid mIoU 0.4515
+epoch 25/50 | loss 0.2943 | L_GMMN 0.0000 | lr 5.00e-04 | 2264s | L_distill 0.1096
+epoch 26/50 | loss 0.2776 | L_GMMN 0.0000 | lr 5.00e-04 | 2386s | L_distill 0.1070
+epoch 27/50 | loss 0.2464 | L_GMMN 0.0000 | lr 5.00e-04 | 2498s | L_distill 0.1032
+epoch 28/50 | loss 0.2526 | L_GMMN 0.0000 | lr 5.00e-04 | 2597s | L_distill 0.0965
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 28 | valid mIoU 0.4856
+epoch 29/50 | loss 0.2408 | L_GMMN 0.0000 | lr 5.00e-04 | 2843s | L_distill 0.1010
+epoch 30/50 | loss 0.2720 | L_GMMN 0.0000 | lr 2.50e-04 | 2965s | L_distill 0.1112
+epoch 31/50 | loss 0.2317 | L_GMMN 0.0000 | lr 2.50e-04 | 3076s | L_distill 0.1001
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'stage_type': 'vip_clean', 'gate_target': 'prototype', 'eq19_self': 'none', 'query_order': 'random', 'train_classes': 'split', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'vipseg', 'vicreg_var': 4.0, 'vicreg_cov': 0.16, 'init_checkpoint': None, 'distill_beta': 0.0, 'epochs': 50, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 15, 'batch_size': 1, 'lr_gamma': 0.5, 'valid_every': 4, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_d45', 'dry_run': False, 'resume': True}
+data: /workspace/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+train classes [0, 3, 4, 8, 10, 11] | test classes [6, 1, 9, 7, 2, 5] | 24000 training episodes, 480 steps/epoch
+model config: {'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'gate_target': 'prototype', 'eq19_self': 'none', 'stage_type': 'vip_clean', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'distill_beta': 0.0, 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'vipseg', 'vicreg_var': 4.0, 'vicreg_cov': 0.16}
+resumed from log_d45/s3dis_S1_N2_K1_point_T4_vip_clean_b1_qrandom_vic4_0.16/resume.pt after epoch 31
+epoch 32/50 | loss 0.2215 | L_GMMN 0.0000 | lr 2.50e-04 | 97s | L_distill 0.0980
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 32 | valid mIoU 0.4931
+epoch 33/50 | loss 0.1936 | L_GMMN 0.0000 | lr 2.50e-04 | 339s | L_distill 0.0928
+epoch 34/50 | loss 0.2173 | L_GMMN 0.0000 | lr 2.50e-04 | 460s | L_distill 0.0987
+epoch 35/50 | loss 0.2120 | L_GMMN 0.0000 | lr 2.50e-04 | 574s | L_distill 0.0988
+epoch 36/50 | loss 0.2228 | L_GMMN 0.0000 | lr 2.50e-04 | 671s | L_distill 0.1068
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 36 | valid mIoU 0.5109
+epoch 37/50 | loss 0.2187 | L_GMMN 0.0000 | lr 2.50e-04 | 913s | L_distill 0.1026
+epoch 38/50 | loss 0.2178 | L_GMMN 0.0000 | lr 2.50e-04 | 1034s | L_distill 0.1046
+epoch 39/50 | loss 0.2005 | L_GMMN 0.0000 | lr 2.50e-04 | 1148s | L_distill 0.1037
+epoch 40/50 | loss 0.2034 | L_GMMN 0.0000 | lr 2.50e-04 | 1243s | L_distill 0.1058
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 40 | valid mIoU 0.5169
+epoch 41/50 | loss 0.2119 | L_GMMN 0.0000 | lr 2.50e-04 | 1483s | L_distill 0.1083
+epoch 42/50 | loss 0.2034 | L_GMMN 0.0000 | lr 2.50e-04 | 1605s | L_distill 0.0981
+epoch 43/50 | loss 0.2311 | L_GMMN 0.0000 | lr 2.50e-04 | 1720s | L_distill 0.1118
+epoch 44/50 | loss 0.1891 | L_GMMN 0.0000 | lr 2.50e-04 | 1816s | L_distill 0.0991
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 44 | valid mIoU 0.4979
+epoch 45/50 | loss 0.1998 | L_GMMN 0.0000 | lr 1.25e-04 | 2057s | L_distill 0.0981
+epoch 46/50 | loss 0.1884 | L_GMMN 0.0000 | lr 1.25e-04 | 2178s | L_distill 0.0986
+epoch 47/50 | loss 0.1910 | L_GMMN 0.0000 | lr 1.25e-04 | 2293s | L_distill 0.1026
+epoch 48/50 | loss 0.1898 | L_GMMN 0.0000 | lr 1.25e-04 | 2390s | L_distill 0.1035
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 48 | valid mIoU 0.4805
+epoch 49/50 | loss 0.1972 | L_GMMN 0.0000 | lr 1.25e-04 | 2630s | L_distill 0.1070
+epoch 50/50 | loss 0.1782 | L_GMMN 0.0000 | lr 1.25e-04 | 2752s | L_distill 0.1011
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+epoch 50 | valid mIoU 0.4838
+done: best valid mIoU 0.5169; evaluate best.pt and last.pt with eval.py [D-15]

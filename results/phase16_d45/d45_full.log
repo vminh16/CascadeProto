@@ -1,0 +1,110 @@
+=== 2026-09-27T14:00:45+00:00 commit d235c79 D45 full
+=== CR references hold on this GPU
+=== 2026-09-27T14:39:37+00:00 commit 6521fdd D45 full
+=== CR check already done: [test] fixed100: cr:model 54.84 | cr:U 55.74 | cr:both 57.63 | cr:lp 58.55 | 1500 episodes
+[census] cr: ratio 5.34 U 67.18 model 68.79 v 0.817 c 0.071
+[census] vr: ratio 5.60 U 66.39 model 65.38 v 0.829 c 0.052
+[census] e1: ratio 5.94 U 58.56 model 68.62 v 0.826 c 0.048
+[census] r0: ratio 7.31 U 61.81 model 66.77 v 0.593 c 1.087
+[census] d29: ratio 6.86 U 62.94 model 67.26 v 0.614 c 1.247
+[census] n1: ratio 6.03 U 61.62 model 67.40 v 0.827 c 0.044
+[census] n1_attn: ERROR ValueError: P5 reads E1-type checkpoints without a neck [DECISION D-35]
+[census] n2: ERROR ValueError: P5 reads E1-type checkpoints without a neck [DECISION D-35]
+[census] a0: ratio 3.70 U 65.53 model 65.53 v 0.474 c 5.207
+[census] a1: ratio 3.67 U 66.55 model 66.48 v 0.499 c 4.315
+[census] m1: ratio 6.66 U 59.39 model 60.61 v 0.860 c 0.019
+[census] vipseg: ratio 6.39 U 63.45 model 70.50 v 0.811 c 0.059
+=== 2026-09-27T15:36:04+00:00 commit 05ff77a D45 full
+=== CR check already done: [test] fixed100: cr:model 54.84 | cr:U 55.74 | cr:both 57.63 | cr:lp 58.55 | 1500 episodes
+[census] cr: ratio 5.34 U 67.18 model 68.79 v 0.817 c 0.071
+[census] vr: ratio 5.60 U 66.39 model 65.38 v 0.829 c 0.052
+[census] e1: ratio 5.94 U 58.56 model 68.62 v 0.826 c 0.048
+[census] r0: ratio 7.31 U 61.81 model 66.77 v 0.593 c 1.087
+[census] d29: ratio 6.86 U 62.94 model 67.26 v 0.614 c 1.247
+[census] n1: ratio 6.03 U 61.62 model 67.40 v 0.827 c 0.044
+[census] n1_attn: ERROR ValueError: P5 reads E1-type checkpoints without a neck [DECISION D-35]
+[census] n2: ERROR ValueError: P5 reads E1-type checkpoints without a neck [DECISION D-35]
+[census] a0: ratio 3.70 U 65.53 model 65.53 v 0.474 c 5.207
+[census] a1: ratio 3.67 U 66.55 model 66.48 v 0.499 c 4.315
+[census] m1: ratio 6.66 U 59.39 model 60.61 v 0.860 c 0.019
+[census] vipseg: ratio 6.39 U 63.45 model 70.50 v 0.811 c 0.059
+=== TRAIN m2a exit=0 2026-09-27T16:24:26+00:00
+=== TRAIN m2b exit=0 2026-09-27T16:24:27+00:00
+[watch] m2a epoch 11 ratio 21.76 U 59.40 model 59.59 v 0.162 c 4.351
+[watch] m2b epoch 11 ratio 72.75 U 57.50 model 60.02 v 0.065 c 1.258
+[watch] m2a epoch 12 ratio 22.97 U 60.63 model 58.77 v 0.137 c 4.600
+[watch] m2b epoch 13 ratio 58.01 U 54.55 model 55.40 v 0.054 c 2.442
+[watch] m2a epoch 16 ratio 28.01 U 62.52 model 58.04 v 0.141 c 3.402
+[watch] m2b epoch 17 ratio 82.37 U 56.33 model 53.77 v 0.055 c 0.965
+[watch] m2a epoch 20 ratio 23.81 U 62.59 model 62.18 v 0.134 c 5.070
+[watch] m2b epoch 21 ratio 82.06 U 58.24 model 58.52 v 0.055 c 1.214
+[watch] m2a epoch 24 ratio 31.60 U 57.92 model 52.49 v 0.142 c 3.573
+[watch] m2b epoch 25 ratio 87.63 U 54.70 model 56.65 v 0.060 c 0.945
+[watch] m2a epoch 28 ratio 27.97 U 56.31 model 51.68 v 0.178 c 2.800
+[watch] m2b epoch 29 ratio 92.86 U 59.18 model 63.01 v 0.085 c 0.516
+[watch] m2a epoch 32 ratio 36.14 U 61.52 model 66.31 v 0.104 c 3.732
+[watch] m2b epoch 33 ratio 98.68 U 58.89 model 64.33 v 0.065 c 0.485
+[watch] m2a epoch 36 ratio 37.76 U 60.21 model 59.44 v 0.125 c 3.170
+[watch] m2b epoch 37 ratio 94.01 U 57.96 model 59.67 v 0.078 c 0.524
+[watch] m2a epoch 40 ratio 39.02 U 61.27 model 60.07 v 0.115 c 3.142
+[watch] m2b epoch 41 ratio 93.08 U 62.16 model 69.15 v 0.067 c 0.600
+[watch] m2a epoch 44 ratio 38.36 U 60.16 model 56.81 v 0.128 c 2.974
+[watch] m2b epoch 45 ratio 94.27 U 60.60 model 65.73 v 0.080 c 0.473
+[watch] m2a epoch 48 ratio 42.25 U 59.85 model 66.59 v 0.106 c 3.110
+[watch] m2b epoch 49 ratio 91.47 U 60.17 model 63.53 v 0.081 c 0.475
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] fixed100: cr:model 54.84 | cr:U 55.74 | cr:both 57.63 | cr:lp 58.55 | m2a:model 48.52 | m2a:U 50.54 | m2a:both 47.86 | m2a:lp 48.28 | m2a_best:model 52.66 | m2a_best:U 50.35 | m2a_best:both 47.63 | m2a_best:lp 48.40 | m2b:model 48.64 | m2b:U 44.40 | m2b:both 40.85 | m2b:lp 27.84 | m2b_best:model 52.40 | m2b_best:U 48.92 | m2b_best:both 44.37 | m2b_best:lp 32.54 | 1500 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:0: cr:model 54.59 | cr:U 55.55 | cr:both 57.20 | cr:lp 58.37 | m2a:model 48.67 | m2a:U 50.66 | m2a:both 48.14 | m2a:lp 48.41 | m2a_best:model 51.88 | m2a_best:U 50.21 | m2a_best:both 47.60 | m2a_best:lp 48.53 | m2b:model 47.67 | m2b:U 44.49 | m2b:both 40.59 | m2b:lp 28.28 | m2b_best:model 51.26 | m2b_best:U 48.64 | m2b_best:both 44.30 | m2b_best:lp 32.01 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:1: cr:model 57.07 | cr:U 57.85 | cr:both 59.35 | cr:lp 60.36 | m2a:model 49.96 | m2a:U 51.52 | m2a:both 48.77 | m2a:lp 48.98 | m2a_best:model 53.79 | m2a_best:U 51.42 | m2a_best:both 48.80 | m2a_best:lp 49.77 | m2b:model 49.77 | m2b:U 45.76 | m2b:both 42.05 | m2b:lp 29.11 | m2b_best:model 51.59 | m2b_best:U 50.25 | m2b_best:both 45.70 | m2b_best:lp 33.41 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:2: cr:model 56.11 | cr:U 57.18 | cr:both 59.10 | cr:lp 59.99 | m2a:model 49.41 | m2a:U 50.03 | m2a:both 47.34 | m2a:lp 47.64 | m2a_best:model 52.83 | m2a_best:U 49.81 | m2a_best:both 46.93 | m2a_best:lp 47.60 | m2b:model 48.90 | m2b:U 43.42 | m2b:both 39.72 | m2b:lp 28.16 | m2b_best:model 51.84 | m2b_best:U 48.47 | m2b_best:both 44.78 | m2b_best:lp 34.66 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] leakfree: cr:model 28.34 | cr:U 33.11 | cr:both 33.05 | cr:lp 33.15 | m2a:model 24.59 | m2a:U 30.47 | m2a:both 26.71 | m2a:lp 21.38 | m2a_best:model 22.74 | m2a_best:U 29.86 | m2a_best:both 26.56 | m2a_best:lp 22.35 | m2b:model 23.58 | m2b:U 24.11 | m2b:both 20.28 | m2b:lp 3.87 | m2b_best:model 22.02 | m2b_best:U 24.77 | m2b_best:both 20.30 | m2b_best:lp 3.72 | 1500 episodes
+[modules] model 48.40 | U 51.12 | cos_oracle 79.74 | lda_oracle_0.1 94.43 | lda_free_0.1 29.47 | lda_oracle_0.3 92.93 | lda_free_0.3 32.07 | lda_oracle_0.5 91.46 | lda_free_0.5 35.25 | proj_4 37.83 | 
+[modules] model 48.38 | U 45.43 | cos_oracle 79.27 | lda_oracle_0.1 92.73 | lda_free_0.1 26.84 | lda_oracle_0.3 90.93 | lda_free_0.3 30.74 | lda_oracle_0.5 88.98 | lda_free_0.5 34.25 | proj_4 30.26 | 
+D45.1 m2a mechanism holds                                              participation ratio 42.45 (limit 12); base-span share 0.498; missed purity 0.228
+D45.1 m2b mechanism holds                                              participation ratio 95.25 (limit 12); base-span share 0.506; missed purity 0.260
+D45.2 m2a U fails at +1                                                m2a - cr fixed100 -5.20 [-6.02, -4.34]; random600 [-4.89, -6.32, -7.14]
+D45.2 m2b U fails at +1                                                m2b - cr fixed100 -11.34 [-12.34, -10.36]; random600 [-11.07, -12.09, -13.76]
+D45.3 the space widened, U does not use it: part B's preconditions decide the next block 
+=== D45 full FINISHED 2026-09-27T17:53:29+00:00

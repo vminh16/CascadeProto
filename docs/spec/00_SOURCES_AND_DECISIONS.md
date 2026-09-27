@@ -1998,6 +1998,23 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   (`loss_reg`), `train.py` (`--vicreg_var`, `--vicreg_cov`, run tag `_vic<μ>_<ν>`), `experiments/d45_monitor.py`,
   `experiments/run_d45.sh`, `experiments/p9_placement_probe.py` (the valid check of part B only for CR),
   `tests/test_vicreg.py`, 05 §3.8v.
+* **Outcome (2026-09-27, `results/phase16_d45/SUMMARY.md`): D45.3.**
+  * **Run.** RTX 3090, local data. The host rebooted twice; each time the trainings were resumed from their last
+    epoch with nothing else changed. CR's references hold on this GPU (fixed100 54.84 / 55.74 / 57.63 / 58.55).
+    Neither arm was stopped early.
+  * **D45.1 holds for both arms.** Participation ratio 42.45 (A) and 95.25 (B), against CR's 5.56.
+  * **D45.2 fails for both arms.** U − CR's U on fixed100 is −5.20 [−6.02, −4.34] (A) and −11.34 [−12.34, −10.36]
+    (B), and it is negative on every random600 draw. `best.pt` and the leak-free draw are also below CR.
+  * **Part B: the widened space holds no more class information.**
+    - Cosine oracle 79.74 / 79.27 and LDA oracle 94.43 / 92.73, against CR's 80.84 / 96.04.
+    - Every label-free rule remains below U.
+    - d*'s base-span share falls from 0.857 to 0.50; missed-point purity rises from 0.109 to 0.23 / 0.26.
+  * **Census.** Every kept S1 checkpoint reads 3.7–7.3, including VIP-Seg's released model (6.39). The collapse
+    belongs to this episodic training and does not bound the cosine head (CR reaches its oracle 80.84 while
+    collapsed).
+  * **Consequence.** The M2 line (VICReg on the prototypes' feature space) stops at these weights. The next block
+    is chosen from part B's preconditions: as on CR, only the metric head is admissible, through the LDA oracle.
+    That choice needs its own decision.
 ---
 
 ## 5. Official VIP-Seg files: restore, reuse, avoid
@@ -2116,4 +2133,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-26 | D-44: P9 after D-43. Step 0 replays M1's ball grouping on P8's events (distinct points per ball); part A locates the remaining density pathway in M1 by a ball-count intervention; part B measures D-42's module preconditions on CR. P9 decides admissibility; the one remaining run is chosen in a new decision. |
 | 2026-09-27 | D-44 amended (statistics arm; 3090 with local data; composite arm) and measured: encoder branch closed (no ψ above 0.02); only the metric head is admissible, by its oracle; the features are collapsed (participation ratio 5.56). |
 | 2026-09-27 | D-45 (maintainer request): M2, VICReg's variance and covariance terms on the query point features against the collapse P9 measured (post hoc, rules fixed before training); two weights, one seed each, a monitor with an early stop, a collapse census of every kept checkpoint. |
+| 2026-09-27 | D-45 measured: D45.3. VICReg widens the features (participation ratio 42 / 95) but U falls 5.2 / 11.3 points below CR, and no oracle rises. The collapse is shared by every checkpoint, VIP-Seg's included. The M2 line stops. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

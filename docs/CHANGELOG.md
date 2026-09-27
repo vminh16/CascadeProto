@@ -1726,3 +1726,16 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   start of the run, next to the trainings, with `d43_eval.py test --draw fixed100`, and a failing final test no longer
   stops the script; (3) `decide` returned D45.4 ("VICReg fails") when part B's results were simply missing: a missing
   result now reads "incomplete", and D45.4 needs every arm stopped early or measured below 12 (tests added).
+
+### 16ax - D-45 measured: VICReg un-collapses the features and costs 5-11 points of U (D45.3); M2 stops
+
+* Run 2026-09-27 on the 3090 (`results/phase16_d45/SUMMARY.md`), 14:00-17:53 UTC including two host reboots. The
+  script was rerun after each reboot and resumed from `resume.pt`. Commits `6521fdd` and `05ff77a` let the rerun
+  skip steps that had already finished: the CR check and the census entries already measured. An arm the monitor had
+  stopped would stay stopped, and the monitor keeps its earlier decisions. The logs are appended, not overwritten.
+* The participation ratio rose from 5.56 to 42.45 (A) and 95.25 (B), so D45.1 holds. U fell relative to CR by 5.20
+  (A) and 11.34 (B) on fixed100 and on every random600 draw, so D45.2 fails. The cosine and LDA oracles did not rise
+  (79.7 / 94.4 and 79.3 / 92.7 against 80.8 / 96.0).
+* Census: every kept S1 checkpoint reads a participation ratio of 3.7-7.3, VIP-Seg's released model included (6.39).
+* The random600 draws of the local data differ from the old VM's, so CR's random600 values differ from D-43's. All
+  comparisons re-score CR on the same episodes.

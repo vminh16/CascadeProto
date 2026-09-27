@@ -1,0 +1,58 @@
+{
+ "a0": {
+  "U": 0.6552543032279151,
+  "model": 0.6552543032279151,
+  "ratio": 3.6955081925108044,
+  "episodes": 300,
+  "v": 0.47356168602903687,
+  "c": 5.206664465467135,
+  "checkpoint": {
+   "name": "a0",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_d39/s3dis_S1_N2_K1_point_T0_b1_qrandom_unit/last.pt"
+  }
+ },
+ "a1": {
+  "U": 0.6654997089903926,
+  "model": 0.6647676306228478,
+  "ratio": 3.6696448889070736,
+  "episodes": 300,
+  "v": 0.49862191210190454,
+  "c": 4.315372608403365,
+  "checkpoint": {
+   "name": "a1",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_d39/s3dis_S1_N2_K1_point_T0_b1_qrandom_unit_ssp2_aux1/last.pt"
+  }
+ },
+ "m1": {
+  "U": 0.5938614512327819,
+  "model": 0.6060555945744747,
+  "ratio": 6.658213512813286,
+  "episodes": 300,
+  "v": 0.8602218226591746,
+  "c": 0.019488153893034904,
+  "checkpoint": {
+   "name": "m1",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_d43/s3dis_S1_N2_K1_point_T4_vip_clean_b1_qrandom_dens/last.pt"
+  }
+ },
+ "vipseg": {
+  "U": 0.634529732427248,
+  "model": 0.7049692965294824,
+  "ratio": 6.388499686883608,
+  "episodes": 300,
+  "v": 0.8110552207628886,
+  "c": 0.059192250445485116,
+  "checkpoint": {
+   "name": "vipseg",
+   "kind": "vipseg",
+   "fold": 1,
+   "path": "vipseg_S1_N2_K1.pt"
+  }
+ }
+}
