@@ -1,0 +1,26 @@
+=== 2026-09-27T12:53:33+00:00 commit 2060472 P9 full
+7d034bbc89b8cdf5c193c46e9a85dcf4  datasets/S3DIS/blocks_bs1_s1/class2scans_100.pkl
+[geometry] stage 1 r 0.1: c_V0 m 11.81 <K 0.692 | c_V1 m 15.13 <K 0.322 | a_V0 m 15.22 <K 0.298 | a_V2 m 13.45 <K 0.517 | 1053 events
+[geometry] stage 2 r 0.2: c_V0 m 15.44 <K 0.137 | c_V1 m 15.85 <K 0.040 | a_V0 m 15.91 <K 0.027 | a_V2 m 15.74 <K 0.074 | 1053 events
+[geometry] stage 3 r 0.4: c_V0 m 15.93 <K 0.015 | c_V1 m 15.96 <K 0.009 | a_V0 m 15.99 <K 0.004 | a_V2 m 15.98 <K 0.006 | 1053 events
+=== geometry done 2026-09-27T12:58:46+00:00
+[modules] model 55.17 | U 55.96 | cos_oracle 80.84 | lda_oracle_0.1 96.04 | lda_free_0.1 31.11 | lda_oracle_0.3 94.83 | lda_free_0.3 32.79 | lda_oracle_0.5 93.82 | lda_free_0.5 35.44 | proj_4 43.92 | proj_8 44.86 | proj_16 39.64 | km_2 53.86 | km_3 52.93 | comp_r0_l0.1_k1 31.11 | comp_r0_l0.1_k2 31.77 | comp_r0_l0.1_k3 32.09 | comp_r0_l0.3_k1 32.79 | comp_r0_l0.3_k2 33.44 | comp_r0_l0.3_k3 33.93 | comp_r0_l0.5_k1 35.44 | comp_r0_l0.5_k2 35.98 | comp_r0_l0.5_k3 36.55 | comp_r4_l0.1_k1 29.49 | comp_r4_l0.1_k2 29.93 | comp_r4_l0.1_k3 30.26 | comp_r4_l0.3_k1 30.96 | comp_r4_l0.3_k2 31.59 | comp_r4_l0.3_k3 32.13 | comp_r4_l0.5_k1 32.90 | comp_r4_l0.5_k2 33.74 | comp_r4_l0.5_k3 34.40 | comp_r8_l0.1_k1 30.15 | comp_r8_l0.1_k2 29.99 | comp_r8_l0.1_k3 29.90 | comp_r8_l0.3_k1 31.47 | comp_r8_l0.3_k2 31.44 | comp_r8_l0.3_k3 31.62 | comp_r8_l0.5_k1 33.28 | comp_r8_l0.5_k2 33.50 | comp_r8_l0.5_k3 33.95 | comp_r16_l0.1_k1 27.48 | comp_r16_l0.1_k2 27.25 | comp_r16_l0.1_k3 27.02 | comp_r16_l0.3_k1 28.09 | comp_r16_l0.3_k2 28.14 | comp_r16_l0.3_k3 28.20 | comp_r16_l0.5_k1 29.27 | comp_r16_l0.5_k2 29.64 | comp_r16_l0.5_k3 30.02
+=== modules done 2026-09-27T13:16:18+00:00
+[trace] refs c_V0 0.281 c_V1 0.760 a_V0 0.786 a_V2 0.372
+[trace] caps other: s1 psi -0.006 [-0.019, 0.007] | s2 psi 0.001 [-0.000, 0.003] | s3 psi -0.000 [-0.001, 0.000] | all psi -0.003 [-0.015, 0.009]
+[trace] caps own: s1 psi -0.006 [-0.014, 0.003] | s2 psi -0.001 [-0.002, -0.000] | s3 psi 0.000 [-0.000, 0.000] | all psi -0.008 [-0.015, -0.000]
+[trace] stats other: stats psi -0.006 [-0.012, -0.001] | caps+stats psi 0.012 [-0.002, 0.026]
+[trace] stats own: stats psi 0.001 [-0.005, 0.006] | caps+stats psi 0.006 [-0.003, 0.015]
+=== trace done 2026-09-27T13:16:18+00:00
+D44.0 sparse balls: cap arms run                             mean m of V0's c-centres per stage 11.81, 15.44, 15.93 (limit 15.5)
+D44.1 the count is not the pathway: encoder branch closed    psi all stages other -0.003, own -0.008
+D44.1b neither count nor statistics: encoder branch closed   psi stats other -0.006, own 0.001; caps+stats other 0.012, own 0.006
+D44.2 P9.3 metric admissible                                 LDA oracle 96.04 vs cosine oracle 80.84; label-free LDA 35.44 vs U 55.96
+D44.2 P9.4 nuisance fails                                    r 8: kappa 0.705 rho 0.857, projected U 44.86 vs U 55.96
+D44.2 P9.5 heads fails                                       cv (PCA) H 4: 0.131, H 8: 0.230 (limit 0.5)
+D44.2 P9.6 components fails                                  k 2: 53.86 vs U 55.96
+D44.2 P9.7 representation fails                              base-span share of d* 0.857 (limit 0.5); participation ratio 5.6
+D44.2 P9.3c composite fails                                  comp_r0_l0.5_k3 36.55 vs U 55.96, best single label-free 53.86
+D44.2 P9.8 neck fails                                        purity missed 0.109, hit 0.886 (limit 0.5)
+D44.3                                                        P9 decides admissibility only; the run is chosen in a new decision
+=== P9 full FINISHED 2026-09-27T13:16:19+00:00

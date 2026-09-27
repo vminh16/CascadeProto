@@ -1,0 +1,250 @@
+{
+ "checks": {
+  "encode_max_rel": 0.0001647826429689303,
+  "uncapped_equal": 3,
+  "record_equal": 3,
+  "inject_own_equal": 3
+ },
+ "events": 3,
+ "refs": {
+  "c_V0": 0.2343065693430657,
+  "c_V1": 0.9496047430830039,
+  "a_V0": 0.9729411764705882,
+  "a_V2": 0.19888475836431227
+ },
+ "cos": {
+  "V0-V1|class|emb": 0.9999904734023074,
+  "V0-V1|class|stage1": 0.9885593475179469,
+  "V0-V1|class|stage2": 0.9615218791555851,
+  "V0-V1|class|stage3": 0.8038823350946954,
+  "V0-V1|class|feature": 0.5586116871935256,
+  "V0-V1|background|emb": 0.9999969005584717,
+  "V0-V1|background|stage1": 0.9855051279067993,
+  "V0-V1|background|stage2": 0.9722297191619873,
+  "V0-V1|background|stage3": 0.9264753103256226,
+  "V0-V1|background|feature": 0.8640552520751953,
+  "V0-V2|class|emb": 0.9999994809935693,
+  "V0-V2|class|stage1": 0.9923225065477851,
+  "V0-V2|class|stage2": 0.9765721664947717,
+  "V0-V2|class|stage3": 0.8429000620939293,
+  "V0-V2|class|feature": 0.644392052475287,
+  "V0-V2|background|emb": 0.9999999626010072,
+  "V0-V2|background|stage1": 0.989889892877317,
+  "V0-V2|background|stage2": 0.9731318155924479,
+  "V0-V2|background|stage3": 0.9334308212878657,
+  "V0-V2|background|feature": 0.8775243946150237
+ },
+ "cos_points": {
+  "V0-V1|class|emb": 94,
+  "V0-V1|class|stage1": 94,
+  "V0-V1|class|stage2": 94,
+  "V0-V1|class|stage3": 94,
+  "V0-V1|class|feature": 94,
+  "V0-V1|background|emb": 40,
+  "V0-V1|background|stage1": 40,
+  "V0-V1|background|stage2": 40,
+  "V0-V1|background|stage3": 40,
+  "V0-V1|background|feature": 40,
+  "V0-V2|class|emb": 147,
+  "V0-V2|class|stage1": 147,
+  "V0-V2|class|stage2": 147,
+  "V0-V2|class|stage3": 147,
+  "V0-V2|class|feature": 147,
+  "V0-V2|background|emb": 51,
+  "V0-V2|background|stage1": 51,
+  "V0-V2|background|stage2": 51,
+  "V0-V2|background|stage3": 51,
+  "V0-V2|background|feature": 51
+ },
+ "stats": {
+  "other": {
+   "stats": {
+    "r_ref": 0.9496047430830039,
+    "r_cap": 0.9650856389986825,
+    "r_low": 0.2343065693430657,
+    "psi": -0.021642577157350594,
+    "psi_ci": [
+     -1.1008726801570055,
+     0.4460477941176471
+    ],
+    "events": 3
+   },
+   "caps+stats": {
+    "r_ref": 0.9496047430830039,
+    "r_cap": 0.9957180500658761,
+    "r_low": 0.2343065693430657,
+    "psi": -0.06446725110700151,
+    "psi_ci": [
+     -3.48210815136618,
+     1.4157169117647064
+    ],
+    "events": 3
+   }
+  },
+  "own": {
+   "stats": {
+    "r_ref": 0.9729411764705882,
+    "r_cap": 0.9694117647058823,
+    "r_low": 0.19888475836431227,
+    "psi": 0.0045596311614346866,
+    "psi_ci": [
+     -0.0006430431227144256,
+     0.013131101373509943
+    ],
+    "events": 3
+   },
+   "caps+stats": {
+    "r_ref": 0.9729411764705882,
+    "r_cap": 0.9623529411764706,
+    "r_low": 0.19888475836431227,
+    "psi": 0.013678893484303916,
+    "psi_ci": [
+     0.0005877939205854419,
+     0.035352965236373
+    ],
+    "events": 3
+   }
+  }
+ },
+ "caps": {
+  "other": {
+   "s1": {
+    "r_ref": 0.9496047430830039,
+    "r_cap": 0.997364953886693,
+    "r_low": 0.2343065693430657,
+    "psi": -0.06676965293225161,
+    "psi_ci": [
+     -3.4342441217941366,
+     1.3963235294117653
+    ],
+    "events": 3
+   },
+   "s2": {
+    "r_ref": 0.9496047430830039,
+    "r_cap": 0.9479578392621871,
+    "r_low": 0.2343065693430657,
+    "psi": 0.0023024018252499378,
+    "psi_ci": [
+     -0.048483455882353095,
+     0.11966007393011203
+    ],
+    "events": 3
+   },
+   "s3": {
+    "r_ref": 0.9496047430830039,
+    "r_cap": 0.9502635046113307,
+    "r_low": 0.2343065693430657,
+    "psi": -0.0009209607301000683,
+    "psi_ci": [
+     -0.04786402957204309,
+     0.019393382352941066
+    ],
+    "events": 3
+   },
+   "all": {
+    "r_ref": 0.9496047430830039,
+    "r_cap": 0.9950592885375494,
+    "r_low": 0.2343065693430657,
+    "psi": -0.0635462903769016,
+    "psi_ci": [
+     -3.218855988719939,
+     1.3187500000000003
+    ],
+    "events": 3
+   }
+  },
+  "own": {
+   "s1": {
+    "r_ref": 0.9729411764705882,
+    "r_cap": 0.9779411764705882,
+    "r_low": 0.19888475836431227,
+    "psi": -0.006459477478699127,
+    "psi_ci": [
+     -0.01919160969974531,
+     0.0012860862454289626
+    ],
+    "events": 3
+   },
+   "s2": {
+    "r_ref": 0.9729411764705882,
+    "r_cap": 0.9708823529411764,
+    "r_low": 0.19888475836431227,
+    "psi": 0.0026597848441702455,
+    "psi_ci": [
+     0.0,
+     0.007070593047274575
+    ],
+    "events": 3
+   },
+   "s3": {
+    "r_ref": 0.9729411764705882,
+    "r_cap": 0.9729411764705882,
+    "r_low": 0.19888475836431227,
+    "psi": 0.0,
+    "psi_ci": [
+     0.0,
+     0.0
+    ],
+    "events": 3
+   },
+   "all": {
+    "r_ref": 0.9729411764705882,
+    "r_cap": 0.9870588235294118,
+    "r_low": 0.19888475836431227,
+    "psi": -0.018238524645738746,
+    "psi_ci": [
+     -0.04848406660988294,
+     0.0
+    ],
+    "events": 3
+   }
+  }
+ },
+ "d43_refs": {
+  "events": 1045,
+  "c_V0": 0.2755244118074162,
+  "c_V1": 0.7697978072833452,
+  "a_V0": 0.7887230218295076,
+  "a_V2": 0.3579557376044682
+ },
+ "models": {
+  "checkpoint": {
+   "name": "m1",
+   "kind": "ours",
+   "fold": 1,
+   "path": "log_d43/s3dis_S1_N2_K1_point_T4_vip_clean_b1_qrandom_dens/last.pt"
+  },
+  "protocol": "clean",
+  "config": {
+   "use_lma": false,
+   "num_stages": 4,
+   "use_gate": true,
+   "use_adrm": true,
+   "modality": "text",
+   "logit_scale": "none",
+   "l2norm_point_proto": true,
+   "clip_variant": "ViT-B/16",
+   "eval_noise": "zero",
+   "gmmn_fg_mode": "joint",
+   "gmmn_detach_point": false,
+   "cross_attn": "channel",
+   "cross_attn_scale": "sqrt_d",
+   "cross_attn_norm": "none",
+   "cross_attn_support": "class_slots",
+   "gate_target": "prototype",
+   "eq19_self": "none",
+   "stage_type": "vip_clean",
+   "fusion_weight": "per_query",
+   "diffusion_input": "post_relu",
+   "distill_beta": 0.0,
+   "neck": "none",
+   "neck_alpha_init": 0.0,
+   "prototype_rule": "mean",
+   "self_support_steps": 0,
+   "support_aux": 0.0,
+   "encoder": "density"
+  }
+ },
+ "run_caps": true,
+ "peak_vram_gib": 0.38744497299194336
+}

@@ -1698,3 +1698,11 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   references are reported next to this run's.
 * Part B gains the composite arm N -> query-whitened LDA -> k components (`composite_logits`, 36 settings) and rule
   P9.3c; step 0 and part B run together and part A starts when step 0 ends. Tests P9-19, P9-20; mutation check 6/6.
+
+### 16av - P9 measured: encoder branch closed; only the metric head admissible; features collapsed to ~6 directions
+
+* Run 2026-09-27 on the 3090 (commit 2060472, 23 min, `results/phase16_p9/SUMMARY.md`). Part A on M1: the ball
+  count, the block statistics and both together reproduce none of the density gap (|psi| <= 0.02). Part B on CR:
+  LDA oracle 96.04 vs cosine oracle 80.84 (P9.3 admissible by its oracle clause); every label-free rule loses to U
+  (LDA 35.44, projection 44.86, components 53.86, composite 36.55); nuisance kappa < rho; retrieval purity of missed
+  points 0.109; participation ratio 5.56 with the novel discriminant 86 % inside the base-class span.

@@ -1,0 +1,15 @@
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[trace] refs c_V0 0.281 c_V1 0.760 a_V0 0.786 a_V2 0.372
+[trace] caps other: s1 psi -0.006 [-0.019, 0.007] | s2 psi 0.001 [-0.000, 0.003] | s3 psi -0.000 [-0.001, 0.000] | all psi -0.003 [-0.015, 0.009]
+[trace] caps own: s1 psi -0.006 [-0.014, 0.003] | s2 psi -0.001 [-0.002, -0.000] | s3 psi 0.000 [-0.000, 0.000] | all psi -0.008 [-0.015, -0.000]
+[trace] stats other: stats psi -0.006 [-0.012, -0.001] | caps+stats psi 0.012 [-0.002, 0.026]
+[trace] stats own: stats psi 0.001 [-0.005, 0.006] | caps+stats psi 0.006 [-0.003, 0.015]

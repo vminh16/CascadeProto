@@ -1,0 +1,71 @@
+=== 2026-09-27T12:52:49+00:00 commit 2060472 P9 smoke
+7d034bbc89b8cdf5c193c46e9a85dcf4  datasets/S3DIS/blocks_bs1_s1/class2scans_100.pkl
+.................[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+.[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+...........[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+.[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+DE-10 relative change of block a when its partner changes: density 0.00e+00, VIP-Seg 6.99e-03
+..
+=============================== warnings summary ===============================
+tests/test_placement_probe.py::test_p9_15_capped_grouping_fps_replay_and_slices_on_the_gpu
+  /workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+    warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+32 passed, 1 warning in 5.13s
+[geometry] stage 1 r 0.1: c_V0 m 10.28 <K 0.902 | c_V1 m 15.20 <K 0.293 | a_V0 m 15.19 <K 0.333 | a_V2 m 12.74 <K 0.678 | 3 events
+[geometry] stage 2 r 0.2: c_V0 m 15.43 <K 0.151 | c_V1 m 15.93 <K 0.018 | a_V0 m 15.91 <K 0.025 | a_V2 m 15.79 <K 0.074 | 3 events
+[geometry] stage 3 r 0.4: c_V0 m 15.97 <K 0.022 | c_V1 m 16.00 <K 0.000 | a_V0 m 15.99 <K 0.003 | a_V2 m 16.00 <K 0.004 | 3 events
+=== geometry done 2026-09-27T12:52:57+00:00
+[modules] model 13.18 | U 15.76 | cos_oracle 22.69 | lda_oracle_0.1 31.67 | lda_free_0.1 10.01 | lda_oracle_0.3 30.77 | lda_free_0.3 10.11 | lda_oracle_0.5 30.15 | lda_free_0.5 10.66 | proj_4 19.14 | proj_8 19.70 | proj_16 18.26 | km_2 16.18 | km_3 16.37 | comp_r0_l0.1_k1 10.01 | comp_r0_l0.1_k2 9.88 | comp_r0_l0.1_k3 9.02 | comp_r0_l0.3_k1 10.11 | comp_r0_l0.3_k2 10.34 | comp_r0_l0.3_k3 9.80 | comp_r0_l0.5_k1 10.66 | comp_r0_l0.5_k2 11.54 | comp_r0_l0.5_k3 10.56 | comp_r4_l0.1_k1 10.99 | comp_r4_l0.1_k2 9.73 | comp_r4_l0.1_k3 10.84 | comp_r4_l0.3_k1 10.90 | comp_r4_l0.3_k2 10.00 | comp_r4_l0.3_k3 10.76 | comp_r4_l0.5_k1 11.07 | comp_r4_l0.5_k2 10.55 | comp_r4_l0.5_k3 11.01 | comp_r8_l0.1_k1 11.09 | comp_r8_l0.1_k2 11.42 | comp_r8_l0.1_k3 10.23 | comp_r8_l0.3_k1 11.78 | comp_r8_l0.3_k2 11.83 | comp_r8_l0.3_k3 11.29 | comp_r8_l0.5_k1 12.27 | comp_r8_l0.5_k2 12.09 | comp_r8_l0.5_k3 12.00 | comp_r16_l0.1_k1 11.04 | comp_r16_l0.1_k2 11.43 | comp_r16_l0.1_k3 11.18 | comp_r16_l0.3_k1 11.87 | comp_r16_l0.3_k2 11.74 | comp_r16_l0.3_k3 11.97 | comp_r16_l0.5_k1 12.02 | comp_r16_l0.5_k2 11.91 | comp_r16_l0.5_k3 12.18
+=== modules done 2026-09-27T12:53:01+00:00
+[trace] refs c_V0 0.234 c_V1 0.950 a_V0 0.973 a_V2 0.199
+[trace] caps other: s1 psi -0.067 [-3.434, 1.396] | s2 psi 0.002 [-0.048, 0.120] | s3 psi -0.001 [-0.048, 0.019] | all psi -0.064 [-3.219, 1.319]
+[trace] caps own: s1 psi -0.006 [-0.019, 0.001] | s2 psi 0.003 [0.000, 0.007] | s3 psi 0.000 [0.000, 0.000] | all psi -0.018 [-0.048, 0.000]
+[trace] stats other: stats psi -0.022 [-1.101, 0.446] | caps+stats psi -0.064 [-3.482, 1.416]
+[trace] stats own: stats psi 0.005 [-0.001, 0.013] | caps+stats psi 0.014 [0.001, 0.035]
+=== trace done 2026-09-27T12:53:04+00:00
+D44.0 sparse balls: cap arms run                             mean m of V0's c-centres per stage 10.28, 15.43, 15.97 (limit 15.5)
+D44.1 the count is not the pathway: encoder branch closed    psi all stages other -0.064, own -0.018
+D44.1b neither count nor statistics: encoder branch closed   psi stats other -0.022, own 0.005; caps+stats other -0.064, own 0.014
+D44.2 P9.3 metric admissible                                 LDA oracle 31.67 vs cosine oracle 22.69; label-free LDA 10.66 vs U 15.76
+D44.2 P9.4 nuisance admissible                               r 8: kappa 0.497 rho 0.373, projected U 19.70 vs U 15.76
+D44.2 P9.5 heads fails                                       cv (PCA) H 4: 0.140, H 8: 0.186 (limit 0.5)
+D44.2 P9.6 components admissible                             k 3: 16.37 vs U 15.76
+D44.2 P9.7 representation admissible                         base-span share of d* 0.482 (limit 0.5); participation ratio 5.6
+D44.2 P9.3c composite fails                                  comp_r8_l0.5_k1 12.27 vs U 15.76, best single label-free 19.70
+D44.2 P9.8 neck fails                                        purity missed 0.168, hit 0.878 (limit 0.5)
+D44.3                                                        P9 decides admissibility only; the run is chosen in a new decision
+=== P9 smoke FINISHED 2026-09-27T12:53:06+00:00

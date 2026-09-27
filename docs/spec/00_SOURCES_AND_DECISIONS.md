@@ -1929,6 +1929,16 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
     best composite on valid ≥ U + 0.5 → the composite is admissible; if it is also ≥ the best single label-free arm
     (label-free LDA, projected U, components) + 0.5, the blocks interact and are reported as such.
   * *Scheduling.* Step 0 (CPU) and part B run together; part A starts when step 0 ends, next to part B.
+* **Outcome (2026-09-27, `results/phase16_p9/SUMMARY.md`).** RTX 3090, local data, 1,053 events. D44.0 sparse balls
+  (stage 1 mean m 11.81 against 15.13 dense). **D44.1 and D44.1b: encoder branch closed**: every ψ within ±0.02
+  (cap all −0.003 / −0.008, block statistics −0.006 / +0.001, both +0.012 / +0.006, other / own). The same points'
+  features stay close through the encoder (stage-3 cosine 0.90) and separate in the 128-d feature (0.74 class, 0.92
+  background). **D44.2: only P9.3 is admissible, through the oracle clause** (LDA oracle 96.04 against the cosine
+  oracle 80.84; label-free LDA 35.44 against U 55.96); P9.4 (κ 0.71 < ρ 0.86 at r 8), P9.5 (CV 0.23), P9.6 (53.86),
+  P9.7 (base-span share 0.857), P9.3c (36.55) and P9.8 (missed purity 0.109) fail. Participation ratio 5.56 of 128:
+  the features are collapsed to about C − 1 directions for C = 7 training classes. P9.7's rule does not fit this
+  regime (a large share because every direction is in the base span); its verdict stands as registered and any
+  reading of the collapse as a training target needs its own decision.
 * **Affects.** `experiments/p9_placement_probe.py`, `experiments/run_p9.sh`, `tests/test_placement_probe.py`,
   05 §3.8u.
 
@@ -2048,4 +2058,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-26 | D-42 amended: P9's module preconditions are measured on the base D-43 adopts. D-43 (maintainer request): M1, a density-invariant encoder (metric ball neighbourhoods, offsets in metres, per-block standardisation, metric coordinates), one training run against CR; rules on the mechanism, the leak-free and the standard protocol fixed before the run. |
 | 2026-09-26 | D-43 measured: D43.1 and D43.2 fail, stop (D43.4); CR stays the base. M1's head gains on the leak-free draw (+2.07) and loses on fixed100 (−6.89); the decision still follows density (φ 1.14). |
 | 2026-09-26 | D-44: P9 after D-43. Step 0 replays M1's ball grouping on P8's events (distinct points per ball); part A locates the remaining density pathway in M1 by a ball-count intervention; part B measures D-42's module preconditions on CR. P9 decides admissibility; the one remaining run is chosen in a new decision. |
+| 2026-09-27 | D-44 amended (statistics arm; 3090 with local data; composite arm) and measured: encoder branch closed (no ψ above 0.02); only the metric head is admissible, by its oracle; the features are collapsed (participation ratio 5.56). |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

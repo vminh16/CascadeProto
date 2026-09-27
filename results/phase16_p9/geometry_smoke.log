@@ -1,0 +1,5 @@
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[geometry] stage 1 r 0.1: c_V0 m 10.28 <K 0.902 | c_V1 m 15.20 <K 0.293 | a_V0 m 15.19 <K 0.333 | a_V2 m 12.74 <K 0.678 | 3 events
+[geometry] stage 2 r 0.2: c_V0 m 15.43 <K 0.151 | c_V1 m 15.93 <K 0.018 | a_V0 m 15.91 <K 0.025 | a_V2 m 15.79 <K 0.074 | 3 events
+[geometry] stage 3 r 0.4: c_V0 m 15.97 <K 0.022 | c_V1 m 16.00 <K 0.000 | a_V0 m 15.99 <K 0.003 | a_V2 m 16.00 <K 0.004 | 3 events
