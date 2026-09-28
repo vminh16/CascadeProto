@@ -1,0 +1,45 @@
+=== 2026-09-28T16:27:26+00:00 commit 58d01f9 P11.6
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+Traceback (most recent call last):
+  File "/workspace/CascadeProto/experiments/p11_precheck.py", line 826, in <module>
+    sys.exit(main())
+  File "/workspace/CascadeProto/experiments/p11_precheck.py", line 791, in main
+    ctx = Context(rule, ck, args.data_path, device, torch.load(fit_path, weights_only=True), args.bank_episodes)
+  File "/workspace/CascadeProto/.venv/lib/python3.10/site-packages/torch/serialization.py", line 1479, in load
+    with _open_file_like(f, "rb") as opened_file:
+  File "/workspace/CascadeProto/.venv/lib/python3.10/site-packages/torch/serialization.py", line 759, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+  File "/workspace/CascadeProto/.venv/lib/python3.10/site-packages/torch/serialization.py", line 740, in __init__
+    super().__init__(open(name, mode))
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/CascadeProto/results/phase16_d48/p11_fit_cr_smoke.pt'
+=== 2026-09-28T16:29:10+00:00 commit 58d01f9 P11.6
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[unmix] valid_raw: ref+lp 25.64 | mb 24.92 | mb+lp 25.72 | mbu_k16_t0.7 24.48 | mbu_k16_t0.8 24.32 | mbu_k16_t0.9 21.25 | mbu_k32_t0.7 24.51 | mbu_k32_t0.8 24.20 | mbu_k32_t0.9 22.33
+[unmix] valid: ref+lp 59.00 | mb 58.40 | mb+lp 59.26 | mbu_k16_t0.7 55.89 | mbu_k16_t0.8 51.57 | mbu_k16_t0.9 40.08 | mbu_k32_t0.7 55.89 | mbu_k32_t0.8 51.71 | mbu_k32_t0.9 40.46
+[unmix] fixed100: ref+lp 58.55 | mb 57.91 | mb+lp 58.77 | mbu_k16_t0.7 54.76 | mbu_k16_t0.8 50.85 | mbu_k16_t0.9 39.07 | mbu_k32_t0.7 54.79 | mbu_k32_t0.8 50.99 | mbu_k32_t0.9 39.47
+[unmix] random600:0: ref+lp 58.37 | mb 56.96 | mb+lp 57.74 | mbu_k16_t0.7 54.69 | mbu_k16_t0.8 50.57 | mbu_k16_t0.9 38.89 | mbu_k32_t0.7 54.71 | mbu_k32_t0.8 50.67 | mbu_k32_t0.9 39.25
+[unmix] random600:1: ref+lp 60.36 | mb 59.80 | mb+lp 60.75 | mbu_k16_t0.7 57.26 | mbu_k16_t0.8 52.54 | mbu_k16_t0.9 40.93 | mbu_k32_t0.7 57.31 | mbu_k32_t0.8 52.70 | mbu_k32_t0.9 41.26
+[unmix] random600:2: ref+lp 59.99 | mb 59.52 | mb+lp 60.46 | mbu_k16_t0.7 56.01 | mbu_k16_t0.8 50.86 | mbu_k16_t0.9 37.29 | mbu_k32_t0.7 56.03 | mbu_k32_t0.8 51.00 | mbu_k32_t0.9 37.74
+[unmix] leakfree: ref+lp 33.15 | mb 33.00 | mb+lp 33.02 | mbu_k16_t0.7 29.31 | mbu_k16_t0.8 25.62 | mbu_k16_t0.9 16.77 | mbu_k32_t0.7 29.37 | mbu_k32_t0.8 25.76 | mbu_k32_t0.9 17.09
+[unmix] valid_raw: ref+lp 58.68 | mb 58.02 | mb+lp 58.71 | mbu_k16_t0.7 55.48 | mbu_k16_t0.8 51.23 | mbu_k16_t0.9 40.04 | mbu_k32_t0.7 55.50 | mbu_k32_t0.8 51.35 | mbu_k32_t0.9 40.42
+P11.6 oracle mixture                                                     median R2 other 0.990 (stop below 0.5), own 0.996; alpha quantiles other [-0.254, -0.112, -0.018, 0.083, 0.263]; gate share {"own": 0.429, "other": 0.926, "bg": 0.997}
+P11.6 new base (mean rule + both + LP) vs CR's U + both + LP             fixed100 +0.22 [-0.08, +0.53]; random600 [-0.63, 0.39, 0.47]; fixed100 58.77 vs 58.55; leak-free 33.02 vs 33.15
+P11.6 unmixing not kept (mbu_k32_t0.7)                                   mbu_k32_t0.7+lp - mb+lp fixed100 -2.86 [-3.57, -2.14]; random600 [-1.72, -2.3, -3.24]; leak-free -4.15; recall own 0.778 -> 0.715, other 0.074 -> 0.049 (no mechanism)
+=== P11.6 FINISHED 2026-09-28T16:57:59+00:00

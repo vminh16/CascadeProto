@@ -398,3 +398,33 @@
     rule holds, a trained head with the same structure (τ and a context weight learned, shared by all classes) goes
     into a later decision.
   * **Affects.** `models/unmix.py` (new), `experiments/p11_precheck.py` (stage `unmix`), `tests/test_p11.py`.
+* **Outcome of P11 and P11.6 (2026-09-28, `results/phase16_d48/SUMMARY.md`; no training yet).**
+  * **Run.** RTX 3090, CR `last.pt`, commit `cfc3589` (P11) and `58d01f9` (P11.6). CR's references hold: U + both
+    57.63, U + both + LP 58.55 on fixed100.
+  * **P11.1b fails.**
+    - The exclusion's gain is −0.22 [−0.31, −0.14] on fixed100.
+    - 62 % of dense novel foreground has g > 0.5: the base learner reads density (g 0.57 dense novel, 0.69 base
+      background, 0.13 sparse novel).
+  * **P11.2 fails:** text +0.11 [−0.03, +0.26] on valid, spearman(γ, κ*) +0.30.
+  * **P11.3:** every cell rule loses to U + both. 81–84 % of the oracle discriminant lies in the top 6–8 base
+    directions.
+  * **P11.4 holds (raw space).**
+    - Probe − U on valid is +2.07, so by the rule arm A is trained.
+    - It is −0.05 against U + both, 27.32 against 33.05 on leak-free, and it lowers other-condition recall (0.077):
+      the density warning of A5.
+  * **P11.5 fails:** fixed100 +0.29 [−0.20, +0.79], random600 +0.84 / +0.42 / −0.65, leak-free −0.96.
+  * **Factorial on CR, D48.1'.**
+    - Only LP is kept (Shapley +1.15 [+0.96, +1.33]). Excl −0.17, text +0.07, OT +0.57 (one random600 draw negative).
+    - All four − base is +1.62 (59.24 on fixed100), and −0.80 on leak-free.
+  * **P11.6: unmixing not kept.**
+    - Best k 32, τ 0.7: −2.86 [−3.57, −2.14] against the new base, −4.15 on leak-free, other recall 0.074 → 0.049.
+    - The new base (mean rule + both + LP) is 58.77 against 58.55: fixed100 +0.22 [−0.08, +0.53], random600
+      −0.63 / +0.39 / +0.47. Not adopted.
+    - The oracle mixture fits (median R² 0.990), but the own-class abundance of other-condition points is −0.018 at
+      the median: the sparse class leaves no trace in CR's features.
+  * **Consequence.**
+    - Inference rules on CR's features are saturated.
+    - The other-condition error is lost in the representation, not in the prototype or the head.
+    - Arm A is admitted by its rule, with the density warning. The maintainer decides whether it is coded and
+      trained, or whether the next decision changes the representation (a per-point modality or a training that
+      keeps minority points' class signal).

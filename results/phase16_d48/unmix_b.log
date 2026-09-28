@@ -1,0 +1,17 @@
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[unmix] random600:0: ref+lp 58.37 | mb 56.96 | mb+lp 57.74 | mbu_k16_t0.7 54.69 | mbu_k16_t0.8 50.57 | mbu_k16_t0.9 38.89 | mbu_k32_t0.7 54.71 | mbu_k32_t0.8 50.67 | mbu_k32_t0.9 39.25
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[unmix] random600:1: ref+lp 60.36 | mb 59.80 | mb+lp 60.75 | mbu_k16_t0.7 57.26 | mbu_k16_t0.8 52.54 | mbu_k16_t0.9 40.93 | mbu_k32_t0.7 57.31 | mbu_k32_t0.8 52.70 | mbu_k32_t0.9 41.26
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[unmix] random600:2: ref+lp 59.99 | mb 59.52 | mb+lp 60.46 | mbu_k16_t0.7 56.01 | mbu_k16_t0.8 50.86 | mbu_k16_t0.9 37.29 | mbu_k32_t0.7 56.03 | mbu_k32_t0.8 51.00 | mbu_k32_t0.9 37.74

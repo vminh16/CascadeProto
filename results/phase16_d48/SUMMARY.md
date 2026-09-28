@@ -99,4 +99,42 @@ Descriptor spaces:
 - Fit's held-out base scores (probe 34.30 against U 32.85) are on the last 20 % of the training episodes. These hold
   only 3 of the 6 base classes, so both numbers are about half of a per-present-class mIoU; the comparison is fair.
   Later runs should hold out every fifth episode.
-- P11.6 (amendment 5: context unmixing on a mean-rule base) ran after this and is reported below when it ends.
+
+## P11.6: context unmixing on a mean-rule base (amendment 5, commit `58d01f9`, 16:29–16:58 UTC)
+
+| draw | CR U + both + LP | mean rule + both | new base: mean rule + both + LP | unmix k 32, τ 0.7 (no LP) | unmix k 16, τ 0.9 |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| valid | 59.00 | 58.40 | 59.26 | 55.89 | 40.08 |
+| fixed100 | 58.55 | 57.91 | 58.77 | 54.79 | 39.07 |
+| random600 seed 0 | 58.37 | 56.96 | 57.74 | 54.71 | 38.89 |
+| random600 seed 1 | 60.36 | 59.80 | 60.75 | 57.31 | 40.93 |
+| random600 seed 2 | 59.99 | 59.52 | 60.46 | 56.03 | 37.29 |
+| leak-free | 33.15 | 33.00 | 33.02 | 29.37 | 16.77 |
+
+- **New base against CR's stack:** fixed100 +0.22 [−0.08, +0.53], random600 −0.63 / +0.39 / +0.47, leak-free −0.13.
+  Not an improvement.
+- **Unmixing: not kept.** The best configuration is k 32, τ 0.7, and it loses everywhere:
+  - with LP against the new base: fixed100 −2.86 [−3.57, −2.14], random600 −1.72 / −2.30 / −3.24, leak-free −4.15;
+  - own recall 0.778 → 0.715, other recall 0.074 → 0.049.
+
+**Oracle check of the linear mixture** (valid_raw, k 16). The fit is v_x ≈ α·(the query's own class mean) + γ·c(x),
+per point, in the centred space.
+
+| points | median R² | α quantiles (10 / 25 / 50 / 75 / 90 %) |
+| :--- | ---: | :--- |
+| other condition | 0.990 | −0.254 / −0.112 / **−0.018** / 0.083 / 0.263 |
+| own condition | 0.996 | — |
+
+Gate share (τ 0.8): own 0.43, other 0.93, background 1.00.
+
+**Reading.**
+- The linear model fits: R² 0.99. But the class's own coefficient on sparse (other-condition) points is **zero at the
+  median**: their features are their neighbourhood, and the sparse class leaves no measurable trace in them.
+- Unmixing can only re-weight a signal that is present, so it removes the context and finds nothing under it.
+- The gate cannot separate the cases either. It passes 43 % of own points, and removing their context removes their
+  class, since their neighbours are their own class. That is where the large losses come from.
+- The other-condition error is therefore **not recoverable by any head on CR's features**. The information is lost
+  before the head, in the encoder's neighbourhood aggregation (P9's untested candidate, now measured from the other
+  side).
+- A fix must change what the representation keeps for sparse points: a representation trained or distilled so that a
+  minority point keeps its own class signal, or an extra per-point modality.

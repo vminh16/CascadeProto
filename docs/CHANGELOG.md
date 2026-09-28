@@ -1870,3 +1870,19 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   on the held-out base episodes: raw cosines sit in a narrow band and the probe underfit. The probe now standardises
   its inputs from its training descriptors (P11-15 extended, mutation 18/18). Without this fix P11.4 would have
   been biased toward failing.
+
+### 16bd - D-48 P11 and P11.6 measured (no training)
+
+* **P11 on CR** (`results/phase16_d48/SUMMARY.md`).
+  * Only LP is kept.
+  * The exclusion, text and OT fail their gates.
+  * The base learner scores dense novel foreground like base background (g 0.57 against 0.69), so excluding base
+    classes deletes the target.
+  * The correlation probe passes P11.4 by its rule, with a leak-free loss of 5.7 and a lower other-condition recall.
+* **P11.6 (amendment 5).**
+  * Context unmixing loses 2.9 points.
+  * The mean-rule base is +0.22 with a CI that contains 0.
+  * The oracle mixture fits (R² 0.99), but sparse points carry no own-class coefficient (median −0.018): the
+    information is lost in the representation.
+* **Housekeeping.** `run_d48.sh` now names its logs without colons (a Windows checkout cannot hold them). The
+  instance was stopped after the copy (md5 checked).
