@@ -57,7 +57,7 @@ Exact formulas, shapes and the interpretation of ambiguous equations are in the 
 | Document | Content |
 | :--- | :--- |
 | [CONTEXT.md](CONTEXT.md) | **Start here**: goal, vocabulary, current state, every phase-16 experiment and what is and is not established |
-| [00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) | Source hierarchy (paper → pinned VIP-Seg code → decisions) and the index of the decision log D-01…D-46; the decisions themselves, each with its outcome, are in [docs/decisions/](docs/decisions/README.md) |
+| [00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) | Source hierarchy (paper → pinned VIP-Seg code → decisions) and the index of the decision log D-01…D-48; the decisions themselves, each with its outcome, are in [docs/decisions/](docs/decisions/README.md) |
 | [01_ARCHITECTURE_SPEC.md](docs/spec/01_ARCHITECTURE_SPEC.md) | Modules, wiring, ablation switches, parameter budget |
 | [02_TENSOR_MATH_SPEC.md](docs/spec/02_TENSOR_MATH_SPEC.md) | Every formula and tensor shape |
 | [03_MULTIMODAL_SPEC.md](docs/spec/03_MULTIMODAL_SPEC.md) | Modality front-ends, adapters, GMMN loss rules |
