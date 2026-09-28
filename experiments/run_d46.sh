@@ -48,9 +48,9 @@ LOG="$OUT/d46_${MODE}.log"
     $PY experiments/p10_align_probe.py gate --name cr --tag _smoke; echo "gate exit $?"
     $PY experiments/p10_align_probe.py base --data_path "$D" --checkpoint "m5b:ours:1:$M5" --episodes 4 \
         --max_episodes 4 --tag _smoke || exit 1
-    $PY experiments/p3_probe.py select --data_path "$D" --checkpoint "crsmoke:ours:1:$CR" --bank_episodes 4 \
+    $PY experiments/p3_probe.py select --data_path "$D" --checkpoint "crsmoke:ours:1:$CR" --bank_episodes 40 \
         --max_episodes 3 || exit 1
-    $PY experiments/p3_probe.py test --data_path "$D" --checkpoint "crsmoke:ours:1:$CR" --bank_episodes 4 \
+    $PY experiments/p3_probe.py test --data_path "$D" --checkpoint "crsmoke:ours:1:$CR" --bank_episodes 40 \
         --max_episodes 3 || exit 1
     $PY experiments/p3_probe.py decide --name crsmoke || exit 1
     $PY experiments/d43_eval.py test --data_path "$D" --checkpoint "cr:ours:1:$CR" --checkpoint "m5b:ours:1:$M5" \
@@ -62,7 +62,7 @@ LOG="$OUT/d46_${MODE}.log"
     $PY experiments/p10_align_probe.py metric --data_path "$D" --checkpoint "cr:ours:1:$CR" --max_episodes 3         --tag _smoke || exit 1
     $PY experiments/p10_align_probe.py kcurve --data_path "$D" --checkpoint "cr:ours:1:$CR" --max_episodes 3         --tag _smoke || exit 1
     $PY experiments/p10_align_probe.py amend --tag _smoke
-    rm -f results/phase16_p3/select_crsmoke* results/phase16_p3/test_crsmoke* results/phase16_p1/bank_crsmoke_4.pt
+    rm -f results/phase16_p3/select_crsmoke* results/phase16_p3/test_crsmoke* results/phase16_p1/bank_crsmoke_40.pt
     echo "=== D46 smoke FINISHED $(date -Is)"
   else
     # P10.2 text (D-31's P3 on CR), in the background for the whole run
