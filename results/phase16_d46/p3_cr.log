@@ -1,0 +1,37 @@
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] model 0.5517 | frozen ridge_descriptions_one_k2 (+0.28)
+[select] mechanism retrieval_t100_bare          text acc 0.576 | align +0.188 [+0.150, +0.224]
+[select] mechanism retrieval_t100_descriptions  text acc 0.560 | align +0.198 [+0.175, +0.219]
+[select] mechanism retrieval_t100_ensemble      text acc 0.598 | align +0.273 [+0.241, +0.302]
+[select] mechanism retrieval_t100_template      text acc 0.557 | align +0.166 [+0.135, +0.195]
+[select] mechanism retrieval_t30_bare           text acc 0.608 | align +0.309 [+0.275, +0.340]
+[select] mechanism retrieval_t30_descriptions   text acc 0.647 | align +0.302 [+0.277, +0.326]
+[select] mechanism retrieval_t30_ensemble       text acc 0.629 | align +0.367 [+0.336, +0.396]
+[select] mechanism retrieval_t30_template       text acc 0.627 | align +0.355 [+0.327, +0.384]
+[select] mechanism ridge_bare                   text acc 0.566 | align +0.224 [+0.196, +0.252]
+[select] mechanism ridge_descriptions           text acc 0.693 | align +0.454 [+0.429, +0.477]
+[select] mechanism ridge_ensemble               text acc 0.637 | align +0.372 [+0.345, +0.399]
+[select] mechanism ridge_template               text acc 0.618 | align +0.317 [+0.290, +0.344]
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] model 0.5484 -> ridge_descriptions_one_k2 0.5524 (+0.41 [+0.23, +0.60]) | oracle-gamma +3.31
+[test] part A {"support_rule": 55.016581753470184, "model": 54.83534857055928, "oracle_unit": 83.37841235316516, "head_recovery": -0.00639003826899842, "fixable_share_of_points": 0.17482389322916667, "boundary_share_of_points": 0.10767692057291667, "boundary_share_of_fixable": 0.13872591279542842, "boundary_enrichment": 1.2883532706666327, "boundary_share_of_model_errors": 0.20178875478052077, "fixable_share_by_support_tercile": [0.3435972584017771, 0.32877020960453135, 0.3276325319936916], "support_tercile_cuts": [0.343505859375, 0.5021158854166665], "spearman_oracle_gain_vs_support_fg": -0.038728262545894454}

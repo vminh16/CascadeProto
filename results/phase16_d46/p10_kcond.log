@@ -1,0 +1,11 @@
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[kcond] density-driven bias | own e [0.1126, 0.0838, 0.0744, 0.0675] fit {'a': 0.055754471759399384, 'c': 0.056722764701822505, 'r2': 0.9997202638057028, 'bias_share': 0.4950282179090143} (3000 pairs) | other e [0.4564, 0.4453, 0.4424, 0.4406] fit {'a': 0.43595077264283133, 'c': 0.020125921789626935, 'r2': 0.9931193715159863, 'bias_share': 0.9552427644844033} (1068 pairs) | bounds {"own": [13.62, 10.44, 9.3, 8.25], "other": [5.48, 5.24, 4.95, 4.81], "fg": [16.12, 13.06, 11.98, 11.17]}

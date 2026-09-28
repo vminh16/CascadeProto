@@ -1,0 +1,24 @@
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[modules] model 51.02 | U 52.88 | cos_oracle 78.03 | lda_oracle_0.1 96.02 | lda_free_0.1 30.19 | lda_oracle_0.3 94.69 | lda_free_0.3 31.34 | lda_oracle_0.5 93.50 | lda_free_0.5 33.57 | proj_4 41.65 | proj_8 40.85 | proj_16 38.34 | km_2 49.67 | km_3 48.39 | comp_r0_l0.1_k1 30.19 | comp_r0_l0.1_k2 30.50 | comp_r0_l0.1_k3 31.11 | comp_r0_l0.3_k1 31.34 | comp_r0_l0.3_k2 31.93 | comp_r0_l0.3_k3 32.70 | comp_r0_l0.5_k1 33.57 | comp_r0_l0.5_k2 34.43 | comp_r0_l0.5_k3 35.39 | comp_r4_l0.1_k1 30.10 | comp_r4_l0.1_k2 30.06 | comp_r4_l0.1_k3 30.35 | comp_r4_l0.3_k1 31.40 | comp_r4_l0.3_k2 32.02 | comp_r4_l0.3_k3 32.42 | comp_r4_l0.5_k1 33.48 | comp_r4_l0.5_k2 34.56 | comp_r4_l0.5_k3 35.15 | comp_r8_l0.1_k1 30.03 | comp_r8_l0.1_k2 30.43 | comp_r8_l0.1_k3 30.40 | comp_r8_l0.3_k1 30.51 | comp_r8_l0.3_k2 31.20 | comp_r8_l0.3_k3 31.45 | comp_r8_l0.5_k1 31.57 | comp_r8_l0.5_k2 32.57 | comp_r8_l0.5_k3 33.03 | comp_r16_l0.1_k1 28.40 | comp_r16_l0.1_k2 28.63 | comp_r16_l0.1_k3 28.75 | comp_r16_l0.3_k1 28.58 | comp_r16_l0.3_k2 29.19 | comp_r16_l0.3_k3 29.57 | comp_r16_l0.5_k1 29.37 | comp_r16_l0.5_k2 30.19 | comp_r16_l0.5_k3 30.84
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+[p10] m5a: base U 68.41 | oracle 82.66 | model 74.10 | gap +14.26 | align loss 0.224 | 1000 episodes

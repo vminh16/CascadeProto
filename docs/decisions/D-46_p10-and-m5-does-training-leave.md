@@ -144,3 +144,43 @@
       - "Mixed" otherwise.
       - The mIoU bounds are reported per k. No rule; the next decision reads them.
   * **Affects.** `experiments/p10_align_probe.py` (stage `kcond`), `tests/test_proto_align.py` (PA-15).
+* **Outcome (2026-09-28, `results/phase16_d46/SUMMARY.md`): P10.1 holds, part B reads D46.4 (stop); P10.4 holds;
+  P10.5 reads density-driven bias.**
+  * **Run.** RTX 3090, local data, commit `f7659be` (amendment 2's `kcond` at `e2fafc0`, after the trainings). CR's
+    references hold on this GPU (fixed100 54.84 / 55.74 / 57.63 / 58.55; valid U 55.96).
+  * **P10.1 holds.**
+    - Base-class gap +14.76 [+13.40, +16.04]: U 70.68, oracle 85.44, model 74.23.
+    - The alignment loss is 0.320 on CR.
+  * **P10.2.**
+    - P3.0 holds: text accuracy 0.693, alignment +0.454 [+0.429, +0.477].
+    - P3.3 is in between: the frozen `ridge_descriptions_one_k2` gives +0.41 [+0.23, +0.60] on fixed100, and
+      oracle-γ gives +3.31.
+    - Text gets no decision of its own.
+  * **P10.3 bias-dominated.**
+    - e(k) is 0.2029 / 0.1787 / 0.1710 / 0.1655; fit a 0.1556, c 0.0471.
+    - The registered share is 0.77; the corrected share (amendment 2) is 0.54.
+    - U by k is 56.32 / 60.22 / 61.63 / 62.74, against an oracle of about 80.5.
+  * **P10.4 holds at λ 0.9.**
+    - Frozen − U is +1.46 [+1.07, +1.85] on fixed100 and +0.74 / +1.31 / +0.93 on random600.
+    - The isotropic control gives +1.11. λ 0.9 − λ 1.0 is +0.36 [−0.01, +0.72] on fixed100 and −0.18 / +0.10 / −0.29
+      on random600.
+    - So the gain comes from scoring support means with a Euclidean rule. The base-class covariance adds nothing
+      distinguishable from 0.
+  * **P10.5: density-driven bias.**
+    - Own pairs (3,000): a 0.0558, c 0.0567, so b̂ = −0.001; the share is 0.
+    - Other pairs (1,068): a 0.4360, c 0.0201, so b̂ = 0.4158; the share is 0.91.
+    - mIoU bounds for k 1 / 2 / 3 / 5: own 13.62 / 10.44 / 9.30 / 8.25; other 5.48 / 5.24 / 4.95 / 4.81; foreground
+      16.12 / 13.06 / 11.98 / 11.17.
+    - The foreground oracle is 72.44 at k = 1.
+  * **Part B: D46.4, the alignment line stops.** Both arms fail D46.1.
+    - Valid gaps are 25.15 (A) and 23.75 (B), against the bar 22.88.
+    - B's narrowing comes from its oracle falling (73.72), not from U rising.
+    - U − CR's U on fixed100 is −3.65 [−4.52, −2.83] (A) and −6.37 [−7.22, −5.60] (B), negative on every random600
+      draw.
+    - Base-class gaps are 14.26 / 14.43, although the alignment loss fell to 0.224 / 0.210.
+  * **Consequence.**
+    - Nothing systematic separates an own query from its support. The own part of the gap is instance variance,
+      which shots or a novel-class prior reduce, not training on base classes.
+    - The K-invariant bias is the other condition (≤ 5.5 points); the background rows add up to 8.4.
+    - The metric's mean rule (+1.1 on U) is admissible for the stack.
+    - The next decision chooses among these.

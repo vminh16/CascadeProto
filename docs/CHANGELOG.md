@@ -1805,3 +1805,24 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   - Tables 1 and 3: not done.
   - It also summarises the seen-class (leakage) results and the short experiments D-19...D-29, and lists what is
     missing for a full set of comparable tables.
+
+### 16bb - D-46 measured: M5 alignment stops (D46.4); the prototype gap's bias is the other condition only (P10.5)
+
+* **Run.** RTX 3090 (vast.ai), commit `f7659be`, plus amendment 2's `kcond` at `e2fafc0`. CR's references held. The
+  results were copied back with matching md5 sums, and the instance was stopped. `results/phase16_d46/SUMMARY.md`.
+* **Part A.**
+  * P10.1 holds: base-class gap +14.76 [+13.40, +16.04].
+  * P10.2: text accuracy 0.693 (P3.0 holds). The frozen arm gives +0.41 [+0.23, +0.60], which is in between.
+  * P10.3: bias share 0.77 as registered, 0.54 corrected.
+  * P10.4 holds at λ 0.9: +1.46 [+1.07, +1.85], and positive on the three random600 draws. The isotropic control
+    gives +1.11, and λ 0.9 − λ 1.0 is not distinguishable from 0.
+  * P10.5 reads density-driven bias.
+    - Own pairs: b̂ = −0.001, so their error is the query instance only.
+    - Other pairs: b̂ = 0.4158, a bias share of 0.91.
+    - Foreground bounds at k = 1 / 5: own 13.62 / 8.25, other 5.48 / 4.81.
+    - Exact foreground prototypes reach 72.44 at one shot.
+* **Part B: D46.4.** Both arms fail D46.1 (valid gaps 25.15 and 23.75, bar 22.88).
+  * U − CR's U on fixed100 is −3.65 (A) and −6.37 (B).
+  * The alignment loss fell (0.320 → 0.224 / 0.210), but the base-class gap did not, because the oracle fell with U.
+* **Docs.** D-46's outcome is appended to its file. Its 00 §4 index row is updated, and 00 §7 gains amendment 2 and
+  the outcome.

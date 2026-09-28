@@ -1,0 +1,79 @@
+=== 2026-09-28T04:49:27+00:00 commit f7659be D46 full
+[p10] cr: base U 70.68 | oracle 85.44 | model 74.23 | gap +14.76 | align loss 0.320 | 1000 episodes
+P10.1 holds: part B runs  base-class gap +14.76 [+13.40, +16.04] (bar 5); U 70.68, oracle 85.44, model 74.23; align loss 0.320
+=== TRAIN m5a exit=0 2026-09-28T07:19:31+00:00
+=== TRAIN m5b exit=0 2026-09-28T07:19:32+00:00
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] fixed100: cr:model 54.84 | cr:U 55.74 | cr:both 57.63 | cr:lp 58.55 | m5a:model 50.15 | m5a:U 52.09 | m5a:both 52.66 | m5a:lp 54.42 | m5a_best:model 52.68 | m5a_best:U 52.14 | m5a_best:both 54.08 | m5a_best:lp 55.53 | m5b:model 51.09 | m5b:U 49.37 | m5b:both 49.08 | m5b:lp 51.01 | m5b_best:model 49.97 | m5b_best:U 46.47 | m5b_best:both 47.36 | m5b_best:lp 48.80 | 1500 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:0: cr:model 54.59 | cr:U 55.55 | cr:both 57.20 | cr:lp 58.37 | m5a:model 49.88 | m5a:U 52.10 | m5a:both 52.51 | m5a:lp 54.14 | m5a_best:model 52.56 | m5a_best:U 51.75 | m5a_best:both 53.72 | m5a_best:lp 55.07 | m5b:model 49.17 | m5b:U 49.13 | m5b:both 48.68 | m5b:lp 50.40 | m5b_best:model 48.97 | m5b_best:U 46.28 | m5b_best:both 47.14 | m5b_best:lp 48.76 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:1: cr:model 57.07 | cr:U 57.85 | cr:both 59.35 | cr:lp 60.36 | m5a:model 51.72 | m5a:U 53.24 | m5a:both 53.74 | m5a:lp 55.29 | m5a_best:model 53.12 | m5a_best:U 52.20 | m5a_best:both 53.97 | m5a_best:lp 55.23 | m5b:model 50.89 | m5b:U 50.64 | m5b:both 50.01 | m5b:lp 51.71 | m5b_best:model 51.18 | m5b_best:U 47.57 | m5b_best:both 48.05 | m5b_best:lp 49.24 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:2: cr:model 56.11 | cr:U 57.18 | cr:both 59.10 | cr:lp 59.99 | m5a:model 51.21 | m5a:U 53.02 | m5a:both 53.49 | m5a:lp 55.41 | m5a_best:model 52.13 | m5a_best:U 52.15 | m5a_best:both 53.74 | m5a_best:lp 55.07 | m5b:model 50.71 | m5b:U 49.49 | m5b:both 49.36 | m5b:lp 51.29 | m5b_best:model 51.68 | m5b_best:U 47.09 | m5b_best:both 47.88 | m5b_best:lp 49.45 | 600 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] leakfree: cr:model 28.34 | cr:U 33.11 | cr:both 33.05 | cr:lp 33.15 | m5a:model 24.97 | m5a:U 35.67 | m5a:both 33.75 | m5a:lp 33.97 | m5a_best:model 26.74 | m5a_best:U 32.55 | m5a_best:both 30.77 | m5a_best:lp 31.03 | m5b:model 25.84 | m5b:U 34.13 | m5b:both 32.57 | m5b:lp 33.24 | m5b_best:model 24.52 | m5b_best:U 28.55 | m5b_best:both 26.54 | m5b_best:lp 26.38 | 1500 episodes
+[modules] model 51.02 | U 52.88 | cos_oracle 78.03 | lda_oracle_0.1 96.02 | lda_free_0.1 30.19 | lda_oracle_0.3 94.69 | lda_free_0.3 31.34 | lda_oracle_0.5 93.50 | lda_free_0.5 33.57 | proj_4 41.65 | 
+[p10] m5a: base U 68.41 | oracle 82.66 | model 74.10 | gap +14.26 | align loss 0.224 | 1000 episodes
+[modules] model 50.48 | U 49.97 | cos_oracle 73.72 | lda_oracle_0.1 95.48 | lda_free_0.1 31.45 | lda_oracle_0.3 93.82 | lda_free_0.3 33.29 | lda_oracle_0.5 92.32 | lda_free_0.5 35.83 | proj_4 36.63 | 
+[p10] m5b: base U 65.52 | oracle 79.95 | model 71.84 | gap +14.43 | align loss 0.210 | 1000 episodes
+D46.1 m5a mechanism fails                                                valid gap 25.15 (CR 24.88, bar 22.88); U 52.88, cosine oracle 78.03
+D46.1 m5b mechanism fails                                                valid gap 23.75 (CR 24.88, bar 22.88); U 49.97, cosine oracle 73.72
+D46.4 stop: base-class alignment does not transfer to novel classes at these weights 
+[stats] cr: {"points": 3457885, "instances": {"0": 960, "3": 730, "4": 678, "8": 755, "10": 677, "11": 684}, "trace_w": 0.07166085829132952, "trace_eta": 0.13820188369539196, "pr_w": 11.12285603183782, "pr_eta": 6.124680871765885}
+[metric] valid: U 55.96 | maha_0.1 54.24 | maha_0.3 55.65 | maha_0.5 56.39 | maha_0.7 56.98 | maha_0.9 57.56 | maha_1.0 57.20
+[metric] fixed100: U 55.74 | maha_0.1 53.74 | maha_0.3 55.26 | maha_0.5 56.02 | maha_0.7 56.59 | maha_0.9 57.21 | maha_1.0 56.85
+[metric] random600:0: U 55.55 | maha_0.1 52.77 | maha_0.3 54.01 | maha_0.5 54.77 | maha_0.7 55.45 | maha_0.9 56.29 | maha_1.0 56.48
+[metric] random600:1: U 57.85 | maha_0.1 55.15 | maha_0.3 56.79 | maha_0.5 57.62 | maha_0.7 58.34 | maha_0.9 59.16 | maha_1.0 59.06
+[metric] random600:2: U 57.18 | maha_0.1 54.20 | maha_0.3 55.76 | maha_0.5 56.50 | maha_0.7 57.12 | maha_0.9 58.11 | maha_1.0 58.40
+[kcurve] e(k) [0.20287541863613834, 0.17873184416981575, 0.17102098739509092, 0.1654518083737927] fit {'a': 0.1555700197789435, 'c': 0.047114743996260956, 'r2': 0.9994268500015127, 'bias_share': 0.7668253789679756} | model_k1 55.33 | U_k1 56.32 | oracle_k1 80.83 | maha_k1 57.40 | model_k2 59.24 | U_
+P10.3 bias-dominated: training that removes the systematic shift is the lever e(k) [0.2029, 0.1787, 0.171, 0.1655] for k [1, 2, 3, 5]; a 0.1556, c 0.0471, R2 0.999, bias share 0.77; U by k [56.32, 60.22, 61.63, 62.74], oracle [80.83, 80.48, 80.53, 80.48], metric [57.4, 61.29, 62.74, 63.9]
+P10.4 holds (lambda 0.9)                                                 metric - U fixed100 +1.46 [+1.07, +1.85]; random600 [0.74, 1.31, 0.93]; isotropic control +1.11
+[select] model 0.5517 | frozen ridge_descriptions_one_k2 (+0.28)
+[test] model 0.5484 -> ridge_descriptions_one_k2 0.5524 (+0.41 [+0.23, +0.60]) | oracle-gamma +3.31
+[test] part A {"support_rule": 55.016581753470184, "model": 54.83534857055928, "oracle_unit": 83.37841235316516, "head_recovery": -0.00639003826899842, "fixable_share_of_points": 0.17482389322916667, 
+P3.0 mechanism         text acc 0.693 (bar 0.6), alignment +0.454 [+0.429, +0.477]: holds
+P3.3 in between        frozen +0.41 (above 0), oracle-gamma +3.31
+P3.4 entropy weight    not claimable: selection froze ridge_descriptions_one_k2
+A head recovery        support rule 55.02 -> E1 54.84 -> oracle 83.38: the head recovers -0.01 of the gap
+A fixable points       0.175 of points; boundary share 0.139 vs 0.108 of all points, enrichment 1.29: between the bands
+A support quality      Spearman(oracle gain, support foreground fraction) -0.04; fixable share by support tercile small/mid/large [0.344, 0.329, 0.328]
+=== D46 full FINISHED 2026-09-28T09:10:46+00:00

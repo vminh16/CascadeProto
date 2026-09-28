@@ -1,0 +1,264 @@
+=== 2026-09-28T04:22:00+00:00 commit 0c4bd8e D46 smoke
+..................................................................       [100%]
+66 passed in 26.84s
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'stage_type': 'vip_clean', 'gate_target': 'prototype', 'eq19_self': 'none', 'query_order': 'random', 'train_classes': 'split', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'vipseg', 'vicreg_var': 0.0, 'vicreg_cov': 0.0, 'align_weight': 1.0, 'align_tau': 0.1, 'init_checkpoint': None, 'distill_beta': 0.0, 'epochs': 50, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 15, 'batch_size': 1, 'lr_gamma': 0.5, 'valid_every': 4, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_d46_smoke', 'dry_run': True, 'resume': False}
+data: /workspace/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+train classes [0, 3, 4, 8, 10, 11] | test classes [6, 1, 9, 7, 2, 5] | 1 training episodes, 480 steps/epoch
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config: {'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'gate_target': 'prototype', 'eq19_self': 'none', 'stage_type': 'vip_clean', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'distill_beta': 0.0, 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'vipseg', 'vicreg_var': 0.0, 'vicreg_cov': 0.0, 'align_weight': 1.0, 'align_tau': 0.1}
+[dry run] one step on 1 real episodes, loss 2.7019 (L_GMMN 0.0000)
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+[dry run] valid mIoU on 5 episodes: 0.0800
+epoch 3/4 | loss 2.2180 | L_GMMN 0.0000 | lr 1.00e-03 | 3s | L_distill 0.4557
+epoch 4/4 | loss 2.3363 | L_GMMN 0.0000 | lr 1.00e-03 | 4s | L_distill 0.4184
+epoch 4 | valid mIoU 0.0561
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+[p10] cr: base U 53.13 | oracle 60.46 | model 55.42 | gap +7.33 | align loss 0.281 | 4 episodes
+P10.1 holds: part B runs  base-class gap +7.33 [-1.55, +13.80] (bar 5); U 53.13, oracle 60.46, model 55.42; align loss 0.281
+gate exit 0
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+[p10] m5b: base U 34.14 | oracle 45.67 | model 0.00 | gap +11.53 | align loss 1.093 | 4 episodes
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+Traceback (most recent call last):
+  File "/workspace/CascadeProto/experiments/p3_probe.py", line 354, in <module>
+    raise SystemExit(main())
+  File "/workspace/CascadeProto/experiments/p3_probe.py", line 350, in main
+    return cmd_select(args, device) if args.stage == "select" else cmd_test(args, device)
+  File "/workspace/CascadeProto/experiments/p3_probe.py", line 244, in cmd_select
+    result, stacked = score(ck, args.data_path, "valid", grid(), device, args.bank_episodes, args.max_episodes)
+  File "/workspace/CascadeProto/.venv/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+    return func(*args, **kwargs)
+  File "/workspace/CascadeProto/experiments/p3_probe.py", line 104, in score
+    mu, base, info = p1.load_or_build_bank(ck, BankRule(rule), data_path, device, bank_n)
+  File "/workspace/CascadeProto/experiments/p1_bpc_probe.py", line 108, in load_or_build_bank
+    mu, base, info = build_bank(rule, data_path, ck.fold, device, n)
+  File "/workspace/CascadeProto/.venv/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+    return func(*args, **kwargs)
+  File "/workspace/CascadeProto/experiments/p1_bpc_probe.py", line 96, in build_bank
+    raise RuntimeError(f"bank classes {sorted(protos)} differ from the fold's training classes {base_classes}")
+RuntimeError: bank classes [4, 8, 10, 11] differ from the fold's training classes [0, 3, 4, 8, 10, 11]
+=== 2026-09-28T04:26:14+00:00 commit f7659be D46 smoke
+..................................................................       [100%]
+66 passed in 25.14s
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'modality': 'text', 'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'stage_type': 'vip_clean', 'gate_target': 'prototype', 'eq19_self': 'none', 'query_order': 'random', 'train_classes': 'split', 'init_from_vipseg': None, 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'vipseg', 'vicreg_var': 0.0, 'vicreg_cov': 0.0, 'align_weight': 1.0, 'align_tau': 0.1, 'init_checkpoint': None, 'distill_beta': 0.0, 'epochs': 50, 'episodes_per_epoch': 480, 'lr': 0.001, 'weight_decay': 0.1, 'lr_step_epochs': 15, 'batch_size': 1, 'lr_gamma': 0.5, 'valid_every': 4, 'seed': 0, 'num_workers': 4, 'save_dir': 'log_d46_smoke', 'dry_run': True, 'resume': False}
+data: /workspace/CascadeProto/datasets/S3DIS/blocks_bs1_s1 | num_point=2048 pc_attribs=xyzrgbXYZ augmentation={'scale': 0, 'rot': 1, 'mirror_prob': 0, 'jitter': 1, 'shift': 0.1, 'random_color': 0}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+train classes [0, 3, 4, 8, 10, 11] | test classes [6, 1, 9, 7, 2, 5] | 1 training episodes, 480 steps/epoch
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+model config: {'use_lma': False, 'num_stages': 4, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': True, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'gate_target': 'prototype', 'eq19_self': 'none', 'stage_type': 'vip_clean', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'distill_beta': 0.0, 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'vipseg', 'vicreg_var': 0.0, 'vicreg_cov': 0.0, 'align_weight': 1.0, 'align_tau': 0.1}
+[dry run] one step on 1 real episodes, loss 2.7019 (L_GMMN 0.0000)
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+[dry run] valid mIoU on 5 episodes: 0.0800
+epoch 3/4 | loss 2.2232 | L_GMMN 0.0000 | lr 1.00e-03 | 3s | L_distill 0.4531
+epoch 4/4 | loss 2.3320 | L_GMMN 0.0000 | lr 1.00e-03 | 4s | L_distill 0.4173
+epoch 4 | valid mIoU 0.0559
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+[p10] cr: base U 53.13 | oracle 60.46 | model 55.42 | gap +7.33 | align loss 0.281 | 4 episodes
+P10.1 holds: part B runs  base-class gap +7.33 [-1.55, +13.80] (bar 5); U 53.13, oracle 60.46, model 55.42; align loss 0.281
+gate exit 0
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+[p10] m5b: base U 34.12 | oracle 45.78 | model 0.00 | gap +11.66 | align loss 1.093 | 4 episodes
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+  0%|                                               | 0.00/335M [00:00<?, ?iB/s]  1%|▎                                     | 2.86M/335M [00:00<00:11, 30.0MiB/s]  3%|█▎                                    | 11.2M/335M [00:00<00:05, 63.5MiB/s]  6%|██▎                                   | 20.4M/335M [00:00<00:04, 78.5MiB/s]  9%|███▍                                  | 29.9M/335M [00:00<00:03, 86.9MiB/s] 12%|████▍                                 | 39.5M/335M [00:00<00:03, 92.0MiB/s] 15%|█████▉                                 | 50.7M/335M [00:00<00:02, 100MiB/s] 18%|███████                                | 60.3M/335M [00:00<00:02, 101MiB/s] 21%|███████▉                              | 69.9M/335M [00:00<00:02, 96.9MiB/s] 24%|█████████▍                             | 81.1M/335M [00:00<00:02, 103MiB/s] 27%|██████████▋                            | 91.4M/335M [00:01<00:02, 100MiB/s] 31%|████████████▎                           | 103M/335M [00:01<00:02, 107MiB/s] 34%|█████████████▌                          | 113M/335M [00:01<00:02, 104MiB/s] 37%|██████████████▋                         | 123M/335M [00:01<00:02, 103MiB/s] 40%|███████████████▌                       | 133M/335M [00:01<00:02, 92.1MiB/s] 43%|████████████████▋                      | 144M/335M [00:01<00:02, 97.0MiB/s] 46%|█████████████████▊                     | 153M/335M [00:01<00:01, 97.0MiB/s] 49%|██████████████████▉                    | 162M/335M [00:01<00:01, 97.4MiB/s] 51%|████████████████████                   | 172M/335M [00:01<00:01, 98.5MiB/s] 54%|█████████████████████▏                 | 182M/335M [00:01<00:01, 98.0MiB/s] 57%|██████████████████████▎                | 191M/335M [00:02<00:01, 97.1MiB/s] 60%|███████████████████████▎               | 200M/335M [00:02<00:01, 96.4MiB/s] 63%|████████████████████████▋              | 211M/335M [00:02<00:01, 97.5MiB/s] 66%|█████████████████████████▊             | 221M/335M [00:02<00:01, 99.8MiB/s] 69%|██████████████████████████▉            | 231M/335M [00:02<00:01, 99.0MiB/s] 72%|████████████████████████████           | 241M/335M [00:02<00:00, 99.5MiB/s] 75%|█████████████████████████████▏         | 250M/335M [00:02<00:00, 98.4MiB/s] 78%|██████████████████████████████▏        | 259M/335M [00:02<00:00, 98.0MiB/s] 80%|███████████████████████████████▎       | 269M/335M [00:02<00:00, 97.0MiB/s] 83%|████████████████████████████████▍      | 278M/335M [00:03<00:00, 96.7MiB/s] 86%|█████████████████████████████████▍     | 287M/335M [00:03<00:00, 96.9MiB/s] 89%|██████████████████████████████████▌    | 297M/335M [00:03<00:00, 96.9MiB/s] 91%|███████████████████████████████████▋   | 306M/335M [00:03<00:00, 96.0MiB/s] 94%|████████████████████████████████████▋  | 315M/335M [00:03<00:00, 95.5MiB/s] 97%|█████████████████████████████████████▊ | 324M/335M [00:03<00:00, 95.0MiB/s]100%|██████████████████████████████████████▉| 334M/335M [00:03<00:00, 96.3MiB/s]100%|███████████████████████████████████████| 335M/335M [00:03<00:00, 96.4MiB/s]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] model 0.1827 | frozen retrieval_t30_descriptions_entropy_k16 (+8.24)
+[select] mechanism retrieval_t100_bare          text acc 0.417 | align -0.204 [-0.939, +0.914]
+[select] mechanism retrieval_t100_descriptions  text acc 0.690 | align +0.026 [-0.739, +0.968]
+[select] mechanism retrieval_t100_ensemble      text acc 0.420 | align -0.157 [-0.943, +0.914]
+[select] mechanism retrieval_t100_template      text acc 0.622 | align +0.035 [-0.746, +0.763]
+[select] mechanism retrieval_t30_bare           text acc 0.444 | align -0.145 [-0.941, +0.941]
+[select] mechanism retrieval_t30_descriptions   text acc 0.705 | align +0.069 [-0.745, +0.962]
+[select] mechanism retrieval_t30_ensemble       text acc 0.486 | align -0.063 [-0.900, +0.953]
+[select] mechanism retrieval_t30_template       text acc 0.541 | align -0.001 [-0.777, +0.850]
+[select] mechanism ridge_bare                   text acc 0.473 | align -0.127 [-0.917, +0.888]
+[select] mechanism ridge_descriptions           text acc 0.473 | align +0.017 [-0.837, +0.838]
+[select] mechanism ridge_ensemble               text acc 0.480 | align -0.031 [-0.911, +0.858]
+[select] mechanism ridge_template               text acc 0.468 | align -0.037 [-0.968, +0.815]
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] model 0.3752 -> retrieval_t30_descriptions_entropy_k16 0.4065 (+3.13 [+0.15, +3.16]) | oracle-gamma +5.69
+[test] part A {"support_rule": 44.18531562877927, "model": 37.52369399817346, "oracle_unit": 51.87478380374324, "head_recovery": -0.8663306068806285, "fixable_share_of_points": 0.2674967447916667, "boundary_share_of_points": 0.10896809895833333, "boundary_share_of_fixable": 0.09674475205354427, "boundary_enrichment": 0.8878263728408903, "boundary_share_of_model_errors": 0.13269339356295878, "fixable_share_by_support_tercile": [0.5050197748707028, 0.17341040462427745, 0.32156982050501975], "support_tercile_cuts": [0.4258626302083333, 0.4746907552083333], "spearman_oracle_gain_vs_support_fg": 0.4999999999999999}
+P3.0 mechanism         text acc 0.705 (bar 0.6), alignment +0.069 [-0.745, +0.962]: fails, stop text on this feature space
+P3.3 in between        frozen +3.13 (above 0), oracle-gamma +5.69
+P3.4 entropy weight    -0.88 [-2.13, +1.47]: not claimable
+A head recovery        support rule 44.19 -> E1 37.52 -> oracle 51.87: the head recovers -0.87 of the gap
+A fixable points       0.267 of points; boundary share 0.097 vs 0.109 of all points, enrichment 0.89: region-level confusions: a global prototype shift
+A support quality      Spearman(oracle gain, support foreground fraction) +0.50; fixable share by support tercile small/mid/large [0.505, 0.173, 0.322]
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] fixed100: cr:model 37.52 | cr:U 44.64 | cr:both 38.99 | cr:lp 38.99 | m5b:model 0.00 | m5b:U 23.38 | m5b:both 22.75 | m5b:lp 20.88 | 3 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:0: cr:model 52.79 | cr:U 52.23 | cr:both 50.40 | cr:lp 50.60 | m5b:model 1.00 | m5b:U 20.71 | m5b:both 24.94 | m5b:lp 33.01 | 3 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:1: cr:model 34.14 | cr:U 38.51 | cr:both 39.67 | cr:lp 40.37 | m5b:model 5.33 | m5b:U 11.59 | m5b:both 13.19 | m5b:lp 18.34 | 3 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] random600:2: cr:model 32.84 | cr:U 32.68 | cr:both 35.02 | cr:lp 34.06 | m5b:model 4.92 | m5b:U 19.35 | m5b:both 15.51 | m5b:lp 11.87 | 3 episodes
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[test] leakfree: cr:model 14.23 | cr:U 17.33 | cr:both 19.61 | cr:lp 20.65 | m5b:model 1.76 | m5b:U 9.43 | m5b:both 6.49 | m5b:lp 3.24 | 3 episodes
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[modules] model 3.18 | U 16.38 | cos_oracle 33.05 | lda_oracle_0.1 62.57 | lda_free_0.1 13.03 | lda_oracle_0.3 61.77 | lda_free_0.3 14.49 | lda_oracle_0.5 60.21 | lda_free_0.5 16.59 | proj_4 20.47 | proj_8 20.79 | proj_16 20.61 | km_2 24.41 | km_3 21.25 | comp_r0_l0.1_k1 13.03 | comp_r0_l0.1_k2 12.25 | comp_r0_l0.1_k3 11.02 | comp_r0_l0.3_k1 14.49 | comp_r0_l0.3_k2 12.80 | comp_r0_l0.3_k3 11.82 | comp_r0_l0.5_k1 16.59 | comp_r0_l0.5_k2 14.38 | comp_r0_l0.5_k3 13.48 | comp_r4_l0.1_k1 14.14 | comp_r4_l0.1_k2 14.15 | comp_r4_l0.1_k3 14.43 | comp_r4_l0.3_k1 15.34 | comp_r4_l0.3_k2 15.22 | comp_r4_l0.3_k3 15.48 | comp_r4_l0.5_k1 16.15 | comp_r4_l0.5_k2 15.90 | comp_r4_l0.5_k3 16.43 | comp_r8_l0.1_k1 14.17 | comp_r8_l0.1_k2 14.80 | comp_r8_l0.1_k3 15.04 | comp_r8_l0.3_k1 15.41 | comp_r8_l0.3_k2 15.64 | comp_r8_l0.3_k3 16.01 | comp_r8_l0.5_k1 16.08 | comp_r8_l0.5_k2 16.58 | comp_r8_l0.5_k3 16.93 | comp_r16_l0.1_k1 14.42 | comp_r16_l0.1_k2 14.85 | comp_r16_l0.1_k3 15.50 | comp_r16_l0.3_k1 15.25 | comp_r16_l0.3_k2 15.98 | comp_r16_l0.3_k3 16.28 | comp_r16_l0.5_k1 16.15 | comp_r16_l0.5_k2 16.89 | comp_r16_l0.5_k3 17.30
+incomplete                                                               m5a: no part B result
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+[stats] cr: {"points": 15815, "instances": {"4": 4, "8": 4, "10": 2, "11": 6}, "trace_w": 0.09229510984522911, "trace_eta": 0.06975489866348225, "pr_w": 6.846902766473347, "pr_eta": 2.6224014749804874}
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[metric] valid: U 21.77 | maha_0.1 27.03 | maha_0.3 27.71 | maha_0.5 27.91 | maha_0.7 27.92 | maha_0.9 26.68 | maha_1.0 22.19
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[metric] fixed100: U 44.64 | maha_0.1 40.29 | maha_0.3 41.11 | maha_0.5 41.92 | maha_0.7 42.70 | maha_0.9 44.06 | maha_1.0 43.18
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[metric] random600:0: U 52.23 | maha_0.1 44.53 | maha_0.3 48.69 | maha_0.5 49.54 | maha_0.7 48.83 | maha_0.9 48.94 | maha_1.0 52.85
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[metric] random600:1: U 38.51 | maha_0.1 38.16 | maha_0.3 38.92 | maha_0.5 38.84 | maha_0.7 38.35 | maha_0.9 38.11 | maha_1.0 38.58
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[metric] random600:2: U 32.68 | maha_0.1 32.38 | maha_0.3 32.90 | maha_0.5 33.82 | maha_0.7 34.98 | maha_0.9 35.47 | maha_1.0 35.30
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+Test dataset (datasets/S3DIS/blocks_bs1_s1/vipseg_eval_S_1_N_2_K_5_test_episodes_100_pts_2048) does not exist...
+ Constructing...
+[kcurve] e(k) [0.2807357728481293, 0.2369038075208664, 0.2306966483592987, 0.2296626091003418] fit {'a': 0.21009948290124233, 'c': 0.06767257683131153, 'r2': 0.9447521645709369, 'bias_share': 0.7483887100305548} | model_k1 25.83 | U_k1 25.56 | oracle_k1 27.82 | maha_k1 25.44 | model_k2 25.78 | U_k2 25.64 | oracle_k2 27.82 | maha_k2 25.32 | model_k3 25.75 | U_k3 25.62 | oracle_k3 27.82 | maha_k3 25.27 | model_k5 25.78 | U_k5 25.62 | oracle_k5 27.82 | maha_k5 25.19
+P10.3 bias-dominated: training that removes the systematic shift is the lever e(k) [0.2807, 0.2369, 0.2307, 0.2297] for k [1, 2, 3, 5]; a 0.2101, c 0.0677, R2 0.945, bias share 0.75; U by k [25.56, 25.64, 25.62, 25.62], oracle [27.82, 27.82, 27.82, 27.82], metric [25.44, 25.32, 25.27, 25.19]
+P10.4 fails (lambda 0.7)                                                 metric - U fixed100 -1.94 [-2.33, -0.01]; random600 [-3.39, -0.17, 2.29]; isotropic control -1.46
+=== D46 smoke FINISHED 2026-09-28T04:31:57+00:00

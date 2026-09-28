@@ -1,0 +1,45 @@
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+[stats] cr: {"points": 3457885, "instances": {"0": 960, "3": 730, "4": 678, "8": 755, "10": 677, "11": 684}, "trace_w": 0.07166085829132952, "trace_eta": 0.13820188369539196, "pr_w": 11.12285603183782, "pr_eta": 6.124680871765885}
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[metric] valid: U 55.96 | maha_0.1 54.24 | maha_0.3 55.65 | maha_0.5 56.39 | maha_0.7 56.98 | maha_0.9 57.56 | maha_1.0 57.20
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[metric] fixed100: U 55.74 | maha_0.1 53.74 | maha_0.3 55.26 | maha_0.5 56.02 | maha_0.7 56.59 | maha_0.9 57.21 | maha_1.0 56.85
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[metric] random600:0: U 55.55 | maha_0.1 52.77 | maha_0.3 54.01 | maha_0.5 54.77 | maha_0.7 55.45 | maha_0.9 56.29 | maha_1.0 56.48
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[metric] random600:1: U 57.85 | maha_0.1 55.15 | maha_0.3 56.79 | maha_0.5 57.62 | maha_0.7 58.34 | maha_0.9 59.16 | maha_1.0 59.06
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[metric] random600:2: U 57.18 | maha_0.1 54.20 | maha_0.3 55.76 | maha_0.5 56.50 | maha_0.7 57.12 | maha_0.9 58.11 | maha_1.0 58.40
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[kcurve] e(k) [0.20287541863613834, 0.17873184416981575, 0.17102098739509092, 0.1654518083737927] fit {'a': 0.1555700197789435, 'c': 0.047114743996260956, 'r2': 0.9994268500015127, 'bias_share': 0.7668253789679756} | model_k1 55.33 | U_k1 56.32 | oracle_k1 80.83 | maha_k1 57.40 | model_k2 59.24 | U_k2 60.22 | oracle_k2 80.48 | maha_k2 61.29 | model_k3 61.12 | U_k3 61.63 | oracle_k3 80.53 | maha_k3 62.74 | model_k5 62.52 | U_k5 62.74 | oracle_k5 80.48 | maha_k5 63.90
