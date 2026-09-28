@@ -197,3 +197,83 @@ def test_pa10_rules():
     weak = names({"m5a": part(0.62), "m5b": part(0.50)}, draws(3, 3, rand_a=(1.0, -0.1, 1.0)))
     assert "D46.2 m5a U fails at +1" in weak and any("D46.3" in n for n in weak)
     assert names({"m5a": part(0.62), "m5b": part(0.50)}, {})[-1] == "incomplete"  # no draws
+
+
+# ------------------------------------------------------------------ amendment 1: P10.3, P10.4
+
+
+def test_pa11_class_statistics_by_hand():
+    import numpy as np
+
+    g = torch.Generator().manual_seed(7)
+    blocks = [(torch.randn(40, 4, generator=g, dtype=torch.float64), c) for c in (3, 3, 5, 5, 5, 8)]
+    st = p10.ClassStats(4, min_points=16)
+    for u, c in blocks:
+        mask = torch.zeros(40, dtype=torch.bool)
+        mask[:20] = True
+        st.add(u, mask, c)
+    st.add(torch.randn(40, 4, generator=g, dtype=torch.float64), torch.arange(40) < 10, 3)  # 10 < 16 points: skipped
+    w, eta, info = st.finalize()
+    xs = [u[:20].numpy() for u, _ in blocks]
+    ref_w = sum((x - x.mean(0)).T @ (x - x.mean(0)) for x in xs) / (20 * len(xs))
+    assert np.allclose(w.numpy(), ref_w)
+    means = {3: [xs[0].mean(0), xs[1].mean(0)], 5: [x.mean(0) for x in xs[2:5]]}  # class 8 has one instance: no term
+    ref_eta = sum((np.stack(m) - np.stack(m).mean(0)).T @ (np.stack(m) - np.stack(m).mean(0)) for m in means.values()) / 5
+    assert np.allclose(eta.numpy(), ref_eta)
+    assert info["instances"] == {"3": 2, "5": 3, "8": 1} and info["points"] == 120
+
+
+def test_pa12_metric_rule_is_the_nearest_mean_in_the_shared_metric():
+    g = torch.Generator().manual_seed(8)
+    f_q, f_s = torch.randn(2, 30, 5, generator=g, dtype=torch.float64), torch.randn(2, 1, 25, 5, generator=g,
+                                                                                    dtype=torch.float64)
+    s_y = torch.zeros(2, 1, 25, dtype=torch.long)
+    s_y[0, 0, :8], s_y[1, 0, 8:16] = 1, 1
+    a = torch.randn(5, 5, generator=g, dtype=torch.float64)
+    sw, se = a @ a.T / 5, torch.diag(torch.tensor([0.5, 0.1, 0.1, 0.05, 0.01], dtype=torch.float64))
+    assert torch.allclose(p10.metric_cov(sw, se, 5, 0.0), sw + se / 5)
+    cov = p10.metric_cov(sw, se, 1, 0.3)
+    u = F.normalize(f_q, dim=-1)
+    m = p10.p9.support_means(f_s, s_y)  # [3, 5]
+    d = torch.stack([torch.stack([(u[b] - m[c]) @ torch.linalg.solve(cov, (u[b] - m[c]).T) for c in range(3)], -1)
+                     .diagonal(dim1=0, dim2=1).T for b in range(2)])  # [2, 30, 3] squared Mahalanobis
+    assert torch.equal(p10.metric_logits(f_q, f_s, s_y, cov).argmax(-1), d.argmin(-1))
+    iso = p10.metric_cov(sw, se, 1, 1.0)  # λ = 1: a multiple of I, the Euclidean nearest mean
+    e = torch.cdist(u, m.unsqueeze(0).expand(2, -1, -1))
+    assert torch.allclose(iso, iso[0, 0] * torch.eye(5, dtype=torch.float64))
+    assert torch.equal(p10.metric_logits(f_q, f_s, s_y, iso).argmax(-1), e.argmin(-1))
+
+
+def test_pa13_curve_fit_bands_and_rules():
+    f = p10.fit_curve(p10.KS, [0.1 + 0.3 / k for k in p10.KS])
+    assert f["a"] == pytest.approx(0.1) and f["c"] == pytest.approx(0.3) and f["r2"] == pytest.approx(1.0)
+    assert f["bias_share"] == pytest.approx(0.1 / 0.4)
+    assert p10.fit_curve(p10.KS, [-0.05 + 0.3 / k for k in p10.KS])["bias_share"] == 0.0  # a < 0 counts as no bias
+    assert p10.bias_band(0.5).startswith("bias") and p10.bias_band(0.25).startswith("variance")
+    assert p10.bias_band(0.49) == "mixed" and p10.bias_band(0.26) == "mixed"
+    valid = {"miou": {f"maha_{lam}": 0.5 + 0.01 * i for i, lam in enumerate(p10.LAMBDAS)}}  # λ = 1 highest
+    assert p10.frozen_lambda(valid) == 0.9
+    ok = {"gain": 0.5, "ci_low": 0.1, "ci_high": 0.9}
+    assert p10.metric_verdict(ok, [0.1, 0.2, 0.3]) and not p10.metric_verdict(dict(ok, gain=0.49), [0.1, 0.2, 0.3])
+    assert not p10.metric_verdict(ok, [0.1, -0.01, 0.3])
+
+
+def test_pa14_nested_shots_and_prototype_error():
+    ep = episode(n=2, k=3, bq=2, seed=9)
+    one = p10.subset_shots(ep, 1)
+    assert one.k_shot == 1 and torch.equal(one.support_x[:, 0], ep.support_x[:, 0]) and one.query_x is ep.query_x
+    with pytest.raises(ValueError):
+        p10.subset_shots(ep, 4)
+    g = torch.Generator().manual_seed(10)
+    f_s, f_q = torch.randn(2, 3, 2048, 6, generator=g, dtype=torch.float64), torch.randn(2, 2048, 6, generator=g,
+                                                                                       dtype=torch.float64)
+    errs = p10.prototype_errors(f_q, f_s, ep.support_y, ep.query_y)
+    rows = p10.p5.support_directions(f_s, ep.support_y)
+    ref = []
+    for b in range(2):
+        for c in (1, 2):
+            sel = ep.query_y[b] == c
+            if sel.any():
+                o = F.normalize(F.normalize(f_q[b, sel], dim=-1).sum(0), dim=0)
+                ref.append(1.0 - float(o @ rows[c]))
+    assert errs == pytest.approx(ref)

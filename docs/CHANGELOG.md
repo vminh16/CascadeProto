@@ -1762,3 +1762,24 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   - `experiments/p10_align_probe.py` (base / gate / decide) and `experiments/run_d46.sh smoke|full`.
 * **Tests.** PA-1...10 (05 §3.8w). Mutation check 8/8: the mechanism threshold survived at first, and PA-10 gained
   a case for it. The local CPU suite (proto_align, vicreg, adrm_loss, distill, cascadeproto) passes: 133 tests.
+
+### 16az - D-46 amendment 1: the K-shot curve (P10.3) and a metric from base-class statistics (P10.4) (not run)
+
+* **Why.** The maintainer does not optimise for one shot alone, and an external review (`debate.md`) was checked
+  against the code and the results.
+  * With s_k = μ + b + ε_k, the error is E‖δ_K‖² = ‖b‖² + tr(Σ_η)/K. At one shot, the instance term needs a prior on
+    the novel class.
+  * P10.3 splits the 1-shot gap into bias and variance. It scores the first k ∈ {1, 2, 3, 5} shots of 1,500 seeded
+    5-shot test episodes and fits e(k) = a + c/k.
+  * P10.4 is the reviewer's one new and unmeasured proposal, in its Bayes form:
+    - the support means are scored under shrink(Σ_w + Σ_η/K, λ), with Σ_w and Σ_η from base-class foregrounds of
+      the training episodes;
+    - λ is selected on valid, and the result is tested against U at +0.5.
+* **Review findings.**
+  * The EVT argument is right in principle, but P9 measured the pathway at ψ ≈ 0.
+  * The VICReg critique agrees with D-45. Its Fisher-style replacement would deepen the collapse.
+  * The EPPM and Eq. 9 points concern route A only.
+  * The 70-77 % projection is not a measurement.
+* **Code.** `p10_align_probe.py` gains the stages `stats`, `metric`, `kcurve` and `amend`. `run_d46.sh` runs them in
+  the background next to P10.1 and P10.2.
+* **Tests.** PA-11...14; mutation check 10/10.

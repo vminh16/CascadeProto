@@ -2090,6 +2090,54 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   (`align_weight`, `align_tau`; λ L_align is added to D-45's `loss_reg`, so the model contract is unchanged),
   `train.py` (`--align_weight`, `--align_tau`, run tag `_align<λ>`), `experiments/run_d46.sh`,
   `tests/test_proto_align.py`, 05 §3.8w.
+* **Amendment 1 (2026-09-28, maintainer request after an external review, before any GPU run): two more
+  measurements in part A, and the goal read per shot count.**
+  * **Why.** The maintainer does not optimise for one shot alone.
+    - Model K-shot prototypes as s_k = μ_c + b + ε_k, with b the systematic support–query shift (sampling
+      condition, background composition) and ε_k the instance, of covariance Σ_η. Then
+      E‖δ_K‖² = ‖b‖² + tr(Σ_η)/K.
+    - At K = 1 the instance term cannot be removed by any rule that sees one support example and unlabelled query
+      points; only an informative prior on the novel class can (the Bayes estimate needs m₀, Σ₀ of an unseen class).
+    - So a 1-shot score at the cosine oracle asks for foundation-model-level prior knowledge.
+    - A method is worth training if it removes b, which helps at every K. The instance term shrinks with K by itself.
+  * **Review of the external critique** (`debate.md`, checked against the code and results):
+    - The EVT argument against D-43's max-pool is right in principle: a sparse set is a subset of the dense one, so
+      its max is lower. P9 measured that pathway at ψ −0.003 / −0.008, so it does not explain D-43.
+    - The VICReg critique agrees with D-45's outcome. Its proposed Tr Σ_w − γ log det Σ_b would deepen the collapse
+      (NC1; Σ_b of C base classes has rank ≤ C − 1) and is not adopted.
+    - The EPPM (D-01, D-18) and Eq. 9 points concern route A, which the clean base does not use.
+    - The 70–77 % projection sums guessed ranges and oracle bounds; it is not a measurement.
+    - One proposal is new and unmeasured: a metric from base-class statistics (P10.4). P9's label-free LDA used the
+      query's own total covariance, and its projection is the hard limit of this rule.
+  * **P10.3 — the K-shot curve** (CR, inference; a diagnostic, not a benchmark number, since CR is trained at
+    K = 1).
+    - Episodes: 1,500 seeded 2-way 5-shot test episodes (`build_eval_dataset`, K = 5, seed 0, 100 per pair). Each is
+      scored with its first k shots, k ∈ {1, 2, 3, 5}: the same queries, nested supports.
+    - Per k: U, the model, the cosine oracle and P10.4's frozen rule (with Σ_η / k).
+    - The prototype error e(k) = mean over (episode, foreground class present in a query block) of 1 − cos(p̂_k, μ),
+      with μ the query's own unit class direction.
+    - Fit e(k) = a + c / k by least squares. Bias share β = max(a, 0) / e(1).
+    - **Bands, fixed now (conventions):**
+      - β ≥ 0.5, bias-dominated: the 1-shot gap is mostly systematic, and training that removes it is the lever.
+      - β ≤ 0.25, variance-dominated: the 1-shot gap is mostly the single support instance. The goal is read per
+        shot count and no further 1-shot-specific prototype fix is proposed.
+      - Otherwise mixed.
+  * **P10.4 — a metric from base-class statistics** (no training).
+    - Statistics: on P10.1's 1,000 training episodes, each block's base-class foreground (at least 16 points) gives
+      the mean m of its unit features.
+      - Σ_w is the pooled within-class covariance of the unit features around their block's m.
+      - Σ_η is the pooled covariance of the m of one class across blocks around that class's mean.
+    - Rule: `p9.lda_logits` with the support's unit-feature means (`p9.support_means`) and
+      C = shrink(Σ_w + Σ_η / K, λ), λ ∈ {0.1, 0.3, 0.5, 0.7, 0.9, 1.0}.
+      - With Gaussian features and prototypes this is the Bayes rule for a prototype estimated from K instances.
+      - λ = 1 is the isotropic control, which separates the metric from the switch to means.
+    - λ is selected on valid among λ < 1. The frozen arm is tested on fixed100 and random600 seeds 0–2 against U.
+    - **P10.4 holds** when frozen − U holds at +0.5: fixed100 gain ≥ 0.5, CI above 0, and > 0 on all three random600
+      draws. +0.5 is P9's bar for a label-free rule. The metric then enters the next decision's stack.
+    - **It fails otherwise**, and with P9's results the metric-head line (D-42 M3) closes.
+  * **Unchanged.** P10.1 still gates part B; P10.3 and P10.4 run next to P10.1 and P10.2 on the same GPU.
+  * **Affects.** `experiments/p10_align_probe.py` (stages `stats`, `metric`, `kcurve`), `experiments/run_d46.sh`,
+    `tests/test_proto_align.py` (PA-11…14).
 
 ---
 
@@ -2210,4 +2258,5 @@ IDs `S1`–`S17` refer to Section 4 of the audit.
 | 2026-09-27 | D-44 amended (statistics arm; 3090 with local data; composite arm) and measured: encoder branch closed (no ψ above 0.02); only the metric head is admissible, by its oracle; the features are collapsed (participation ratio 5.56). |
 | 2026-09-27 | D-45 (maintainer request): M2, VICReg's variance and covariance terms on the query point features against the collapse P9 measured (post hoc, rules fixed before training); two weights, one seed each, a monitor with an early stop, a collapse census of every kept checkpoint. |
 | 2026-09-27 | D-45 measured: D45.3. VICReg widens the features (participation ratio 42 / 95) but U falls 5.2 / 11.3 points below CR, and no oracle rises. The collapse is shared by every checkpoint, VIP-Seg's included. The M2 line stops. |
+| 2026-09-28 | D-46: P10 (the base-class prototype gap gates M5 alignment training; P3's text probe on CR) and M5 (prototype alignment, two weights). Amendment 1 (maintainer request after an external review): P10.3, the K-shot curve that splits the 1-shot gap into bias and variance; P10.4, a metric from base-class statistics. |
 | 2026-09-19 | D-17: no `W_g` for T = 1 (identical prediction, no dead parameter). D-16 biases of `W_1`, `W_2`, `W_out` kept although Eq.20–21 print none (maintainer decision). |

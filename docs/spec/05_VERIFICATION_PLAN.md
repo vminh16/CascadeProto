@@ -639,8 +639,13 @@ model contract's optional fields.
 | PA-9 | The new and changed files parse as Python 3.10 | 00 §5.2 |
 | PA-10 | Rules D46.1–D46.4 on every branch, including a gap between the bar and CR's and a random600 draw below 0 | [DECISION D-46] |
 
-Mutation check (2026-09-28), 8 mutants: 8 killed after PA-10 gained the case of a gap between the bar and CR's (the
-mechanism threshold survived before).
+| PA-11 | P10.4's statistics by hand: Σ_w pooled around each block's class mean, Σ_η pooled over block means per class; blocks under 16 points and single-instance classes contribute nothing to Σ_η | [DECISION D-46] amendment 1 |
+| PA-12 | The metric rule's argmax is the nearest support mean in C⁻¹, with C = shrink(Σ_w + Σ_η / k, λ); at λ = 1 C is a multiple of I and the rule is the Euclidean nearest mean | [DECISION D-46] amendment 1 |
+| PA-13 | e(k) = a + c / k recovered exactly; a negative intercept counts as no bias; the P10.3 bands at 0.5 and 0.25; λ = 1 is never frozen; P10.4 holds at +0.5 with every random600 draw above 0 | [DECISION D-46] amendment 1 |
+| PA-14 | The first-k-shots episode keeps the queries; the prototype error by hand over the foreground classes present | [DECISION D-46] amendment 1 |
+
+Mutation check (2026-09-28): 8 mutants, 8 killed after PA-10 gained the case of a gap between the bar and CR's (the
+mechanism threshold survived before); amendment 1, 10 mutants of `p10_align_probe.py`, 10 killed.
 
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
