@@ -168,10 +168,14 @@ class DescriptorProbe(torch.nn.Module):
         mlp = lambda: torch.nn.Sequential(torch.nn.Linear(3, width), torch.nn.ReLU(),  # noqa: E731
                                           torch.nn.Linear(width, 1))
         self.fg, self.bg = mlp(), mlp()
+        # input standardisation, set from the training descriptors: cosines sit in a narrow band (F12)
+        self.register_buffer("shift", torch.zeros(3))
+        self.register_buffer("scale", torch.ones(3))
 
     def forward(self, desc: torch.Tensor) -> torch.Tensor:
         """desc [..., N+1, 3] -> logits [..., N+1]."""
-        return torch.cat([self.bg(desc[..., :1, :]), self.fg(desc[..., 1:, :])], dim=-2).squeeze(-1)
+        x = (desc - self.shift) / self.scale  # [..., N+1, 3], the same map for every row
+        return torch.cat([self.bg(x[..., :1, :]), self.fg(x[..., 1:, :])], dim=-2).squeeze(-1)
 
 
 def train_probe(desc: torch.Tensor, y: torch.Tensor, epochs: int, lr: float = 1e-2, batch: int = 8192,
@@ -179,7 +183,10 @@ def train_probe(desc: torch.Tensor, y: torch.Tensor, epochs: int, lr: float = 1e
     """CE of the probe on (descriptors [M, N+1, 3], episode labels [M]); deterministic for a seed."""
     g = torch.Generator(device="cpu").manual_seed(seed)
     torch.manual_seed(seed)
-    probe = DescriptorProbe().to(desc.device)
+    probe = DescriptorProbe().to(desc.device, desc.dtype)
+    flat = desc.reshape(-1, desc.shape[-1])  # [M * (N+1), 3], every row's descriptor (the last axis is kept)
+    probe.shift.copy_(flat.mean(dim=0))
+    probe.scale.copy_(flat.std(dim=0).clamp_min(1e-6))
     opt = torch.optim.Adam(probe.parameters(), lr=lr)
     for _ in range(epochs):
         order = torch.randperm(desc.shape[0], generator=g).to(desc.device)  # [M]

@@ -1866,3 +1866,7 @@ under the standard protocol. Every change is behind a flag whose default keeps t
     episode labels agree with the raw labels.
 * **Not yet.** The GPU run of P11 (fit, select, factorial on 7 draws, decide). The correlation neck of arm A is
   coded only if P11.4 holds.
+* **GPU smoke (RTX 3090, 2026-09-28).** Every stage ran end to end on 3–20 episodes. The raw-space probe scored 0
+  on the held-out base episodes: raw cosines sit in a narrow band and the probe underfit. The probe now standardises
+  its inputs from its training descriptors (P11-15 extended, mutation 18/18). Without this fix P11.4 would have
+  been biased toward failing.

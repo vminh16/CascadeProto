@@ -189,6 +189,18 @@ def test_p11_15_probe_is_equivariant_to_the_ways():
     out = probe(d)
     swapped = probe(d[:, [0, 2, 1]])
     assert torch.allclose(swapped, out[:, [0, 2, 1]])
+    # training standardises the inputs from the data and learns a separable toy problem
+    y = torch.randint(0, 3, (600,), generator=torch.Generator().manual_seed(3))
+    desc = 0.5 + 0.01 * rand(600, 3, 3, seed=18)  # a narrow band, as raw cosines
+    desc[torch.arange(600), y, 0] += 0.05  # the true row has the higher max
+    trained = corr.train_probe(desc, y, epochs=60, batch=128)
+    flat = desc.reshape(-1, 3)
+    assert torch.allclose(trained.shift, flat.mean(0)) and torch.allclose(trained.scale, flat.std(0))
+    assert float((trained(desc).argmax(-1) == y).double().mean()) > 0.9
+    # standardised inputs: an affine change of the descriptors gives the same trained probe's outputs
+    moved = corr.train_probe(desc * 10.0 + 3.0, y, epochs=5, batch=128)
+    again = corr.train_probe(desc, y, epochs=5, batch=128)
+    assert torch.allclose(moved(desc * 10.0 + 3.0), again(desc), atol=1e-8)
 
 
 # ------------------------------------------------------------------ attribution
