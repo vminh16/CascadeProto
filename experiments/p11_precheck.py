@@ -531,6 +531,141 @@ def run_factorial(ctx: Context, draw: str, data_path: str, params: Dict, arm: Di
     return res, stacked, cstack
 
 
+# ------------------------------------------------------------------ P11.6 (amendment 5): unmixing on the mean-rule base
+
+UNMIX_KS, UNMIX_TAUS = (16, 32), (0.7, 0.8, 0.9)  # conventions [DECISION D-48 amendment 5]
+R2_STOP, UNMIX_GAIN, OWN_DROP = 0.5, 0.5, 0.01
+
+
+def unmix_names() -> List[str]:
+    return [f"mbu_k{k}_t{t:g}" for k in UNMIX_KS for t in UNMIX_TAUS]
+
+
+@torch.no_grad()
+def run_unmix(ctx: Context, draw: str, data_path: str, arm: Dict,
+              max_episodes: Optional[int]) -> Tuple[Dict, Dict[str, np.ndarray], Dict[str, np.ndarray]]:
+    """On one draw: CR's stack U + both + LP (reference), the mean-rule base "mb" (+ LP) and every unmixing
+    configuration on it (+ LP); on valid_raw the oracle check of the linear mixture and the gate's selectivity."""
+    from models import unmix as um
+    from models.oracle_distill import oracle_directions
+    from pipeline.episodes import make_episode
+    from experiments import p9_placement_probe as p9
+
+    items, test_classes = draw_items(draw, data_path, max_episodes)
+    mu = ctx.fit["mu"].to(ctx.device)
+    counts: Dict[str, List[np.ndarray]] = {}
+    cond: Dict[str, List[np.ndarray]] = {}
+    oracle = {"own": ([], []), "other": ([], [])}  # (R^2, alpha) per point
+    gate_sel = {"own": [0, 0], "other": [0, 0], "bg": [0, 0]}  # gated, all (foreground row of the point's class)
+    skipped = 0
+    for it in items:
+        item = it["item"]
+        if (item[1].reshape(item[1].shape[0], -1).sum(1) == 0).any():
+            skipped += 1
+            continue
+        e = make_episode(item, ctx.names).to(ctx.device)
+        gt = e.query_y.cpu().numpy()
+        f_q, f_s = ctx.features(e)
+        u_q = F.normalize(f_q, dim=-1)
+        xyz = e.query_x[..., :3]
+        ref = unit_both_logits(f_q, f_s, e.support_y).argmax(-1)
+        mb = um.mean_both_logits(u_q, f_s, e.support_y, mu, p6.spherical_kmeans)
+        v = u_q - mu
+        p_fg = p9.support_means(f_s, e.support_y)[1:] - mu  # [N, D]
+        preds = {"ref": ref, "mb": mb.argmax(-1)}
+        ctxs = {k: um.context_means(v, xyz, k) for k in UNMIX_KS}
+        for k in UNMIX_KS:
+            for t in UNMIX_TAUS:
+                logits, gate = um.unmix_fg(mb, v, ctxs[k], p_fg, t)
+                preds[f"mbu_k{k}_t{t:g}"] = logits.argmax(-1)
+                if draw == "valid_raw" and k == UNMIX_KS[0] and t == UNMIX_TAUS[1]:
+                    g = gate.cpu().numpy()
+                    for b in range(gt.shape[0]):
+                        for c in range(1, gt.shape[0] + 1):
+                            pts = gt[b] == c
+                            key = "own" if c == b + 1 else "other"
+                            gate_sel[key][0] += int(g[b][pts, c - 1].sum())
+                            gate_sel[key][1] += int(pts.sum())
+                        bgp = gt[b] == 0
+                        gate_sel["bg"][0] += int(g[b][bgp].any(-1).sum())
+                        gate_sel["bg"][1] += int(bgp.sum())
+        seeds = list(preds)
+        spread = spread_many(xyz, u_q, [preds[s] for s in seeds], mb.shape[-1], arm)
+        for s, pr in zip(seeds, spread):
+            preds[f"{s}+lp"] = pr
+        for name, pr in preds.items():
+            p_np = pr.cpu().numpy()
+            counts.setdefault(name, []).append(p0.episode_counts(p_np, gt, e.sampled_classes, test_classes))
+            cond.setdefault(name, []).append(p5.condition_counts(p_np, gt, e.sampled_classes, test_classes))
+        if draw == "valid_raw":  # the oracle check: v ~ alpha (own class mean) + gamma c(x), per point
+            o, present = oracle_directions(f_q, e.query_y, mb.shape[-1])  # unit directions of the query's classes
+            u_mean = torch.stack([torch.stack([u_q[b][e.query_y[b] == c].mean(0) if bool(present[b, c])
+                                               else torch.zeros_like(mu) for c in range(mb.shape[-1])])
+                                  for b in range(gt.shape[0])])  # [B_q, N+1, D], the query's own class means
+            for b in range(gt.shape[0]):
+                for c in range(1, mb.shape[-1]):
+                    pts = e.query_y[b] == c
+                    if int(pts.sum()) < p6.MIN_POINTS:
+                        continue
+                    r2, al = um.mixture_fit(v[b][pts].double(), (u_mean[b, c] - mu).double().expand(int(pts.sum()), -1),
+                                            ctxs[UNMIX_KS[0]][b][pts].double())
+                    key = "own" if c == b + 1 else "other"
+                    oracle[key][0].append(r2.cpu()), oracle[key][1].append(al.cpu())
+    stacked = {k: np.stack(v) for k, v in counts.items()}
+    cstack = {k: np.stack(v) for k, v in cond.items()}
+    res = {"draw": draw, "episodes": len(stacked["mb"]), "skipped": skipped, "test_classes": test_classes,
+           "lp_arm": arm, "miou": {k: 100.0 * float(p0.miou_from_counts(v.sum(0))) for k, v in stacked.items()},
+           "condition": {k: p5.split_summary(v.sum(0)) for k, v in cstack.items()}}
+    if draw == "valid_raw":
+        q = lambda x: [float(y) for y in np.quantile(x, [0.1, 0.25, 0.5, 0.75, 0.9])]  # noqa: E731
+        res["oracle_mixture"] = {k: {"points": int(sum(len(r) for r in v[0])),
+                                     "r2_quantiles": q(torch.cat(v[0]).numpy()) if v[0] else None,
+                                     "alpha_quantiles": q(torch.cat(v[1]).numpy()) if v[1] else None}
+                                 for k, v in oracle.items()}
+        res["gate_share"] = {k: v[0] / max(v[1], 1) for k, v in gate_sel.items()}
+    return res, stacked, cstack
+
+
+def recall_means(summary: Dict) -> Tuple[float, float]:
+    return float(np.nanmean(summary["recall_own"])), float(np.nanmean(summary["recall_other"]))
+
+
+def decide_unmix(out_dir: str, name: str, tag: str) -> List[Tuple[str, str]]:
+    """Rule P11.6 [DECISION D-48 amendment 5]."""
+    draws = {}
+    for d in FACTORIAL_DRAWS:
+        path = os.path.join(out_dir, f"p11u_{d.replace(':', '_seed')}_{name}{tag}.json")
+        if os.path.isfile(path):
+            draws[d] = (json.load(open(path)), dict(np.load(path.replace(".json", "_counts.npz"))))
+    missing = [d for d in FACTORIAL_DRAWS if d not in draws]
+    if missing:
+        return [("incomplete", f"missing draws {missing}")]
+    v = []
+    om = draws["valid_raw"][0]["oracle_mixture"]
+    r2_other = om["other"]["r2_quantiles"][2] if om["other"]["r2_quantiles"] else float("nan")
+    v.append(("P11.6 oracle mixture", f"median R2 other {r2_other:.3f} (stop below {R2_STOP:g}), own "
+              f"{om['own']['r2_quantiles'][2]:.3f}; alpha quantiles other {[round(a, 3) for a in om['other']['alpha_quantiles']]}; "
+              f"gate share {json.dumps({k: round(x, 3) for k, x in draws['valid_raw'][0]['gate_share'].items()})}"))
+    ok_nb, text_nb = holds_at(draws, "ref+lp", "mb+lp", 0.0)
+    m = draws["fixed100"][0]["miou"]
+    v.append(("P11.6 new base (mean rule + both + LP) vs CR's U + both + LP",
+              f"{text_nb}; fixed100 {m['mb+lp']:.2f} vs {m['ref+lp']:.2f}; leak-free "
+              f"{draws['leakfree'][0]['miou']['mb+lp']:.2f} vs {draws['leakfree'][0]['miou']['ref+lp']:.2f}"))
+    best = max(unmix_names(), key=lambda n: draws["valid"][0]["miou"][n])
+    ok, text = holds_at(draws, "mb+lp", f"{best}+lp", UNMIX_GAIN)
+    lf = draws["leakfree"][0]["miou"]
+    lf_d = lf[f"{best}+lp"] - lf["mb+lp"]
+    c = draws["fixed100"][0]["condition"]
+    own0, oth0 = recall_means(c["mb+lp"])
+    own1, oth1 = recall_means(c[f"{best}+lp"])
+    mech = oth1 > oth0 and own1 >= own0 - OWN_DROP
+    keep = (r2_other >= R2_STOP) and ok and lf_d >= 0 and mech
+    v.append((f"P11.6 unmixing {'kept' if keep else 'not kept'} ({best})",
+              f"{best}+lp - mb+lp {text}; leak-free {lf_d:+.2f}; recall own {own0:.3f} -> {own1:.3f}, other "
+              f"{oth0:.3f} -> {oth1:.3f} ({'mechanism holds' if mech else 'no mechanism'})"))
+    return v
+
+
 # ------------------------------------------------------------------ decide
 
 def load_draw(out_dir: str, name: str, draw: str, tag: str):
@@ -624,7 +759,7 @@ def decide(out_dir: str, name: str, tag: str) -> List[Tuple[str, str]]:
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("stage", choices=["fit", "select", "factorial", "decide"])
+    p.add_argument("stage", choices=["fit", "select", "factorial", "decide", "unmix", "decide_unmix"])
     p.add_argument("--data_path")
     p.add_argument("--checkpoint", help="name:ours:1:path of a clean-base checkpoint")
     p.add_argument("--name", default="cr")
@@ -635,8 +770,8 @@ def main(argv=None) -> int:
     p.add_argument("--out_dir", default=OUT_DIR)
     args = p.parse_args(argv)
     out_dir = args.out_dir if os.path.isabs(args.out_dir) else os.path.join(REPO, args.out_dir)
-    if args.stage == "decide":
-        for name, text in decide(out_dir, args.name, args.tag):
+    if args.stage in ("decide", "decide_unmix"):
+        for name, text in (decide if args.stage == "decide" else decide_unmix)(out_dir, args.name, args.tag):
             print(f"{name:72s} {text}", flush=True)
         return 0
     if not (args.data_path and args.checkpoint):
@@ -661,9 +796,20 @@ def main(argv=None) -> int:
         print(f"[select] psi {sel['psi']} kappa {sel['kappa']} eps {sel['eps']} rho {sel['rho']} | spearman "
               f"{sel['spearman_gamma_kappa_star']:+.3f}", flush=True)
         return 0
+    arm = p7.arm_of(json.load(open(os.path.join(REPO, P7_FIXED)))["frozen"])  # P7's frozen arm, selected on CR
+    if args.stage == "unmix":
+        for draw in args.draw or FACTORIAL_DRAWS:
+            res, stacked, cstack = run_unmix(ctx, draw, args.data_path, arm, args.max_episodes)
+            res["checkpoint"] = vars(ck)
+            stem = f"p11u_{draw.replace(':', '_seed')}_{ck.name}{args.tag}"
+            p6.save(res, stacked, stem, out_dir)
+            np.savez_compressed(os.path.join(out_dir, stem + "_cond.npz"), **cstack)
+            m = res["miou"]
+            print(f"[unmix] {draw}: ref+lp {m['ref+lp']:.2f} | mb {m['mb']:.2f} | mb+lp {m['mb+lp']:.2f} | "
+                  + " | ".join(f"{n} {m[n]:.2f}" for n in unmix_names()), flush=True)
+        return 0
     sel = json.load(open(os.path.join(out_dir, f"p11_select_{ck.name}{args.tag}.json")))
     params = {k: sel[k] for k in ("psi", "kappa", "eps", "rho")}
-    arm = p7.arm_of(json.load(open(os.path.join(REPO, P7_FIXED)))["frozen"])  # P7's frozen arm, selected on CR
     for draw in args.draw or FACTORIAL_DRAWS:
         res, stacked, cstack = run_factorial(ctx, draw, args.data_path, params, arm, args.max_episodes)
         res["checkpoint"] = vars(ck)

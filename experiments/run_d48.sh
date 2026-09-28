@@ -49,7 +49,7 @@ LOG="$OUT/d48_${MODE}.log"
         [ -f "$OUT/p11_${d/:/_seed}_cr.json" ] || args+=(--draw "$d")
       done
       [ ${#args[@]} -eq 0 ] && continue
-      $PY $P factorial "${C[@]}" "${args[@]}" > "$OUT/factorial_${group%% *}.log" 2>&1 &
+      $PY $P factorial "${C[@]}" "${args[@]}" > "$OUT/factorial_${group%%[: ]*}.log" 2>&1 &
       PIDS+=($!)
     done
     for p in "${PIDS[@]}"; do wait "$p" || echo "=== a factorial process failed"; done

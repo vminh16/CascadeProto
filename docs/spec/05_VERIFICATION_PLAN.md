@@ -675,9 +675,14 @@ mechanism threshold survived before); amendment 1, 10 mutants of `p10_align_prob
 | P11-21 | valid_raw point kinds: own and other foreground, base, clutter and novel background | [DECISION D-48] amendment 1 |
 | P11-22 | D48.1': kept only with Shapley ≥ bar, fixed100 CI above 0 and every random600 value above 0 | [DECISION D-48] amendment 3 |
 | P11-23 | The oracle contrast share of a projection space: 1 inside the kept span, 0 on the smallest directions, 1 for a space without projection | [DECISION D-48] amendment 2 (F20) |
+| P11-24 | The mean rule is the Euclidean nearest mean up to a term shared by the rows | [DECISION D-48] amendment 5 |
+| P11-25 | "both" in mean form: the background score is the max of the (self-supported) background mean and the three cluster means | [DECISION D-48] amendment 5 |
+| P11-26 | Cluster means by hand; the spatial context excludes the point itself; k ≥ P raises | [DECISION D-48] amendment 5 |
+| P11-27 | Unmixing recovers the abundance exactly for orthogonal and oblique contexts, leaves the background column alone, and skips a context parallel to the class (the gate) | [DECISION D-48] amendment 5 (F24) |
+| P11-28 | The oracle mixture fit gives R² = 1 and the true abundance on an exact mixture | [DECISION D-48] amendment 5 |
 
-Mutation check (2026-09-28): 18 mutants of `base_learner.py`, `ot_assign.py`, `correlation.py`, `attribution.py` and
-`p11_precheck.py`, 18 killed (the 18th, the probe's input standardisation, added after the GPU smoke). P11-9's `ot_logits` check and P11-22 were written for the bias-sign and CI mutants,
+Mutation check (2026-09-28): 23 mutants of `base_learner.py`, `ot_assign.py`, `correlation.py`, `attribution.py`, `unmix.py` and
+`p11_precheck.py`, 23 killed (the 18th, the probe's input standardisation, added after the GPU smoke). P11-9's `ot_logits` check and P11-22 were written for the bias-sign and CI mutants,
 which the first draft of the tests would not have caught.
 
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)

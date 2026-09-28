@@ -295,6 +295,81 @@ def test_p11_22_kept_rule():
     assert not att.kept(fixed, [{"shapley:x": 0.3}, {"shapley:x": -0.1}, {"shapley:x": 0.3}], "x", 0.5)
 
 
+# ------------------------------------------------------------------ P11.6 unmixing (amendment 5)
+
+def test_p11_24_mean_scores_are_the_euclidean_nearest_mean():
+    from models import unmix as um
+
+    v = rand(2, 30, 6, seed=20)
+    p = rand(2, 4, 6, seed=21)
+    s = um.mean_scores(v, p)
+    d = -0.5 * ((v.unsqueeze(2) - p.unsqueeze(1)) ** 2).sum(-1) + 0.5 * (v * v).sum(-1, keepdim=True)
+    assert torch.allclose(s, d)
+
+
+def test_p11_25_mean_both_without_self_support():
+    from experiments import p6_prototype_probe as p6
+    from models import unmix as um
+
+    f_s = rand(2, 1, 12, 5, seed=22)
+    y = torch.zeros(2, 1, 12, dtype=torch.long)
+    y[0, 0, :4], y[1, 0, 4:7] = 1, 1
+    u_q = unit(2, 10, 5, seed=23)  # 10 points < 16: the self-support never updates
+    mu = rand(5, seed=24) * 0.1
+    out = um.mean_both_logits(u_q, f_s, y, mu, p6.spherical_kmeans)
+    u_s = F.normalize(f_s, dim=-1)
+    bg = u_s[y == 0]
+    comps = um.cluster_means(bg, p6.spherical_kmeans(bg, 3))
+    rows = torch.stack([bg.mean(0), u_s[0, 0, :4].mean(0), u_s[1, 0, 4:7].mean(0)]) - mu
+    ref = um.mean_scores(u_q - mu, rows.expand(2, -1, -1))
+    comp = um.mean_scores(u_q - mu, (comps - mu).expand(2, -1, -1)).max(-1).values
+    assert torch.allclose(out[..., 1:], ref[..., 1:])
+    assert torch.allclose(out[..., 0], torch.maximum(ref[..., 0], comp))
+
+
+def test_p11_26_cluster_and_context_means():
+    from models import unmix as um
+
+    u = torch.tensor([[1.0, 0.0], [0.9, 0.1], [0.0, 1.0]], dtype=torch.float64)
+    c = torch.tensor([[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]], dtype=torch.float64)
+    m = um.cluster_means(u, c)
+    assert torch.allclose(m, torch.tensor([[0.95, 0.05], [0.0, 1.0], [-1.0, 0.0]], dtype=torch.float64))
+    xyz = torch.tensor([[[0.0, 0, 0], [1.0, 0, 0], [3.0, 0, 0], [10.0, 0, 0]]], dtype=torch.float64)
+    v = torch.arange(4, dtype=torch.float64).view(1, 4, 1).expand(1, 4, 2).clone()
+    ctx = um.context_means(v, xyz, 2)
+    assert torch.allclose(ctx[0, :, 0], torch.tensor([1.5, 1.0, 0.5, 1.5], dtype=torch.float64))  # self excluded
+    with pytest.raises(ValueError):
+        um.context_means(v, xyz, 4)
+
+
+def test_p11_27_unmix_recovers_the_abundance_and_respects_the_gate():
+    from models import unmix as um
+
+    p = torch.tensor([[1.0, 0.0, 0.0], [0.0, 0.0, 2.0]], dtype=torch.float64)  # two ways
+    ctx = torch.tensor([[[0.0, 1.0, 0.0], [0.99, 0.1, 0.0]]], dtype=torch.float64)  # orthogonal, then near-parallel
+    v = torch.stack([0.3 * p[0] + 0.8 * ctx[0, 0], 0.3 * p[0] + 0.8 * ctx[0, 1]]).unsqueeze(0)  # [1, 2, 3]
+    scores = rand(1, 2, 3, seed=25)
+    out, gate = um.unmix_fg(scores, v, ctx, p, tau=0.8)
+    assert torch.equal(out[..., 0], scores[..., 0])  # background untouched
+    assert bool(gate[0, 0, 0]) and not bool(gate[0, 1, 0])  # parallel context: not identified, not gated
+    assert float(out[0, 0, 1]) == pytest.approx(1.0 * (0.3 - 0.5))  # ||p||^2 (alpha - 1/2), alpha = 0.3
+    assert float(out[0, 1, 1]) == pytest.approx(float(scores[0, 1, 1]))
+    # an oblique context (cos 0.5 < tau): the abundance is still recovered exactly
+    obl = torch.tensor([[[0.5, 0.75 ** 0.5, 0.0]]], dtype=torch.float64)
+    out2, gate2 = um.unmix_fg(scores[:, :1], (0.3 * p[0] + 0.8 * obl[0, 0]).view(1, 1, 3), obl, p, tau=0.8)
+    assert bool(gate2[0, 0, 0]) and float(out2[0, 0, 1]) == pytest.approx(0.3 - 0.5)
+
+
+def test_p11_28_mixture_fit_is_exact_on_a_mixture():
+    from models import unmix as um
+
+    o, c = rand(50, 8, seed=26), rand(50, 8, seed=27)
+    a = torch.rand(50, generator=torch.Generator().manual_seed(1), dtype=torch.float64)
+    r2, alpha = um.mixture_fit(a.unsqueeze(-1) * o + 0.4 * c, o, c)
+    assert torch.allclose(r2, torch.ones(50, dtype=torch.float64), atol=1e-8)
+    assert torch.allclose(alpha, a, atol=1e-8)
+
+
 def test_p11_21_raw_readings_kinds():
     r = p11.RawReadings(base_classes=[0, 3], test_classes=[1, 2, 5, 6])
     gt = np.array([[1, 2, 0, 0, 0], [2, 1, 0, 0, 0]])
