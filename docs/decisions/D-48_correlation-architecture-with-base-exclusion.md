@@ -351,3 +351,50 @@
     - μ and Σ are the moments of the base-labelled points only.
     - Truncated whitening uses δ = 10⁻³ λ₁.
     - The P11.4 probe is equivariant across the ways: one MLP for the foreground rows and one for the background row.
+* **Amendment 5 (2026-09-28, maintainer request, while P11 runs and before its results are read): P11.6, context
+  unmixing, and a new inference base.**
+  * **Problem.** P10.5 puts the K-invariant bias in the other condition (b̂ 0.4158, bound g_other 5.48 at k = 1). P9
+    left one candidate untested: the class composition of each neighbourhood.
+    - The decoder of VIP-Seg's encoder interpolates coarse features from the 3 nearest coarse points [VIPSEG
+      models/encoder.py], which is a linear mixture.
+    - So to first order, a point of class c sitting sparsely in a context reads u_x ≈ a_x m_c + (1 − a_x) m_ctx(x) + ε_x.
+      There is an MLP after the mixture, so this is an approximation to be checked.
+  * **The rule (label-free).**
+    - Context: c(x) = the mean unit feature of the k spatial neighbours of x in its query block (all neighbours, no
+      prediction read, so no circularity).
+    - Per class row c, with p_c its support row, the 2 × 2 least squares u_x ≈ α p_c + γ c(x) gives
+      α_c(x) = G⁻¹[⟨u, p_c⟩, ⟨u, c⟩]₀, where G is the Gram matrix of (p_c, c(x)). α_c is the class evidence once the
+      shared context is removed.
+    - **Gate (identifiability).** det G ∝ 1 − cos²(p_c, c(x)): when the context equals the class (a dense, own-condition
+      point), α is not identified and its variance grows as 1/(1 − cos²). The unmixed score replaces the plain score
+      of row c only where cos(p_c, c(x)) < τ.
+    - The unmixed score is α_c(x)·‖p_c‖², in the plain score's units, so the argmax across the rows stays comparable.
+    - Everything is computed in the centred space (u − μ_base, from P11's fit), which removes the common component of
+      non-negative features (‖mean‖² 0.56) and lowers the between-class cosines that make G ill-conditioned.
+    - Grid k ∈ {16, 32}, τ ∈ {0.7, 0.8, 0.9} (conventions), selected on valid.
+  * **New inference base, which combines only blocks with a measured gain on CR:**
+    - the isotropic Euclidean mean rule (P10.4, +1.11, positive on every random600 draw);
+    - "both" (D-39, +1.89);
+    - LP (D-40, +0.92).
+
+    The mean rule is the global form of unmixing: "a > ½" against a global background is "nearer to p_c than to the
+    background mean" in Euclid. It has never been measured together with "both" and LP.
+    - **Not combined, for lack of evidence:** an anti-collapse term (D-45 lost 5–11 points) and a density-invariant
+      encoder (D-43 lost on the standard draw). Their only candidates are this unmixing and a new representation,
+      which needs its own decision.
+  * **P11.6.**
+    1. **Oracle check of the model** (valid_raw).
+       - For other-condition foreground points, regress u_x on {the query's own class mean, c(x)}, centred space.
+       - Report R² and the distribution of α.
+       - If the median R² < 0.5 (c), the linear mixture is wrong and the unmixing stops.
+    2. **The new base:** mean rule + both + LP, against CR's U + both + LP (58.55), on every draw.
+    3. **Unmixing on the new base, a switchable block** (before LP), scored on every draw with own / other recall.
+  * **Rule P11.6.** Unmixing is kept if all of the following hold:
+    - it holds at +0.5 over the new base (fixed100 CI above 0, and > 0 on the three random600 draws);
+    - the leak-free draw does not fall;
+    - other-condition recall rises while own-condition recall falls by at most 0.01 (c).
+
+    A gain without the recall mechanism is reported as unexplained, and a trained head is not built on it. If the
+    rule holds, a trained head with the same structure (τ and a context weight learned, shared by all classes) goes
+    into a later decision.
+  * **Affects.** `models/unmix.py` (new), `experiments/p11_precheck.py` (stage `unmix`), `tests/test_p11.py`.

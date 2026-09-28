@@ -38,3 +38,7 @@ Every problem found in D-48 before code, with its fix and where the fix is recor
 | F20 | M | Gate 1 (λ_max/λ_min ≤ 1.5 after whitening on base) holds by construction | Replaced by the energy share of the top r (fit) and the oracle contrast share inside the top-r span (valid) | A2 | done (P11-23), wired |
 | F21 | design | [2] used as an input channel in A is entangled with the neck's training, so its effect is not attributable | [2] is decoupled and post hoc in every head | A3 | done (P11-4, P11-18) |
 | F22 | design | One seed per arm; B is redundant once [2] is decoupled | B dropped; A gets seeds 0 and 1 | A3 | rule (arms) |
+| F23 | M | Unmixing against a predicted background is circular (a wrong region gives a wrong background) | The context c(x) is the mean of all spatial neighbours, no prediction read | A5 | planned |
+| F24 | math | For dense points c(x) ≈ p_c, so the 2 × 2 Gram matrix is singular and α is not identified | Gate: unmix only where cos(p_c, c(x)) < τ | A5 | planned |
+| F25 | math | Collapse and non-negative features make every Gram matrix ill-conditioned | Unmix in the centred space | A5 | planned |
+| F26 | evidence | Combining blocks without a measured gain repeats D-43/D-45 | The new base only uses measured gains (mean rule, both, LP); no anti-collapse or density term | A5 | planned |
