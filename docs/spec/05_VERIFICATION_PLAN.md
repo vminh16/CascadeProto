@@ -648,6 +648,38 @@ model contract's optional fields.
 Mutation check (2026-09-28): 8 mutants, 8 killed after PA-10 gained the case of a gap between the bar and CR's (the
 mechanism threshold survived before); amendment 1, 10 mutants of `p10_align_probe.py`, 10 killed; amendment 2, 5 mutants, 5 killed.
 
+### 3.8x `tests/test_p11.py` (G1) — P11's blocks and the attribution of D-48 [DECISION D-48]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| P11-1 | g renormalises the softmax over the kept columns (leave-target-out); nothing excluded is the plain softmax | [DECISION D-48] amendment 1 (F3) |
+| P11-2 | g clamped to [1e-4, 1 − 1e-4]; excluding every base column, or "none", raises | [DECISION D-48] amendment 1 (F2, F3) |
+| P11-3 | The exclusion term is ≥ 0 and increasing in g; it raises only the background column; ψ < 0 raises | [DECISION D-48] amendment 1 (F2) |
+| P11-4 | The base learner sends no gradient to the features; its own parameters get gradients | [DECISION D-48] amendment 1 (F1) |
+| P11-5 | Base targets: base class j → j, anything else → "none" | [DECISION D-48] |
+| P11-6 | OT row masses: way w gets its support foreground share / N, the background the rest | [DECISION D-48] amendment 4 |
+| P11-7 | ρ → 0 leaves the logits unchanged | [DECISION D-48] amendment 2 |
+| P11-8 | ρ → ∞ with small ε matches the row masses and the uniform column masses | [DECISION D-48] amendment 2 |
+| P11-9 | The plan's per-point decision is argmax (L + ε log u), and `ot_logits` returns it; ε ≤ 0 or a zero mass raises | [DECISION D-48] amendment 2 |
+| P11-10 | Cell count clamp(⌊n / 32⌋, 2, cap) (187 → 5, 764 → 16, 40 → 2); fewer points than the floor raises | [DECISION D-48] amendment 2 (F11) |
+| P11-11 | Cells partition the points, are unit and deterministic; too few points raise | [DECISION D-48] amendment 2 |
+| P11-12 | Descriptor (max, top-2 mean, mean) by hand; invariant to the order of the cells; one cell raises | [DECISION D-48] amendment 2 |
+| P11-13 | Raw-space descriptors are invariant to an orthogonal rotation of support and query features | [DECISION D-48] |
+| P11-14 | Spaces: raw is the identity, centred subtracts the base mean, truncated whitening gives covariance diag(λ / (λ + δλ₁)) on the fitted data, projection keeps r dimensions; missing moments or an unknown space raise | [DECISION D-48] amendment 2 (F12, F13) |
+| P11-15 | The descriptor probe is equivariant to the order of the ways | [DECISION D-48] amendment 1 (change 8) |
+| P11-16 | Shapley coefficients equal the permutation average of an arbitrary set function; efficiency; the interaction formula | [DECISION D-48] amendment 3 |
+| P11-17 | On counts: a dummy block has Shapley 0, a single effective block carries the total, CIs bracket the value | [DECISION D-48] amendment 3 |
+| P11-18 | A combination with ψ = κ = 0 and ρ → 0 returns U + both; the exclusion alone adds ψ(−log(1 − g)) to the background only | [DECISION D-48] amendment 4 |
+| P11-19 | Coordinate ascent reaches the maximum of a separable score; ties keep the earlier grid value | [DECISION D-48] amendment 4 |
+| P11-20 | Spreading several seeds with one Cholesky factor equals P7's spreading of each seed | [DECISION D-40], [DECISION D-48] |
+| P11-21 | valid_raw point kinds: own and other foreground, base, clutter and novel background | [DECISION D-48] amendment 1 |
+| P11-22 | D48.1': kept only with Shapley ≥ bar, fixed100 CI above 0 and every random600 value above 0 | [DECISION D-48] amendment 3 |
+| P11-23 | The oracle contrast share of a projection space: 1 inside the kept span, 0 on the smallest directions, 1 for a space without projection | [DECISION D-48] amendment 2 (F20) |
+
+Mutation check (2026-09-28): 17 mutants of `base_learner.py`, `ot_assign.py`, `correlation.py`, `attribution.py` and
+`p11_precheck.py`, 17 killed. P11-9's `ot_logits` check and P11-22 were written for the bias-sign and CI mutants,
+which the first draft of the tests would not have caught.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

@@ -316,3 +316,38 @@
     - neck: own / other recall and the leak-free change (density relearning).
   * **Affects.** `experiments/p11_precheck.py` (stages for the factorial and the attribution), and arm B removed from
     `run_d48.sh`.
+* **Amendment 4 (2026-09-28, implementation notes, written with the P11 code and before any run).** These notes fix
+  choices that amendments 1–3 left open. No threshold changes.
+  * **Order inside a combination:** U + both → [2] → [6] → OT → LP. The logits of U + both are taken on unit query
+    features (cosine units), which keeps D-39's decisions; this is checked on the first 20 episodes of every draw.
+  * **[2].**
+    - The MLP (128 → 128 → 7) is trained by plain CE on the unit features of 1,050 seeded training episodes (seed 12,
+      70 per base pair), 256 points per block. Raw labels come from P5's checked copy of the sampler (one sampler call
+      per block, fix F18).
+    - ψ is never trained inside episodes, so the leave-target-out softmax (F3) is implemented and tested but not
+      needed at test.
+    - Grid ψ ∈ {0.01, 0.03, 0.1, 0.3, 1} (cosine units).
+  * **[6].**
+    - Text only until D-47 lands. It uses P3's ridge source with the "descriptions" prompts, its bank, and its
+      support weight γ_e.
+    - The prior re-ranks the foreground ways only (`text_prior.apply_prior`), so no background text row is needed
+      (F9).
+    - Grid κ ∈ {0.01, 0.03, 0.1, 0.3, 1, 3}.
+  * **OT (P11.5).**
+    - The rows are the classes of the current combination, not the cells of [3], so the OT effect is not confounded
+      with the cells.
+    - Class masses come from the support shares: way w gets its foreground share / N.
+    - The columns are the points of both query blocks as one set.
+  * **Selection.**
+    - ψ, κ and (ε, ρ) are selected by coordinate ascent (two rounds, ties to the earlier value) on valid, in the full
+      combination without LP.
+    - LP is P7's frozen arm on CR. It is re-selected for other heads (amendment 1, change 6).
+  * **Gates.**
+    - P11.1b and P11.5 use the decision's "holds at g" (fixed100 CI above 0, and > 0 on the three random600 draws).
+    - P11.1b's density clause is read on valid_raw, a seeded test draw with raw labels (seed 11).
+    - P11.2 and P11.4 read valid, as registered.
+    - The CR factorial always scores all four blocks. The gates decide which blocks go on to the arms.
+  * **Descriptor spaces.**
+    - μ and Σ are the moments of the base-labelled points only.
+    - Truncated whitening uses δ = 10⁻³ λ₁.
+    - The P11.4 probe is equivariant across the ways: one MLP for the foreground rows and one for the background row.

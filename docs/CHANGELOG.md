@@ -1826,3 +1826,43 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   * The alignment loss fell (0.320 → 0.224 / 0.210), but the base-class gap did not, because the oracle fell with U.
 * **Docs.** D-46's outcome is appended to its file. Its 00 §4 index row is updated, and 00 §7 gains amendment 2 and
   the outcome.
+
+### 16bb2 - D-42 closed; D-47 and D-48 recorded; D-48 amended three times before code
+
+* **D-42.** Closed without a further run: every module of the stack was decided by its own measurement (D-43…D-46).
+* **D-47.** Image and audio at the class level, as in Fig. 1: five open-licence images per class through CLIP's
+  image encoder, and the prompt through TTS → Whisper → CLIP text. Audio is expected to equal text by the
+  data-processing inequality. Not coded yet.
+* **D-48.** A composed architecture that replaces the PEM/PDM head:
+  - [2] base-class exclusion;
+  - [3]–[5] multi-prototype correlation neck;
+  - [6] modality prior;
+  - [7] LP.
+* **Amendment 1.** After an Opus review, re-checked against the sources: the base learner is detached, the
+  exclusion term is one-sided, the gates P11.1b and P11.4 are added, and the text prior's history is corrected.
+* **Amendment 2.** After the maintainer's critique: adaptive cells, four descriptor spaces, and unbalanced OT
+  (P11.5). The semi-relaxed OT form and the max-combined background logit are not adopted.
+* **Amendment 3.** The attribution design: [2] is post hoc in every head, a second seed replaces arm B, and a 2⁴
+  inference factorial gives add-one, leave-one-out, exact Shapley and interactions.
+* **Fix register.** F1–F22 in `docs/research/2026-09-28_d48_fix_register.md`.
+
+### 16bc - D-48 P11 implemented (not run on the GPU)
+
+* **What.**
+  - `models/base_learner.py`: block [2], the detached MLP, the leave-target-out g and the one-sided term.
+  - `models/ot_assign.py`: log-domain unbalanced Sinkhorn and support-share masses.
+  - `models/correlation.py`: adaptive cells, the descriptor, the spaces, the way-equivariant probe and the contrast
+    share.
+  - `experiments/attribution.py`: add-one, leave-one-out, exact Shapley and interactions, with bootstrap CIs.
+  - `experiments/p11_precheck.py`: stages fit / select / factorial / decide, and raw-label episodes through P5's
+    checked sampler copy.
+  - `experiments/run_d48.sh`: smoke and full modes.
+  - Amendment 4 of D-48 fixes the implementation choices (order of the blocks, grids, selection, gates, moments).
+* **Tests.**
+  - P11-1…23 (05 §3.8x).
+  - Mutation check: 17 of 17 mutants killed.
+  - The CPU suite passes: 601 passed.
+  - The raw-label episode generator was checked on 8 real episodes: the sampler copy matches, and the masks and
+    episode labels agree with the raw labels.
+* **Not yet.** The GPU run of P11 (fit, select, factorial on 7 draws, decide). The correlation neck of arm A is
+  coded only if P11.4 holds.
