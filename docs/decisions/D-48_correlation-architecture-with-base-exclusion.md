@@ -134,3 +134,185 @@
   - `train.py`;
   - `experiments/p11_precheck.py`, `experiments/run_d48.sh`;
   - `tests/test_correlation.py`, `tests/test_base_learner.py`; 05, new section.
+* **Amendment 1 (2026-09-28, after a mathematical review, before any code).**
+  * **Review.** Maintainer request, agent on Opus. The report is `docs/research/2026-09-28_d48_math_debate.md`, with
+    its CPU scripts and output in `results/phase16_d48/review/`. The main claims were re-checked against the sources:
+    - P3's support weight is in `models/text_prior.py:102-115`.
+    - P8's recalls: U 0.245 → U + both 0.166 for the other condition, and 0.837 → 0.463 under uniform sampling
+      (`results/phase16_p8/SUMMARY.md`).
+    - D-45 arm B's stack is 27.84 against U 44.40.
+    - The CPU composition numbers are in `results/phase16_d48/review/d48_cpu_checks.json`.
+  * **New measurements (CPU, 600 seeded episodes per fold side, S1).**
+    - At test, the query background is 0.430 base, 0.129 clutter and 0.441 novel classes outside the episode. In
+      training it is 0.252 non-target base and 0.633 "none"; the "none" part is mostly wall and floor, S1's novel
+      classes.
+    - The densely sampled class is always a base class in training and always novel at test.
+    - 95 % of test-class blocks also occur in training.
+    - fixed100 support foreground: minimum 187 points, median 764.
+    - Removing every false positive would lift U from 55.74 to 77.02 and U + both + LP from 58.55 to 72.60 (their mean
+      recalls).
+    - If base points caused false positives in proportion to their share of the background, removing them would give
+      +4.68 on U and +3.35 on the stack. This is an estimate, not measured.
+    - A one-call wrapper with `support=False` and the class list [targets…, other base classes] reproduced 20 of 20
+      augmented episodes bit for bit. A second sampler call does not.
+  * **Changes.**
+    1. **[2] is detached from the encoder.**
+       - The base CE trains only the base MLP (stop-gradient on its input), as BAM's base learner is trained apart.
+       - Why: a "none" target spanning all novel points puts collapse pressure on exactly the test classes. M5 already
+         showed a base-side loss lowering the novel oracles (80.84 → 78.03 / 73.72).
+    2. **The exclusion and the background term are redefined.**
+       - In training, g is computed from a softmax renormalised over {non-target base classes, none}. This
+         leave-target-out form lets training see novel-like foreground with its true g.
+       - g is clamped to [10⁻⁴, 1 − 10⁻⁴].
+       - In arm A, g enters the background row of the correlation descriptor as one more channel before the neck (as
+         COSeg Eq. 12).
+       - In arm B, and as A's inference ablation, the term is one-sided: ℓ[x, bg] += ψ · (−log(1 − g)).
+       - Why: the symmetric ψ · logit(g) lowered the background logit wherever g < 0.5, which covers 57 % of the test
+         background.
+    3. **P11.1 becomes P11.1b, a realistic probe.**
+       - The base MLP is trained on frozen CR features on the training episodes, through the one-call wrapper.
+       - It is applied with the one-sided term, and ψ is selected on a seeded validation draw that carries raw labels
+         (P5's `draw_episodes`), since the stored valid and fixed100 episodes keep no raw labels.
+       - Reported: the net gain after recall loss, and g on own-condition (dense) novel foreground against
+         other-condition and background points.
+       - **Rule.** [2] enters the arms if the net gain is ≥ +1.0 and at most 10 % of dense novel foreground has
+         g > 0.5 (c). Otherwise [2] is dropped. The oracle P11.1 is kept as a reported ceiling (estimated +3.35 on the
+         stack; it could not fail the old bar).
+    4. **P11.4, a transfer probe, is added and gates arm A.**
+       - A small MLP is trained on the [3]–[4] descriptors of base classes (training episodes, frozen CR features) and
+         scored against U on novel valid episodes, on the leak-free draw, and by own / other recall.
+       - **Rule.** Arm A is trained only if the probe's novel-class score − U ≥ 0 on valid (c). If it beats U on base
+         classes and loses on novel ones, A2 fails as it did for CR's head, and A is not trained.
+       - Its own / other recall is the density reading for A5.
+    5. **[6] is rewritten.**
+       - **History corrected.** P3 already weighted every arm per episode from the support (γ_e = max(0, 2·acc − 1)
+         on the support foreground). The +0.41 is that support-weighted prior, not a fixed weight as the Problem
+         paragraph says.
+       - **Why [6] cannot add a direction.** The ridge prior is a linear read-out of the 6 base-prototype similarities.
+         Every modality of D-47 passes through the same bank, so adding modalities re-weights the same 6 numbers and
+         cannot add a direction. On sofa and table the text rewards chair-likeness, which [2] sends to background; on
+         door, window and wall it duplicates [2].
+       - **Consequences.**
+         - The rules D48.1–D48.3 are scored with [6] off (γ = 0).
+         - [6] is reported as an inference add-on, with κ selected on each arm's valid and the bank and ridge refitted
+           on each arm's features.
+         - The background text row must be defined before [6] is coded.
+         - Modalities are combined by one coefficient vector per class selected on valid, not by summing independent
+           γ's.
+         - Audio is reported only as D-47's identity check.
+       - P11.2 reports corr(γ_e, κ*_e) against the per-episode oracle weight.
+    6. **"both" and LP are re-selected on each arm's valid**, with "none" allowed. The CR selections failed on other
+       features before: −16.6 on D-45's arm B, and the loss of M1's leak-free gain in D-43.
+    7. **P11.3** reports M_bg ∈ {8, 16, 32}, raw against centred correlations (features are non-negative; the mean
+       unit-feature norm² is 0.56), and the share of background cells dominated by the other way's class.
+    8. **Readings.**
+       - The ψ = 0 and M = 1 inference ablations are co-adaptation readings, not "the model without the component".
+       - The base learner's confusion on test blocks is labelled in-sample, since 95 % of those blocks were training
+         blocks.
+       - The neck's cross-class mixing layer must be equivariant to the order of the foreground ways (a test).
+    9. **Seeds.** An arm that passes D48.1 or D48.2 by less than +2.0 gets a second seed before adoption (AGENTS §6:
+       several seeds below about two points).
+    10. **Logging.** Each loss term's gradient norm at the feature head is logged. The novel cosine oracle on valid is
+        reported for every arm.
+  * **Order and stop.** P11.1b, P11.2, P11.3 and P11.4 run first (inference plus minutes of GPU for the two probes).
+    - If P11.1b and P11.4 both fail, no arm is trained. D-48 reduces to [6] and [7], re-selected on CR, and a new
+      decision reads the results.
+    - If only P11.1b holds, only arm B is trained.
+    - If only P11.4 holds, arm A is trained without [2].
+* **Amendment 2 (2026-09-28, maintainer critique `debate.md`, before any code).**
+  * **What was checked.** The critique proposes:
+    - truncated subspace whitening;
+    - adaptive spherical k-means with at least 32 points per cell;
+    - semi-relaxed prototype-to-point optimal transport (OT);
+    - a max-combined base background logit.
+
+    Each proposal was checked against the evidence. The full list of fixes is in
+    `docs/research/2026-09-28_d48_fix_register.md` (F11–F15, F19, F20).
+  * **[3] Adaptive cell count** (adopted from the critique, F11).
+    - M_c = clamp(⌊n_c / 32⌋, 2, 16) per way over its masked support points, and the same for the background over
+      its points.
+    - Cells are formed by spherical k-means (5 iterations from farthest-point seeds).
+    - On fixed100 this gives M_fg between 5 and 16: the minimum support is 187 points, the median 764.
+    - The descriptor of [4] becomes (max, mean of the top 2, mean) per class row, defined for every M ≥ 2. The
+      review found the top 8 nearly flat.
+  * **Descriptor space** (from the critique and the review, F12, F13, F20).
+    - P11.3 and P11.4 compare four spaces:
+      - raw unit features;
+      - features centred on the base mean μ_base;
+      - centred and projected on the top r ∈ {6, 8} eigenvectors of the pooled base-class covariance;
+      - centred and truncated-whitened, (Λ_r + εI)^{−1/2} U_rᵀ(f − μ_base).
+    - The space with the best P11.4 score on valid is frozen for arm A.
+    - Full whitening is never used.
+    - Reported: the energy share of the top r, and the share of the oracle discriminant d* inside the top-r span.
+    - Recorded before the run: the evidence leans against whitening. The P10.4 base-class metric adds nothing over the
+      isotropic rule, the query-whitened LDA scores 31–35 against U's 55.96, and the nuisance shares the discriminant's
+      directions (κ < ρ at every r, P9).
+  * **P11.5, OT assignment at inference** (adapted from the critique, F14).
+    - Unbalanced entropic OT between the cell prototypes of every row (background included) and the 2,048 query points.
+      - Cost 1 − cos.
+      - Entropic regularisation ε ∈ {0.05, 0.1}.
+      - Both marginals relaxed by KL with weight ρ ∈ {0.1, 1}.
+      - Prototype masses ∝ the cell sizes, query masses uniform.
+    - Logit ℓ[x, c] = log Σ_{m ∈ c} T_{m x}.
+    - Selected on valid, frozen, then scored on fixed100 and random600 against U + both.
+    - **Rule:** P11.5 holds at +0.5 (P9's bar for a label-free rule), and the leak-free draw is not below U + both.
+      The second clause is needed because mass priors can encode object size, the leakage cue (median own share 0.38).
+    - If it holds, it enters the stack before LP, re-selected per arm.
+    - Reported: the share of transported mass that lands on true foreground (the critique's Gate 2).
+    - Why the critique's semi-relaxed form is replaced: with Σ_j T_mj = 1/M and a column cap κ/P, the mass must reach at
+      least P/κ = 1,024 points, which again forces support mass into the background of a small object.
+  * **Not adopted.**
+    - max(L_OT_bg, ψ · logit g). It mixes scales (ln-mass ≤ ln(2/2048) ≈ −6.9), so it fires below g = 0.5; the
+      one-sided additive term of amendment 1 is kept (F15).
+    - The additive expectation of 66–70 (F19).
+    - Gate 1, which holds by construction (F20).
+  * **Answers to the critique's questions.**
+    - OT is solved between prototypes and query points only, not point to point: P9.8's missed-point purity is 0.109.
+    - The covariance is pooled from the base classes. Per-block query covariance was measured and loses (label-free
+      LDA 31–35).
+  * **Order unchanged.**
+    - P11.1b, P11.2, P11.3, P11.4 and P11.5 run first on frozen CR features.
+    - The gates of amendment 1 decide the arms.
+    - P11.5, if it holds, is an inference module for every arm and for CR.
+* **Amendment 3 (2026-09-28, maintainer approval, before any code): the experimental design for attribution.**
+  * **[2] is fully decoupled.**
+    - It is trained apart, on frozen features, with the stop-gradient of amendment 1.
+    - It enters every head through the one-sided additive term ψ · (−log(1 − g)). The input-channel form in arm A is
+      dropped.
+    - [2] is therefore a post-hoc, inference-switchable block on any checkpoint. Its effect contains no co-adaptation.
+  * **Arm B is dropped.** With [2] decoupled, B is CR with [2] attached post hoc. The training slot goes to a
+    **second seed of arm A** (seeds 0 and 1). The only trained factor left is the head: PEM (CR) against the
+    correlation neck (A).
+  * **The factorial.**
+    - Four inference blocks, each on or off: [2] exclusion, [6] modality prior, P11.5 OT (if it held) and [7] LP. That
+      gives 2⁴ = 16 combinations.
+    - The baseline is U + both on the same cached features.
+    - The 16 combinations are scored for every head (CR, A seed 0, A seed 1). Draws: valid for selection; fixed100 and
+      random600 seeds 0–2 for the rules; leak-free as the second setting.
+    - Each block's parameters (ψ; κ; ε and ρ; k and β) are selected once per head on valid, in the full combination,
+      and frozen across the 16 combinations.
+  * **Quantities per block i**, with m(S) the mIoU of the set S:
+    - add-one: Δᵢ⁺ = m(base + i) − m(base);
+    - leave-one-out: Δᵢ⁻ = m(full) − m(full − i);
+    - exact Shapley φᵢ over the 16 combinations, which satisfies Σφᵢ = m(full) − m(base);
+    - pairwise interaction Iᵢⱼ = m(base+i+j) − m(base+i) − m(base+j) + m(base).
+    - All come with paired bootstrap CIs over episodes.
+    - The neck's effect is A − CR in each of the 16 combinations.
+  * **Pre-registered contrasts, the only ones read as conclusions.** Everything else is descriptive.
+    - Add-one and leave-one-out for every block and for the neck.
+    - Five interactions: ([2], LP), ([2], [6]), (OT, LP), (neck, LP), (neck, [2]).
+  * **Rules, replacing D48.1–D48.3.**
+    - **D48.1' block kept.** An inference block is kept if φᵢ ≥ +0.5, with a paired CI above 0 on fixed100 and
+      φᵢ > 0 on all three random600 draws.
+    - **D48.2' neck kept.** A − CR in the full combination holds at +1.0 for **both** seeds. A difference between the
+      seeds larger than the effect voids the claim.
+    - **D48.3' new base.** The best kept combination on the kept head becomes the base.
+    - **D48.4' stop.** No block and no neck kept.
+  * **Mechanism readings** (a gain without its mechanism is reported as unexplained):
+    - [2]: the drop in false positives on points whose true label is a base class, with the recall change;
+    - [6]: the rank correlation of γ_e with the episode's gain;
+    - OT: own / other recall and the transported mass on true foreground;
+    - LP: precision against recall;
+    - neck: own / other recall and the leak-free change (density relearning).
+  * **Affects.** `experiments/p11_precheck.py` (stages for the factorial and the attribution), and arm B removed from
+    `run_d48.sh`.

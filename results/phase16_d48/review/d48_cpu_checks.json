@@ -1,0 +1,216 @@
+{
+ "rng": {
+  "episodes": 20,
+  "identical": 20,
+  "naive_second_call_identical": false
+ },
+ "test_composition": {
+  "own_target": 1064430.0,
+  "other_target": 143869.0,
+  "base_bg": 536735.0,
+  "clutter_bg": 161373.0,
+  "novel_bg": 551193.0,
+  "bg": 1249301.0,
+  "base_share_of_bg": 0.42962824811634664,
+  "clutter_share_of_bg": 0.12917063221753605,
+  "novel_share_of_bg": 0.4412011196661173,
+  "bg_share_of_points": 0.5083418782552084,
+  "blocks_with_20plus_base_points": 0.9725,
+  "per_base_class_share_of_bg": {
+   "ceiling": 0.2647680582982003,
+   "bookcase": 0.06577598192909476,
+   "column": 0.03441284366217589,
+   "chair": 0.034123081627245956,
+   "beam": 0.021227070177643338,
+   "board": 0.009321212421986375
+  },
+  "own_class_share_in_block_median": 0.3759765625,
+  "per_fg_class_block_composition": {
+   "floor": {
+    "floor": 0.383,
+    "wall": 0.173,
+    "ceiling": 0.172,
+    "clutter": 0.076,
+    "door": 0.051,
+    "chair": 0.038
+   },
+   "wall": {
+    "wall": 0.633,
+    "ceiling": 0.083,
+    "floor": 0.064,
+    "clutter": 0.056,
+    "bookcase": 0.046,
+    "door": 0.036
+   },
+   "window": {
+    "window": 0.51,
+    "wall": 0.147,
+    "ceiling": 0.108,
+    "column": 0.058,
+    "clutter": 0.054,
+    "floor": 0.047
+   },
+   "door": {
+    "door": 0.453,
+    "wall": 0.221,
+    "ceiling": 0.114,
+    "floor": 0.106,
+    "clutter": 0.038,
+    "beam": 0.028
+   },
+   "table": {
+    "table": 0.281,
+    "wall": 0.185,
+    "ceiling": 0.171,
+    "floor": 0.128,
+    "clutter": 0.105,
+    "bookcase": 0.045
+   },
+   "sofa": {
+    "sofa": 0.339,
+    "wall": 0.237,
+    "ceiling": 0.159,
+    "floor": 0.103,
+    "clutter": 0.066,
+    "bookcase": 0.029
+   }
+  },
+  "beta_c": {
+   "floor": 0.3221105086207585,
+   "wall": 0.35094509336914387,
+   "window": 0.2829389714683528,
+   "door": 0.25462619331981373,
+   "table": 0.2838322715022593,
+   "sofa": 0.2608116473049728
+  },
+  "episodes": 600
+ },
+ "train_composition": {
+  "own_target": 1016424.0,
+  "other_target": 80859.0,
+  "base_bg": 342252.0,
+  "clutter_bg": 157260.0,
+  "novel_bg": 860805.0,
+  "bg": 1360317.0,
+  "base_share_of_bg": 0.25159723799673167,
+  "clutter_share_of_bg": 0.11560540668094275,
+  "novel_share_of_bg": 0.6327973553223256,
+  "bg_share_of_points": 0.553514404296875,
+  "blocks_with_20plus_base_points": 0.77,
+  "per_base_class_share_of_bg": {
+   "ceiling": 0.14918581477699683,
+   "bookcase": 0.037286897098249894,
+   "column": 0.025032400536051522,
+   "chair": 0.019442526999221506,
+   "beam": 0.013759292870705873,
+   "board": 0.006890305715506018
+  },
+  "own_class_share_in_block_median": 0.38232421875,
+  "per_fg_class_block_composition": {
+   "ceiling": {
+    "ceiling": 0.375,
+    "wall": 0.201,
+    "floor": 0.146,
+    "clutter": 0.067,
+    "door": 0.056,
+    "bookcase": 0.033
+   },
+   "beam": {
+    "beam": 0.349,
+    "wall": 0.151,
+    "floor": 0.126,
+    "door": 0.103,
+    "ceiling": 0.093,
+    "clutter": 0.06
+   },
+   "column": {
+    "column": 0.5,
+    "wall": 0.134,
+    "ceiling": 0.105,
+    "floor": 0.06,
+    "clutter": 0.055,
+    "window": 0.051
+   },
+   "chair": {
+    "chair": 0.361,
+    "ceiling": 0.208,
+    "floor": 0.194,
+    "wall": 0.086,
+    "clutter": 0.071,
+    "table": 0.032
+   },
+   "bookcase": {
+    "bookcase": 0.474,
+    "wall": 0.174,
+    "ceiling": 0.105,
+    "clutter": 0.076,
+    "floor": 0.061,
+    "table": 0.032
+   },
+   "board": {
+    "board": 0.424,
+    "wall": 0.236,
+    "ceiling": 0.105,
+    "floor": 0.089,
+    "clutter": 0.055,
+    "bookcase": 0.034
+   }
+  },
+  "beta_c": {
+   "ceiling": 0.0984213590941751,
+   "beam": 0.19617198541992115,
+   "column": 0.20009387914537152,
+   "chair": 0.1986145451638062,
+   "bookcase": 0.18662214327696272,
+   "board": 0.19253182003441013
+  },
+  "episodes": 600
+ },
+ "fixed100_support": {
+  "blocks": 3000,
+  "fg_min": 187,
+  "fg_p5": 259.95000000000005,
+  "fg_median": 764.0,
+  "fg_max": 2048,
+  "share_fg_below_320": 0.09633333333333334,
+  "points_per_fg_cell_min_median": [
+   11.6875,
+   47.75
+  ],
+  "bg_per_episode_min_median": [
+   189,
+   2362.5
+  ],
+  "query_fg_share_median": 0.474853515625
+ },
+ "delta_base_estimate": {
+  "cr:U": {
+   "miou": 55.743101525832586,
+   "prop_estimate": 60.41864615916756,
+   "delta_prop": 4.6755446333349715,
+   "all_fp_removed": 77.01878968524105,
+   "fp_share_of_pred": {
+    "door": 0.3824001979517851,
+    "floor": 0.2931669859554077,
+    "sofa": 0.34455932532465067,
+    "table": 0.44579685986963496,
+    "wall": 0.1988411993190098,
+    "window": 0.2854019672525502
+   }
+  },
+  "cr:lp": {
+   "miou": 58.549206352297965,
+   "prop_estimate": 61.899553193745035,
+   "delta_prop": 3.3503468414470716,
+   "all_fp_removed": 72.6036383219647,
+   "fp_share_of_pred": {
+    "door": 0.34265995816269185,
+    "floor": 0.1619636204650824,
+    "sofa": 0.2247018299131797,
+    "table": 0.32363892119331344,
+    "wall": 0.17780661907852044,
+    "window": 0.24694539957024253
+   }
+  }
+ }
+}
