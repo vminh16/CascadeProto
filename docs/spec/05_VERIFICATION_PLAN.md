@@ -624,6 +624,24 @@ Mutation check (2026-09-27), 27 mutants on the CPU part: 27 killed; after amendm
 Mutation check (2026-09-27), 11 mutants: 11 killed. LOSS-3 (`tests/test_adrm_loss.py`) now lists `loss_reg` among the
 model contract's optional fields.
 
+### 3.8w `tests/test_proto_align.py` (G1) — prototype alignment, P10.1 and the D-46 rules [DECISION D-46]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| PA-1 | L_align against explicit loops (support rows, query class means, CE over the rows at τ); τ ≤ 0 raises | [DECISION D-46] |
+| PA-2 | A class absent from a query block contributes no term | [DECISION D-46] |
+| PA-3 | Every feature on one direction gives log(N + 1), not a lower loss; aligned, separated means give nearly 0 | [DECISION D-46] |
+| PA-4 | Gradients reach the support and the query features; `gradcheck` | [DECISION D-46] |
+| PA-5 | Configuration: `align_weight` 0 and `align_tau` 0.1 by default, invalid values raise, a configuration written before D-46 loads | [DECISION D-46] |
+| PA-6 | Training mode adds exactly λ L_align to `loss_reg` (summed with D-45's terms when both are set); evaluation never builds it; gradients reach the extractor | [DECISION D-46] |
+| PA-7 | `cascade()` returns its four outputs unchanged by default and F^s as a fifth with `return_support` | [DECISION D-46] |
+| PA-8 | `train.py --align_weight/--align_tau`: run tag `_align<λ>`, model configuration, resuming a run from before D-46; P10.1's bar at 5.0 | [DECISION D-46] |
+| PA-9 | The new and changed files parse as Python 3.10 | 00 §5.2 |
+| PA-10 | Rules D46.1–D46.4 on every branch, including a gap between the bar and CR's and a random600 draw below 0 | [DECISION D-46] |
+
+Mutation check (2026-09-28), 8 mutants: 8 killed after PA-10 gained the case of a gap between the bar and CR's (the
+mechanism threshold survived before).
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

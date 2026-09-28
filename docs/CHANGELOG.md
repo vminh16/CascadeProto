@@ -1739,3 +1739,26 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * Census: every kept S1 checkpoint reads a participation ratio of 3.7-7.3, VIP-Seg's released model included (6.39).
 * The random600 draws of the local data differ from the old VM's, so CR's random600 values differ from D-43's. All
   comparisons re-score CR on the same episodes.
+
+### 16ay - D-46 recorded and implemented: P10 (base-class gap, text on CR) and M5 prototype alignment (not run)
+
+* **D-46** in `docs/spec/00`.
+  * **Why this part A.** P8.4 had registered instance-alignment training as the first training arm (bound
+    +13.71), and it had not run on the clean base. D-29 (logit alignment) and D-31 (text prior) were null on the
+    shortcut base, and their reasons do not depend on the shortcut. So part A first measures, with no training:
+    - P10.1: whether CR leaves a base-class prototype gap for an alignment loss to act on (bar 5.0 points on 1,000
+      training episodes);
+    - P10.2: whether text carries novel-class information on CR (D-31's P3 unchanged).
+  * **Part B** trains two arms, λ 0.25 and 1 at τ 0.1, only if P10.1 holds. The script launches them as soon as
+    the gate reads, next to P10.2.
+  * **Rules** D46.1-D46.4 are fixed before the run.
+* **Code.**
+  - `models/proto_align.py` (new): each query class mean is scored against every support prototype with a softmax,
+    so the collapsed solution does not lower the loss.
+  - `align_weight` and `align_tau` in the configuration (off by default). λ L_align is added to D-45's `loss_reg`,
+    so the model contract is unchanged.
+  - `cascade(return_support=True)` also returns F^s.
+  - `train.py --align_weight/--align_tau`.
+  - `experiments/p10_align_probe.py` (base / gate / decide) and `experiments/run_d46.sh smoke|full`.
+* **Tests.** PA-1...10 (05 §3.8w). Mutation check 8/8: the mechanism threshold survived at first, and PA-10 gained
+  a case for it. The local CPU suite (proto_align, vicreg, adrm_loss, distill, cascadeproto) passes: 133 tests.

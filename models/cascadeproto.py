@@ -30,6 +30,7 @@ from models.lma import EVAL_NOISE, LearnableModalityAdapter
 from models.neck import NECKS, build_neck
 from models.vicreg import vicreg_regulariser
 from models.oracle_distill import oracle_distill_loss
+from models.proto_align import TAU as ALIGN_TAU, alignment_loss
 from models.prototypes import point_prototypes, unit_prototypes
 from models.self_support import SelfSupport
 from pipeline.episodes import Episode
@@ -86,6 +87,8 @@ class CascadeProtoConfig:
     encoder: str = "vipseg"  # [DECISION D-43]; "density" = metric-ball, per-block, metric-coordinate encoder
     vicreg_var: float = 0.0  # [DECISION D-45]; μ, weight of VICReg's variance term on the query features
     vicreg_cov: float = 0.0  # [DECISION D-45]; ν, weight of VICReg's covariance term
+    align_weight: float = 0.0  # [DECISION D-46]; λ, weight of the prototype-alignment loss
+    align_tau: float = ALIGN_TAU  # [DECISION D-46]; its temperature τ
 
     def __post_init__(self):
         if self.encoder not in ENCODERS:
@@ -99,6 +102,10 @@ class CascadeProtoConfig:
             value = getattr(self, name)
             if not (math.isfinite(value) and value >= 0):
                 raise ValueError(f"{name} must be a finite value >= 0 [DECISION D-45], got {value}")
+        if not (math.isfinite(self.align_weight) and self.align_weight >= 0):
+            raise ValueError(f"align_weight must be a finite value >= 0 [DECISION D-46], got {self.align_weight}")
+        if not (math.isfinite(self.align_tau) and self.align_tau > 0):
+            raise ValueError(f"align_tau must be a finite value > 0 [DECISION D-46], got {self.align_tau}")
         if not (math.isfinite(self.distill_beta) and self.distill_beta >= 0):
             raise ValueError(f"distill_beta must be a finite value >= 0 [DECISION D-29], got {self.distill_beta}")
         if self.prototype_rule not in PROTOTYPE_RULES:
@@ -200,12 +207,17 @@ class CascadeProto(nn.Module):
         # Trained self-support in place of a head [DECISION D-39]
         self.self_support = SelfSupport(config.self_support_steps) if config.self_support_steps else None
 
-    def cascade(self, episode: Episode):
-        """(F^q [B_q, P, D], P^0 [N+1, D], [P^1..P^T] each [B_q, N+1, D], L_GMMN) of one episode.
+    def cascade(self, episode: Episode, return_support: bool = False):
+        """(F^q [B_q, P, D], P^0 [N+1, D], [P^1..P^T] each [B_q, N+1, D], L_GMMN) of one episode, and F^s
+        [N, K, P, D] as a fifth element with `return_support` (the alignment loss of [DECISION D-46]).
 
         The forward's own computation up to the stage prototypes; `experiments/r2_distill_eval.py` reads
         it for the diagnostics of [DECISION D-29].
         """
+        out = self._cascade(episode)
+        return out if return_support else out[:4]
+
+    def _cascade(self, episode: Episode):
         f_s, f_q = self.features.encode_episode(episode.support_x, episode.query_x)  # [N,K,P,D], [B_q,P,D]
         if self.neck is not None:
             f_s = self.neck(f_s, f_q)  # [N, K, P, D], the prototypes and the head see F_s' [DECISION D-33]
@@ -213,7 +225,7 @@ class CascadeProto(nn.Module):
             prototypes = unit_prototypes(f_s, episode.support_y)  # [N+1, D]
             p = prototypes.unsqueeze(0).expand(f_q.shape[0], -1, -1)  # R_0 per query [B_q, N+1, D]
             steps = self.self_support(f_q, p) if self.self_support is not None else []  # T x [B_q, N+1, D]
-            return f_q, prototypes, steps, f_q.new_zeros(())
+            return f_q, prototypes, steps, f_q.new_zeros(()), f_s
         p_point = point_prototypes(f_s, episode.support_y)  # [N+1, D] (Eq.3)
         if self.config.l2norm_point_proto:  # ablation only [DECISION D-10]
             p_point = F.normalize(p_point, dim=-1)  # [N+1, D]
@@ -231,10 +243,10 @@ class CascadeProto(nn.Module):
         for stage in self.stages:
             p = stage(p, f_s, f_q)  # P^t [B_q, N+1, D] (Eq.22)
             steps.append(p)
-        return f_q, prototypes, steps, loss_gmmn
+        return f_q, prototypes, steps, loss_gmmn, f_s
 
     def forward(self, episode: Episode) -> EpisodeOutput:
-        f_q, prototypes, steps, loss_gmmn = self.cascade(episode)  # [B_q,P,D], [N+1,D], T x [B_q,N+1,D]
+        f_q, prototypes, steps, loss_gmmn, f_s = self.cascade(episode, return_support=True)  # F^s [N,K,P,D]
         if not steps:
             logits = torch.einsum("bpd,cd->bpc", f_q, prototypes)  # [B_q, P, N+1] (Eq.23, no temperature)
         else:
@@ -260,6 +272,10 @@ class CascadeProto(nn.Module):
         reg = None
         if self.config.vicreg_var > 0 or self.config.vicreg_cov > 0:  # against the features' collapse [D-45]
             reg = vicreg_regulariser(f_q, self.config.vicreg_var, self.config.vicreg_cov)  # scalar
+        if self.config.align_weight > 0:  # query class means onto their support prototypes [DECISION D-46]
+            align = self.config.align_weight * alignment_loss(f_s, episode.support_y, f_q, episode.query_y,
+                                                              self.config.align_tau)  # scalar
+            reg = align if reg is None else reg + align
         return EpisodeOutput(logits=logits, loss_gmmn=loss_gmmn, loss_distill=loss_distill, distill_weight=beta,
                              loss_aux=aux, aux_weight=self.config.support_aux, loss_reg=reg)
 

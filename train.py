@@ -95,6 +95,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="weight of VICReg's variance term on the query features [D-45], beyond the paper")
     p.add_argument("--vicreg_cov", type=float, default=0.0,
                    help="weight of VICReg's covariance term on the query features [D-45], beyond the paper")
+    p.add_argument("--align_weight", type=float, default=0.0,
+                   help="weight of the prototype-alignment loss [D-46], beyond the paper")
+    p.add_argument("--align_tau", type=float, default=0.1,
+                   help="temperature of the prototype-alignment loss [D-46]")
     p.add_argument("--init_checkpoint", default=None,
                    help="warm start from one of our own checkpoints (strict except the neck's parameters) [D-33]")
     p.add_argument("--distill_beta", type=float, default=0.0,
@@ -150,7 +154,8 @@ def model_config(args):
                               distill_beta=args.distill_beta, neck=args.neck,
                               neck_alpha_init=args.neck_alpha_init, prototype_rule=args.prototype_rule,
                               self_support_steps=args.self_support_steps, support_aux=args.support_aux,
-                              encoder=args.encoder, vicreg_var=args.vicreg_var, vicreg_cov=args.vicreg_cov)
+                              encoder=args.encoder, vicreg_var=args.vicreg_var, vicreg_cov=args.vicreg_cov,
+                              align_weight=args.align_weight, align_tau=args.align_tau)
 
 
 def build_model(config, feature_extractor=None) -> torch.nn.Module:
@@ -199,6 +204,8 @@ def run_dir(args) -> str:
     tag += "" if getattr(args, "encoder", "vipseg") == "vipseg" else "_dens"  # [D-43]
     if getattr(args, "vicreg_var", 0.0) or getattr(args, "vicreg_cov", 0.0):  # [D-45]
         tag += f"_vic{args.vicreg_var:g}_{args.vicreg_cov:g}"
+    if getattr(args, "align_weight", 0.0):  # [D-46]
+        tag += f"_align{args.align_weight:g}" + (f"_t{args.align_tau:g}" if args.align_tau != 0.1 else "")
     return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 
 
