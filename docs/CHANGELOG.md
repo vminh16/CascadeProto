@@ -1783,3 +1783,25 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **Code.** `p10_align_probe.py` gains the stages `stats`, `metric`, `kcurve` and `amend`. `run_d46.sh` runs them in
   the background next to P10.1 and P10.2.
 * **Tests.** PA-11...14; mutation check 10/10.
+
+### 16ba - Decision log split into docs/decisions/; reproduction report by paper table
+
+* **Split.** §4 of `docs/spec/00_SOURCES_AND_DECISIONS.md` (2,091 lines, D-01...D-46) was moved verbatim by script into
+  `docs/decisions/D-nn_<slug>.md`, one file per decision, with `docs/decisions/README.md` for the conventions.
+  - Checks: the chunks reassemble the old section exactly, every old line is found in the new files, and 00 outside
+    §4 is unchanged except for the L3 row of §2.1.
+  - 00 §4 is now an index: ID, title, status, a one-line preliminary result, and a link to the file. 00 went from
+    2,286 lines to 254.
+  - Two Sonnet agents drafted the index rows with evidence quotes. Every quote was checked to be a substring of its
+    file, and every number to appear in it.
+  - One row was reworded by hand: D-43's −9.31 is the stack's fixed100 change, not the model's.
+  - AGENTS.md, README.md and CONTEXT.md now point to `docs/decisions/`. A new decision is a new file plus an index row.
+* **Report.** `docs/research/2026-09-28_reproduction_tables_vi.md` (in Vietnamese) maps each of the paper's six
+  tables to what was run:
+  - Table 4: all five rows on S0.
+  - Table 5: T = 1 and T = 4.
+  - Table 2: the 2-way 1-shot text cell.
+  - Table 6: parameters, and FLOPs of the baseline only.
+  - Tables 1 and 3: not done.
+  - It also summarises the seen-class (leakage) results and the short experiments D-19...D-29, and lists what is
+    missing for a full set of comparable tables.

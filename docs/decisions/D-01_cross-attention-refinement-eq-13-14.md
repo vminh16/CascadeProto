@@ -1,0 +1,19 @@
+### D-01 — Cross-attention refinement (Eq.13–14) · `LOCKED`
+
+* **Problem.** Eq.14 is dimensionally invalid as printed: "A = softmax(Q′S′ᵀ/√d) ∈ R^{Nq×Ns}, P_cross = A · ψ(P^{t−1})" multiplies an `Nq×Ns` point–point matrix by an `(N+1)×D` prototype matrix. No implementation can honour both halves literally.
+* **Evidence (L2).** VIP-Seg implements the same construct as a **channel–channel** correlation, which makes `A · ψ(P)` valid:
+  * `self.maxpool = nn.MaxPool1d(32, stride=32)` — 2048 points → 64 tokens [VIPSEG models/vipseg.py:213]
+  * `self.map = nn.Conv1d(64, self.proj_dim, 1, bias=False)` with `proj_dim = 72`, one module shared by query and support [VIPSEG models/vipseg.py:219]
+  * `self.proto_map = nn.Linear(128, 128)` (ψ) [VIPSEG models/vipseg.py:222]
+  * `crosscor = … softmax(dim=-1)` of shape `[B, N+1, 128, 128]`, then `proto_cross = crosscor @ new_proto` [VIPSEG models/vipseg.py:288-296]
+  * The printed symbols φ = 1×1 conv, d = 72, softmax, ψ = linear and `P_cross = A·ψ(P)` all match this construct; only the annotation `∈ R^{Nq×Ns}` does not. The Table 6 overhead of +0.38 GFLOPs for all four stages is compatible with a 128×128 matrix and not with a 2048×(N·K·2048) matrix per stage.
+* **Options considered.** (1) Channel correlation as in VIP-Seg, keeping `P_cross = A·ψ(P)` literal. (2) Two-hop point attention from the pre-rewrite spec (`F_qs = A·F_s`, then a second attention with ψ(P) as query), keeping only the `Nq×Ns` annotation and inventing an extra attention.
+* **Decision: option 1**, specified in its mathematically clean form:
+  1. `F̃^q = MaxPool_32(F^q) ∈ R^{64×D}`, `F̃^s_{c,k} = MaxPool_32(F^s_{c,k}) ∈ R^{64×D}` for class slot `c ∈ {0..N}` and shot `k`. The background slot uses the mean of the way-wise support features, `F^s_{0,k} = mean_n F^s_{n,k}` [VIPSEG models/vipseg.py:244].
+  2. `Q′ = φ(F̃^q) ∈ R^{d×D}`, `S′_{c,k} = φ(F̃^s_{c,k}) ∈ R^{d×D}`, with φ = `Conv1d(64 → d=72, kernel 1, bias=False)` shared across query and support [PAPER Eq.13] [VIPSEG models/vipseg.py:219].
+  3. `A_{c,k} = softmax_row(Q′ᵀ S′_{c,k} / √d) ∈ R^{D×D}` — scale by **√d = √72** as printed in Eq.14 (VIP-Seg uses √128; L1 wins).
+  4. `P_cross[c] = (1/K) Σ_k A_{c,k} · ψ(P^{t−1}_gated[c]) ∈ R^D`, ψ = `Linear(D, D)` [PAPER Eq.14] [VIPSEG models/vipseg.py:222,296]. See D-02 for the gated input. VIP-Seg averages its **whole module output** over shots [VIPSEG models/vipseg.py:308]; averaging only `P_cross` is our choice, because Eq.21 applies the residual and LayerNorm once per stage.
+  5. **Class slots are a VIP-Seg construct, not paper notation.** Eq.13 writes a single `S′ = φ(F^s)` without class slots; one `A` per class slot follows VIP-Seg [VIPSEG models/vipseg.py:244,288-296]. The background slot averages support features point by point across ways; because the loader shuffles point order [VIPSEG dataloaders/loader.py:58], this pairs unrelated points and survives max-pooling only as a rough mixture. A single `A` per (query, shot) computed from all support blocks would follow Eq.13 more literally; the maintainer chose the class slots of VIP-Seg on 2026-09-19, because Eq.14 applies `A · ψ(P)` to each class row and the paper builds on VIP-Seg.
+* **Deliberate deviation from L2.** VIP-Seg computes the correlation after `reshape(proj_dim, -1)` on batched tensors [VIPSEG models/vipseg.py:288-291]. A numerical check (2026-09-17) showed this does **not** equal the per-(query, class) product `Q′ᵀS′_c`, even for batch size 1: rows of different classes and projection filters are interleaved. We implement the clean per-(query, class, shot) form above. A compatibility flag may reproduce the VIP-Seg reshape for debugging only.
+* **Ablation flags.** `cross_attn = {channel (default), two_hop}`; `cross_attn_scale = {sqrt_d (default), sqrt_D}`. `two_hop` is option 2 above, which was rejected; it raises `NotImplementedError`.
+* **Affects.** Spec 01 §3 sub-module 2, spec 02 §4.2, spec 05 EPPM tests, `models/eppm.py`.

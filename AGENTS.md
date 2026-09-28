@@ -17,12 +17,12 @@ Rules for autonomous coding agents (Claude Code, Cursor, Copilot, Devin, Aider, 
 
 ## 2. Sources of truth
 
-Read [docs/spec/00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) before any change. In short:
+Read [docs/spec/00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) before any change, then the decisions it indexes that touch your task (one file each in [docs/decisions/](docs/decisions/README.md)). In short:
 
-1. **Paper** (L1) beats **pinned VIP-Seg code** (L2) beats the **decision log** D-01…D-34 (L3).
+1. **Paper** (L1) beats **pinned VIP-Seg code** (L2) beats the **decision log** D-01…D-46 (L3, `docs/decisions/`).
 2. Specs `01`–`05` restate L1–L3 with a source tag on every normative line: `[PAPER …]`, `[VIPSEG path:line]`, `[DECISION D-nn]`.
 3. Code, tests, this file and the README are **not** sources. When code and spec disagree, the spec wins; when a spec line has no tag, treat it as unverified.
-4. If the paper is ambiguous and no decision covers the case, **stop and ask the maintainer**. Record the answer as a new decision in `00` before writing code.
+4. If the paper is ambiguous and no decision covers the case, **stop and ask the maintainer**. Record the answer as a new decision file in `docs/decisions/` plus its index row in 00 §4 before writing code.
 
 ### 2.1 Task routing
 
@@ -75,7 +75,7 @@ Values are defined in the specs; this list is a reminder, not a source. If a val
 2. **Inherited files are read-only.** `dataloaders/{loader,s3dis,scannet}.py`, `preprocess/{collect_s3dis_data,collect_scannet_data,room2blocks}.py` and `utils/{checkpoint_util,cuda_util,logger}.py` must stay byte-identical to the pinned VIP-Seg commit. Change behaviour through arguments or wrappers. The same holds for `models/{encoder,mamba_block,model_utils,vipseg,vipseg_learner}.py`, `runs/*.py` and `main.py`; test ENV-3 checks all of them (00 §5.2).
 3. **Restore, don't rewrite, VIP-Seg's evaluation.** The metric in `runs/training_free.py` and the patterns in `runs/{training,evaluate}.py` come from the pinned commit (00 §5.1). They were restored byte-identical in phase 8; call or wrap them, never copy-edit them.
 4. **Shape comments.** Every tensor operation carries an inline shape comment, e.g. `# [B_q, N+1, 128]`.
-5. **No silent maths drift.** Formulas must match 02 exactly. Changing an interpretation means editing the decision in `00` first, with evidence, then the spec, then the code.
+5. **No silent maths drift.** Formulas must match 02 exactly. Changing an interpretation means editing the decision in `docs/decisions/` first, with evidence, then the spec, then the code.
 6. **No shape guessing.** Never infer layouts from `shape[i] in (3, 6, 9)`, never infer N from mask values, never `reshape`/`view` across batch, class or shot axes to make a product fit; use explicit indices or `einsum`. If shapes do not fit, stop: the spec or the input is wrong. Do not invent a projection layer to force a fit.
 7. **No silent fallbacks.** Missing `mamba_ssm`, `pointnet2_ops` or CLIP, an unknown modality, or an unloadable checkpoint must raise.
 8. **No synthetic data outside `tests/`.** `train.py` and `eval.py` only read real episodes through the inherited loader; `--dry_run` means "real data, few steps".
@@ -90,7 +90,8 @@ Values are defined in the specs; this list is a reminder, not a source. If a val
 CascadeProto/
 ├── AGENTS.md, README.md, CONTEXT.md   CONTEXT.md: goal, state and experiment summary (read first)
 ├── docs/
-│   ├── spec/00_SOURCES_AND_DECISIONS.md   source hierarchy + decision log (read first)
+│   ├── spec/00_SOURCES_AND_DECISIONS.md   source hierarchy + decision index (read first)
+│   ├── decisions/                         one file per decision D-01…D-46 (L3)
 │   ├── spec/01_ARCHITECTURE_SPEC.md       modules, wiring, switches, parameter budget
 │   ├── spec/02_TENSOR_MATH_SPEC.md        all formulas and shapes
 │   ├── spec/03_MULTIMODAL_SPEC.md         modality front-ends, LMA, GMMN rules

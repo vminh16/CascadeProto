@@ -10,7 +10,7 @@ Re-implementation of **CascadeProto: Cascaded Cross-Modal Prototype Purification
 >   reproduces VIP-Seg; it does not improve on it yet. Fold S0 has not been run for this model.
 > * **Phase 16 tested** test-time EM and base-class calibration, oracle distillation, a text prior, background
 >   purification and a point-level query-attention neck on top of it; each stopped under a rule fixed before its run
->   (decisions D-26…D-34 in [00](docs/spec/00_SOURCES_AND_DECISIONS.md), results under `results/phase16_*`).
+>   (decisions D-26…D-34 in [docs/decisions/](docs/decisions/README.md), indexed in [00](docs/spec/00_SOURCES_AND_DECISIONS.md), results under `results/phase16_*`).
 > * The paper's EPPM stage is 15.5 points below one VIP-Seg module in the same pipeline (R1); the reproduction of the
 >   paper (below) is closed.
 >
@@ -57,7 +57,7 @@ Exact formulas, shapes and the interpretation of ambiguous equations are in the 
 | Document | Content |
 | :--- | :--- |
 | [CONTEXT.md](CONTEXT.md) | **Start here**: goal, vocabulary, current state, every phase-16 experiment and what is and is not established |
-| [00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) | Source hierarchy (paper → pinned VIP-Seg code → decisions) and decision log D-01…D-34, each with its outcome |
+| [00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) | Source hierarchy (paper → pinned VIP-Seg code → decisions) and the index of the decision log D-01…D-46; the decisions themselves, each with its outcome, are in [docs/decisions/](docs/decisions/README.md) |
 | [01_ARCHITECTURE_SPEC.md](docs/spec/01_ARCHITECTURE_SPEC.md) | Modules, wiring, ablation switches, parameter budget |
 | [02_TENSOR_MATH_SPEC.md](docs/spec/02_TENSOR_MATH_SPEC.md) | Every formula and tensor shape |
 | [03_MULTIMODAL_SPEC.md](docs/spec/03_MULTIMODAL_SPEC.md) | Modality front-ends, adapters, GMMN loss rules |

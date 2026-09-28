@@ -123,7 +123,7 @@ not a measurement.
 
 ## 8. How work is done here
 
-* Decisions before code: `docs/spec/00_SOURCES_AND_DECISIONS.md` (D-01…D-34), each with its problem, evidence,
+* Decisions before code: one file per decision in `docs/decisions/`, indexed in `docs/spec/00_SOURCES_AND_DECISIONS.md` §4 (D-01…D-46), each with its problem, evidence,
   rules and outcome; specs `01`–`05`; `AGENTS.md` for the guardrails; `docs/CHANGELOG.md` for every step.
 * Every experimental choice cites prior evidence; estimates are marked "not measured".
 * One training run per arm, several test draws; a short GPU smoke before every long run; the VM shuts itself

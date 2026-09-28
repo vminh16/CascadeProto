@@ -1,0 +1,5 @@
+### D-09 — Params/FLOPs target (Table 6) · `LOCKED`
+
+* **Problem.** Table 6 states CascadeProto 2.88M / 8.86G against VIP-Seg 2.76M / 8.48G [PAPER Tab.6], described as "a marginal overhead of 0.12M parameters and 0.38 GFLOPs over the VIP-Seg backbone" [PAPER §4.4].
+* **Evidence (L2).** VIP-Seg's 2.76M is the **whole** VIP-Seg model: encoder 2.37M + VIP module 0.19M + feature head/gating [VIPSEG log_s3dis_VIPSeg/log_S0_N2_K1_0.722026/log_vipseg.txt:2-11]. The encoder plus the 900→196→128 feature head is therefore ≈ 2.57M (head = 204,260 parameters). CascadeProto replaces the VIP module with LMA + EPPM + ADRM, so the paper implies ≈ 0.31M for those modules; the layer choices of D-16 give 466,444.
+* **Decision.** Table 6 is **not** a hard acceptance criterion. Measure and report with a fixed tool and configuration (fvcore, 2-way 1-shot, one query, 9 channels). Acceptance for the inherited part only: encoder 2.37M ± 0.01M and encoder + head ≈ 2.57M once `mamba_ssm` is used. The added modules are reported separately.

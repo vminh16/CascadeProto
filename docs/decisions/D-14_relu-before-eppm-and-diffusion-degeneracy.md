@@ -1,0 +1,5 @@
+### D-14 — ReLU before EPPM and diffusion degeneracy · `LOCKED`
+
+* **Problem.** The VIP-Seg feature head ends in `BatchNorm1d + ReLU` [VIPSEG models/vipseg.py:46-53], so features are ≥ 0 and `σ(mean) ≥ 0.5`. With τ = 0.5 a channel is active in a branch exactly when its mean is **strictly** positive. When every channel has a positive mean in both branches (the usual case; measured at initialisation, audit M2), `m_common = 1` and `c_unique = 0`, so `P_diffuse = (q_ch + s_ch)/4` with every entry in [0.25, 0.5]. A channel whose ReLU output is zero on all points of one branch but not the other still yields a non-zero `c_unique` (verified numerically 2026-09-17). Independently of ReLU, `P_diffuse` is the same for every class row, because Eq.15–18 contain no class index.
+* **Decision.** Keep the VIP-Seg head unchanged (L1 says the encoder is VIP-Seg) and implement Eq.15–18 literally. Document the degeneracy.
+* **Ablation flag.** `diffusion_input = {post_relu (default), pre_relu}`. `pre_relu` needs the feature head's pre-ReLU output and raises `NotImplementedError`.
