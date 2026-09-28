@@ -71,3 +71,24 @@
   on the features of the base D-43 adopts, not on CR's (a precondition measured on an input the module will not
   receive is the composition failure of the note's L3). P9.1 (block coupling) becomes a unit test of D-43. P9 keeps
   its rules and runs after D-43.
+* **Outcome (2026-09-28, maintainer approval; closed without a further run).** Every module of the stack has been
+  decided by its own measurement on the clean base. No module is pending, so the plan closes here.
+  * **M1, density-invariant encoder (D-43).** D43.4 stop: fixed100 model −6.89 against CR. P9 then closed the encoder
+    branch: every ψ is within ±0.02 (D-44).
+  * **M2, anti-collapse objective (D-45).** D45.3: the features widen (participation ratio 42.45 / 95.25) and U
+    falls by 5.20 / 11.34 points. The line stops.
+  * **M3, metric head.**
+    - P9.3 holds only through its oracle: LDA oracle 96.04 against cosine oracle 80.84, and the label-free LDA reaches
+      35.44 against U's 55.96 (D-44).
+    - The base-class covariance adds nothing distinguishable from 0 over the isotropic mean rule: λ 0.9 − λ 1.0 is
+      +0.36 [−0.01, +0.72] on fixed100 (D-46, P10.4).
+    - A trained M3 would learn that covariance on the base classes, so it is not run. The isotropic mean rule (+1.11
+      over U on fixed100) is kept for the stack.
+  * **M4, the query graph.** Kept at inference: LP +0.92, giving U + both + LP 58.55 on fixed100 (D-40).
+  * **Optional blocks.**
+    - The neck fails P9.8 (missed-point purity 0.109).
+    - N fails P9.4 (κ 0.71 < ρ 0.86), H fails P9.5 (CV 0.23), and C fails P9.6 (53.86) (D-44).
+    - The text head is "in between" (P3.3, +0.41; D-46).
+  * **What carries over.** The next architecture is chosen in a new decision from D-46's error decomposition. That
+    decomposition is P10.5: the own condition has no bias, the other condition carries a K-invariant bias, and the
+    background rows add up to 8.4 points.
