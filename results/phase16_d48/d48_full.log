@@ -1,0 +1,46 @@
+=== 2026-09-28T14:33:15+00:00 commit cfc3589 D48 P11 full
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+[fit] cr: {"points": 1075200, "episodes": 1050, "learner_train_acc": 0.8568257093429565} | held-out base probe vs U {"raw": {"probe": 34.30332074233096, "U": 32.85145321880567}, "centred": {"probe": 33.86925662522614, "U": 32.85145321880567}, "proj6": {"probe": 33.113085299595966, "U": 32.85145321880567}, "proj8": {"probe": 33.05966547026136, "U": 32.85145321880567}, "white6": {"probe": 34.389247552001855, "U": 32.85145321880567}, "white8": {"probe": 34.4079305277477, "U": 32.85145321880567}}
+[fit] crsmoke: {"points": 20480, "episodes": 20, "learner_train_acc": 0.850878894329071} | held-out base probe vs U {"raw": {"probe": 0.0, "U": 24.361950284638656}, "centred": {"probe": 14.977854245295799, "U": 24.361950284638656}, "proj6": {"probe": 15.278961834180556, "U": 24.361950284638656}, "proj8": {"probe": 15.081796184704627, "U": 24.361950284638656}, "white6": {"probe": 8.695024821541264, "U": 24.361950284638656}, "white8": {"probe": 0.44722639136602615, "U": 24.361950284638656}}
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] psi 0.01 kappa 0.1 eps 0.05 rho 0.1 | spearman +0.299
+[factorial] leakfree: base 33.05 | excl 32.92 | text 33.63 | ot 32.09 | lp 33.15 | excl+text+ot+lp 32.25
+[factorial] valid_raw: base 57.90 | excl 57.66 | text 58.09 | ot 57.93 | lp 58.68 | excl+text+ot+lp 59.43
+[factorial] random600:0: base 57.20 | excl 56.92 | text 57.34 | ot 58.04 | lp 58.37 | excl+text+ot+lp 59.42
+[factorial] random600:1: base 59.35 | excl 59.09 | text 59.62 | ot 59.77 | lp 60.36 | excl+text+ot+lp 60.85
+[factorial] random600:2: base 59.10 | excl 58.91 | text 59.16 | ot 58.44 | lp 59.99 | excl+text+ot+lp 60.01
+[factorial] valid: base 58.09 | excl 57.87 | text 58.19 | ot 58.41 | lp 59.00 | excl+text+ot+lp 59.66
+[factorial] fixed100: base 57.63 | excl 57.41 | text 57.70 | ot 57.92 | lp 58.55 | excl+text+ot+lp 59.24
+P11.1b exclusion fails (psi 0.01)                                        excl - base fixed100 -0.22 [-0.31, -0.14]; random600 [-0.27, -0.26, -0.19]; dense novel fg with g > 0.5: 0.620 (limit 0.1, report 0.05); base-origin FP 86878 -> 84490, TP 2144951 -> 2127593
+P11.2 text prior fails (kappa 0.1)                                       text - base valid +0.11 [-0.03, +0.26]; spearman(gamma_e, kappa*_e) +0.299
+P11.3 max over cells - U + both (valid)                                  raw bg8 -2.43; raw bg16 -1.72; raw bg32 -1.40; centred bg8 -2.07; centred bg16 -1.24; centred bg32 -1.11; proj6 bg8 -8.06; proj6 bg16 -7.53; proj6 bg32 -7.85; proj8 bg8 -6.97; proj8 bg16 -6.31; proj8 bg32 -6.33; white6 bg8 -9.14; white6 bg16 -8.94; white6 bg32 -9.88; white8 bg8 -7.62; white8 bg16 -6.92; white8 bg32 -7.15; contaminated background cells 0.113; oracle contrast share in the top-r span {"raw": 1.0, "centred": 1.0, "proj6": 0.814, "proj8": 0.835, "white6": 1.0, "white8": 1.0}; energy share {"proj6": 0.866, "proj8": 0.906, "white6": 0.866, "white8": 0.906}
+P11.4 transfer probe holds: arm A is trained (raw)                       probe - U valid +2.07; fixed100 57.40; leak-free 27.32 vs base 33.05; held-out base probe 34.30 vs U 32.85; recall own 0.776 other 0.077
+P11.5 OT fails (eps 0.05, rho 0.1)                                       ot - base fixed100 +0.29 [-0.20, +0.79]; random600 [0.84, 0.42, -0.65]; leak-free -0.96; mass on true fg 0.910
+D48.1' excl not kept on CR                                               shapley -0.17 [-0.24, -0.11], random600 [-0.2, -0.18, -0.14]; add-one -0.22; leave-one-out -0.15
+D48.1' text not kept on CR                                               shapley +0.07 [-0.03, +0.17], random600 [0.13, 0.19, 0.13]; add-one +0.07; leave-one-out +0.04
+D48.1' ot not kept on CR                                                 shapley +0.57 [+0.03, +1.14], random600 [0.99, 0.4, -0.3]; add-one +0.29; leave-one-out +0.81
+D48.1' lp kept on CR                                                     shapley +1.15 [+0.96, +1.33], random600 [1.31, 1.1, 1.22]; add-one +0.92; leave-one-out +1.34
+interaction excl x lp                                                    +0.02 [-0.04, +0.07]
+interaction excl x text                                                  +0.07 [+0.01, +0.13]
+interaction ot x lp                                                      +0.53 [+0.29, +0.79]
+total full - base (fixed100)                                             +1.62 [+1.04, +2.24]; full 59.24, base 57.63
+=== D48 P11 full FINISHED 2026-09-28T16:05:39+00:00

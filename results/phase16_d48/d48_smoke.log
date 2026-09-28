@@ -1,0 +1,73 @@
+=== 2026-09-28T14:23:56+00:00 commit f522abe D48 P11 smoke
+......................................                                   [100%]
+38 passed in 6.31s
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: train | Classes: [ 0  3  4  8 10 11]
+[fit] crsmoke: {"points": 20480, "episodes": 20, "learner_train_acc": 0.850878894329071} | held-out base probe vs U {"raw": {"probe": 0.0, "U": 24.361950284638656}, "centred": {"probe": 14.977854245295799, "U": 24.361950284638656}, "proj6": {"probe": 15.278961834180556, "U": 24.361950284638656}, "proj8": {"probe": 15.081796184704627, "U": 24.361950284638656}, "white6": {"probe": 8.695024821541264, "U": 24.361950284638656}, "white8": {"probe": 0.44722639136602615, "U": 24.361950284638656}}
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[select] psi 0.01 kappa 0.3 eps 0.05 rho 0.1 | spearman +0.400
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[factorial] valid: base 23.12 | excl 23.00 | text 21.58 | ot 24.57 | lp 23.85 | excl+text+ot+lp 27.42
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[factorial] fixed100: base 38.99 | excl 38.94 | text 38.98 | ot 36.92 | lp 38.99 | excl+text+ot+lp 37.62
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[factorial] random600:0: base 50.40 | excl 50.34 | text 49.98 | ot 49.98 | lp 50.60 | excl+text+ot+lp 50.16
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[factorial] random600:1: base 39.67 | excl 39.69 | text 39.68 | ot 40.04 | lp 40.37 | excl+text+ot+lp 40.21
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[factorial] random600:2: base 35.02 | excl 34.99 | text 34.52 | ot 32.77 | lp 34.06 | excl+text+ot+lp 32.59
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[factorial] leakfree: base 19.61 | excl 19.59 | text 20.72 | ot 15.18 | lp 20.65 | excl+text+ot+lp 16.42
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+[factorial] valid_raw: base 23.39 | excl 23.45 | text 23.26 | ot 22.90 | lp 24.19 | excl+text+ot+lp 24.15
+P11.1b exclusion fails (psi 0.01)                                        excl - base fixed100 -0.05 [-0.06, +0.00]; random600 [-0.07, 0.01, -0.03]; dense novel fg with g > 0.5: 0.000 (limit 0.1, report 0.05); base-origin FP 128 -> 124, TP 5195 -> 5194
+P11.2 text prior fails (kappa 0.3)                                       text - base valid -1.55 [-1.69, +0.37]; spearman(gamma_e, kappa*_e) +0.400
+P11.3 max over cells - U + both (valid)                                  raw bg8 +2.42; raw bg16 +2.02; raw bg32 -1.46; centred bg8 +1.27; centred bg16 +1.73; centred bg32 +1.65; proj6 bg8 -9.60; proj6 bg16 -9.74; proj6 bg32 -9.63; proj8 bg8 +0.45; proj8 bg16 -0.44; proj8 bg32 -4.55; white6 bg8 -7.84; white6 bg16 -9.61; white6 bg32 -13.41; white8 bg8 +1.67; white8 bg16 +2.64; white8 bg32 +0.09; contaminated background cells 0.188; oracle contrast share in the top-r span {"raw": 1.0, "centred": 1.0, "proj6": 0.629, "proj8": 0.711, "white6": 1.0, "white8": 1.0}; energy share {"proj6": 0.891, "proj8": 0.922, "white6": 0.891, "white8": 0.922}
+P11.4 transfer probe fails: arm A is not trained (proj8)                 probe - U valid -13.50; fixed100 32.77; leak-free 9.82 vs base 19.61; held-out base probe 15.08 vs U 24.36; recall own 0.257 other 0.019
+P11.5 OT fails (eps 0.05, rho 0.1)                                       ot - base fixed100 -2.07 [-2.07, -0.39]; random600 [-0.42, 0.37, -2.25]; leak-free -4.43; mass on true fg 0.932
+D48.1' excl not kept on CR                                               shapley -0.03 [-0.04, +0.00], random600 [-0.06, 0.03, -0.03]; add-one -0.05; leave-one-out -0.03
+D48.1' text not kept on CR                                               shapley -0.34 [-0.57, +0.48], random600 [-0.15, 0.14, -0.1]; add-one -0.01; leave-one-out -1.18
+D48.1' ot not kept on CR                                                 shapley -1.72 [-1.99, -0.15], random600 [-0.35, -0.03, -1.93]; add-one -2.07; leave-one-out -1.89
+D48.1' lp not kept on CR                                                 shapley +0.72 [+0.02, +0.75], random600 [0.32, 0.4, -0.38]; add-one -0.00; leave-one-out +0.96
+interaction excl x lp                                                    -0.06 [-0.09, +0.01]
+interaction excl x text                                                  +0.05 [-0.01, +0.06]
+interaction ot x lp                                                      +1.88 [+0.45, +1.88]
+total full - base (fixed100)                                             -1.37 [-1.84, +0.62]; full 37.62, base 38.99
+=== D48 P11 smoke FINISHED 2026-09-28T14:25:08+00:00
