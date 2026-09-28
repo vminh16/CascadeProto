@@ -2138,6 +2138,30 @@ Each ablation flag named below is a requirement on the future CLI/config, not an
   * **Unchanged.** P10.1 still gates part B; P10.3 and P10.4 run next to P10.1 and P10.2 on the same GPU.
   * **Affects.** `experiments/p10_align_probe.py` (stages `stats`, `metric`, `kcurve`), `experiments/run_d46.sh`,
     `tests/test_proto_align.py` (PA-11…14).
+* **Amendment 2 (2026-09-28, maintainer request, after P10.3 and part B were read and before this measurement ran):
+  the K-curve split by sampling condition, and a correction of amendment 1's model.**
+  * **Correction.** The cosine oracle compares with the query block's own class mean μ_q = μ_c + ε_q, which is itself
+    one instance. So δ_K = b + ε̄_K − ε_q, and the error is E‖δ_K‖² = ‖b‖² + tr(Σ_η)(1 + 1/K), not
+    ‖b‖² + tr(Σ_η)/K.
+    - The fitted intercept a is ‖b‖² + tr(Σ_η); only a − c estimates ‖b‖² (in 1 − cos units, first order).
+    - P10.3's registered bias share a / e(1) = 0.77 overstates the bias. The corrected share is (a − c) / e(1) = 0.54.
+      It falls in the same band, and the registered reading stands, with the corrected number beside it.
+  * **Why this measurement.** Part B lowered the alignment loss (0.320 → 0.224 / 0.210) without moving the base-class
+    gap (14.76 → 14.26 / 14.43). P10.3's e(k) averages over (query block, present foreground class) pairs, and P8
+    measured the other-condition pairs far off their support prototype (cos 0.54 against 0.889). Every support shot
+    is sampled for its class, so a density shift would appear as a b that no K removes.
+  * **P10.5 (descriptive; CR, the same 1,500 5-shot episodes, k ∈ {1, 2, 3, 5}).**
+    - e(k) is split by condition. A pair is own when block b was sampled for class c (c = b + 1, `p8.own_mask`), and
+      other otherwise.
+    - Fit a + c / k per condition, with b̂ = a − c.
+    - P8's condition oracles are scored per k (`p8.condition_oracle_rows`, own / other), giving the mIoU bounds g_own(k)
+      and g_other(k) over U(k), with pair counts.
+    - **Reading, fixed now (conventions):**
+      - "Density-driven bias" if b̂_other ≥ 2 b̂_own and b̂_own / e_own(1) < 0.25.
+      - "Instance bias in both" if b̂_own / e_own(1) ≥ 0.25.
+      - "Mixed" otherwise.
+      - The mIoU bounds are reported per k. No rule; the next decision reads them.
+  * **Affects.** `experiments/p10_align_probe.py` (stage `kcond`), `tests/test_proto_align.py` (PA-15).
 
 ---
 

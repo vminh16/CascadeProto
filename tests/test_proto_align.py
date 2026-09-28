@@ -277,3 +277,26 @@ def test_pa14_nested_shots_and_prototype_error():
                 o = F.normalize(F.normalize(f_q[b, sel], dim=-1).sum(0), dim=0)
                 ref.append(1.0 - float(o @ rows[c]))
     assert errs == pytest.approx(ref)
+
+
+def test_pa15_condition_split_and_reading():
+    """Amendment 2: own = block b sampled for class b + 1; b̂ = a − c per condition."""
+    ep = episode(n=2, k=1, bq=2, seed=11)
+    g = torch.Generator().manual_seed(12)
+    f_s, f_q = torch.randn(2, 1, 2048, 6, generator=g, dtype=torch.float64), torch.randn(2, 2048, 6, generator=g,
+                                                                                       dtype=torch.float64)
+    own, other = p10.condition_errors(f_q, f_s, ep.support_y, ep.query_y)
+    rows = p10.p5.support_directions(f_s, ep.support_y)
+    ref = {True: [], False: []}
+    for b in range(2):
+        for c in (1, 2):
+            sel = ep.query_y[b] == c
+            if sel.any():
+                o = F.normalize(F.normalize(f_q[b, sel], dim=-1).sum(0), dim=0)
+                ref[c == b + 1].append(1.0 - float(o @ rows[c]))
+    assert own == pytest.approx(ref[True]) and other == pytest.approx(ref[False])
+    assert sorted(own + other) == pytest.approx(sorted(p10.prototype_errors(f_q, f_s, ep.support_y, ep.query_y)))
+    fit = lambda a, c: {"a": a, "c": c}  # noqa: E731
+    assert p10.condition_reading(fit(0.06, 0.04), fit(0.30, 0.05), 0.12) == "density-driven bias"  # b̂ 0.02 vs 0.25
+    assert p10.condition_reading(fit(0.10, 0.04), fit(0.30, 0.05), 0.12) == "instance bias in both"  # 0.06/0.12 = 0.5
+    assert p10.condition_reading(fit(0.06, 0.04), fit(0.07, 0.04), 0.12) == "mixed"  # 0.03 < 2 x 0.02

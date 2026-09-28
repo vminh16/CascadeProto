@@ -8,6 +8,7 @@
     python experiments/p10_align_probe.py metric --data_path ... --checkpoint cr:...  # P10.4
     python experiments/p10_align_probe.py kcurve --data_path ... --checkpoint cr:...  # P10.3
     python experiments/p10_align_probe.py amend                                        # P10.3 band, P10.4 rule
+    python experiments/p10_align_probe.py kcond --data_path ... --checkpoint cr:...   # P10.5 (amendment 2)
 
 On P1's seeded training episodes (no augmentation, the fold's base classes scored), U's rule, the cosine oracle
 (the query's own unit class directions in every present row) and the model; the gap oracle − U with its paired
@@ -37,6 +38,7 @@ from experiments import p0_em_probe as p0  # noqa: E402
 from experiments import p1_bpc_probe as p1  # noqa: E402
 from experiments import p5_condition_probe as p5  # noqa: E402
 from experiments import p6_prototype_probe as p6  # noqa: E402
+from experiments import p8_condition_probe as p8  # noqa: E402
 from experiments import p9_placement_probe as p9  # noqa: E402
 from models.oracle_distill import oracle_directions  # noqa: E402
 from models.proto_align import TAU, alignment_loss  # noqa: E402
@@ -56,6 +58,7 @@ K_MAX, K_SEED = 5, 0
 METRIC_GAIN = 0.5  # P10.4, P9's bar for a label-free rule
 BIAS_HIGH, BIAS_LOW = 0.5, 0.25  # P10.3 bands of the bias share
 METRIC_DRAWS = ("valid",) + tuple(d39.DRAWS[:4])  # selection draw, then fixed100 and random600 seeds 0-2
+DENSITY_RATIO, OWN_BIAS = 2.0, 0.25  # P10.5 reading [DECISION D-46 amendment 2]
 
 
 def gap_holds(gap_points: float) -> bool:
@@ -188,6 +191,33 @@ def prototype_errors(f_q: torch.Tensor, f_s: torch.Tensor, support_y: torch.Tens
     o, present = oracle_directions(f_q, query_y, rows.shape[0])  # [B_q, N+1, D], [B_q, N+1]
     cos = torch.einsum("bcd,cd->bc", o, rows)  # [B_q, N+1]
     return [1.0 - float(cos[b, c]) for b in range(o.shape[0]) for c in range(1, rows.shape[0]) if present[b, c]]
+
+
+def condition_errors(f_q: torch.Tensor, f_s: torch.Tensor, support_y: torch.Tensor,
+                     query_y: torch.Tensor) -> Tuple[List[float], List[float]]:
+    """prototype_errors split by sampling condition: (own pairs, other pairs); own = block b sampled for class b + 1."""
+    rows = p5.support_directions(f_s, support_y)  # [N+1, D]
+    o, present = oracle_directions(f_q, query_y, rows.shape[0])  # [B_q, N+1, D], [B_q, N+1]
+    own = p8.own_mask(o.shape[0], rows.shape[0], o.device)  # [B_q, N+1]
+    cos = torch.einsum("bcd,cd->bc", o, rows)  # [B_q, N+1]
+    out: Tuple[List[float], List[float]] = ([], [])
+    for b in range(o.shape[0]):
+        for c in range(1, rows.shape[0]):
+            if present[b, c]:
+                out[0 if own[b, c] else 1].append(1.0 - float(cos[b, c]))
+    return out
+
+
+def condition_reading(fit_own: Dict[str, float], fit_other: Dict[str, float], e_own1: float) -> str:
+    """P10.5 [DECISION D-46 amendment 2]: b̂ = a − c per condition (the corrected model)."""
+    b_own = max(fit_own["a"] - fit_own["c"], 0.0)
+    b_other = max(fit_other["a"] - fit_other["c"], 0.0)
+    own_share = b_own / e_own1 if e_own1 > 0 else 0.0
+    if own_share >= OWN_BIAS:
+        return "instance bias in both"
+    if b_other >= DENSITY_RATIO * b_own:
+        return "density-driven bias"
+    return "mixed"
 
 
 def metric_verdict(p_fx: Dict[str, float], rand: List[float]) -> bool:
@@ -324,6 +354,48 @@ def score_kcurve(rule, data_path: str, device, sigma_w, sigma_eta, lam: float, m
             "fit_gap": fit_curve(KS, gap)}, stacked
 
 
+@torch.no_grad()
+def score_kcond(rule, data_path: str, device, max_episodes) -> Tuple[Dict, Dict]:
+    """P10.5: e(k) by condition and P8's condition oracles per k on the 5-shot episodes of P10.3."""
+    from pipeline.episodes import build_eval_dataset, make_episode, read_class_names
+
+    names = read_class_names(data_path, "s3dis")
+    ds = build_eval_dataset(data_path, "s3dis", 1, 2, K_MAX, mode="test", seed=K_SEED)
+    test_classes = [int(c) for c in np.asarray(ds.classes)]
+    m = len(ds) if max_episodes is None else min(max_episodes, len(ds))
+    counts: Dict[str, List[np.ndarray]] = {}
+    errs = {cond: {k: [] for k in KS} for cond in ("own", "other")}
+    for i in range(m):
+        full = make_episode(ds[i], names).to(device)
+        gt = full.query_y.cpu().numpy()
+        for k in KS:
+            e = subset_shots(full, k)
+            f_q, m_eff, _, logits = rule(e)
+            p0.check_identity(f_q, m_eff, logits)
+            f_s = p5.support_features(rule, e)
+            rows = p6.base_rows(f_q, f_s, e.support_y)
+            preds = {"U": p6.rule_logits(f_q, rows).argmax(-1)}
+            for which in p8.WHICH:
+                preds[f"oracle_{which}"] = p6.rule_logits(
+                    f_q, p8.condition_oracle_rows(f_q, e.query_y, rows, which)).argmax(-1)
+            for r, pr in preds.items():
+                counts.setdefault(f"{r}_k{k}", []).append(
+                    p0.episode_counts(pr.cpu().numpy(), gt, e.sampled_classes, test_classes))
+            own, other = condition_errors(f_q, f_s, e.support_y, e.query_y)
+            errs["own"][k].extend(own), errs["other"][k].extend(other)
+    stacked = {k: np.stack(v) for k, v in counts.items()}
+    miou = {k: float(p0.miou_from_counts(v.sum(0))) for k, v in stacked.items()}
+    res = {"episodes": m, "shots": list(KS), "miou": miou}
+    for cond in ("own", "other"):
+        e_mean = [float(np.mean(errs[cond][k])) for k in KS]
+        res[f"e_{cond}"] = e_mean
+        res[f"pairs_{cond}"] = len(errs[cond][1])
+        res[f"fit_{cond}"] = fit_curve(KS, e_mean)
+    res["reading"] = condition_reading(res["fit_own"], res["fit_other"], res["e_own"][0])
+    res["bounds"] = {w: [100.0 * (miou[f"oracle_{w}_k{k}"] - miou[f"U_k{k}"]) for k in KS] for w in p8.WHICH}
+    return res, stacked
+
+
 def amend(out_dir: str, tag: str) -> List[Tuple[str, str]]:
     """P10.3 band and P10.4 rule [DECISION D-46 amendment 1]."""
     v = []
@@ -360,7 +432,7 @@ def amend(out_dir: str, tag: str) -> List[Tuple[str, str]]:
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("stage", choices=["base", "gate", "decide", "stats", "metric", "kcurve", "amend"])
+    p.add_argument("stage", choices=["base", "gate", "decide", "stats", "metric", "kcurve", "amend", "kcond"])
     p.add_argument("--data_path")
     p.add_argument("--checkpoint", help="name:ours:1:path of a clean-base checkpoint")
     p.add_argument("--name", default="cr", help="gate: the checkpoint name")
@@ -414,6 +486,14 @@ def main(argv=None) -> int:
             res, stacked = score_metric(rule, d, args.data_path, device, sigma_w, sigma_eta, args.max_episodes)
             p6.save(res, stacked, f"p10_metric_{d.replace(':', '_seed')}{args.tag}", out_dir)
             print(f"[metric] {d}: " + " | ".join(f"{k} {100 * v:.2f}" for k, v in res["miou"].items()), flush=True)
+        return 0
+    if args.stage == "kcond":
+        res, stacked = score_kcond(rule, args.data_path, device, args.max_episodes)
+        p6.save(res, stacked, f"p10_kcond{args.tag}", out_dir)
+        print(f"[kcond] {res['reading']} | own e {[round(x, 4) for x in res['e_own']]} fit {res['fit_own']} "
+              f"({res['pairs_own']} pairs) | other e {[round(x, 4) for x in res['e_other']]} fit {res['fit_other']} "
+              f"({res['pairs_other']} pairs) | bounds {json.dumps({w: [round(x, 2) for x in v] for w, v in res['bounds'].items()})}",
+              flush=True)
         return 0
     if args.stage == "kcurve":
         sigma_w, sigma_eta = load_stats(out_dir, ck.name, args.tag)

@@ -643,9 +643,10 @@ model contract's optional fields.
 | PA-12 | The metric rule's argmax is the nearest support mean in C⁻¹, with C = shrink(Σ_w + Σ_η / k, λ); at λ = 1 C is a multiple of I and the rule is the Euclidean nearest mean | [DECISION D-46] amendment 1 |
 | PA-13 | e(k) = a + c / k recovered exactly; a negative intercept counts as no bias; the P10.3 bands at 0.5 and 0.25; λ = 1 is never frozen; P10.4 holds at +0.5 with every random600 draw above 0 | [DECISION D-46] amendment 1 |
 | PA-14 | The first-k-shots episode keeps the queries; the prototype error by hand over the foreground classes present | [DECISION D-46] amendment 1 |
+| PA-15 | The prototype error split by condition (own: block b sampled for class b + 1) equals the hand split and partitions P10.3's errors; the P10.5 reading on each branch with b̂ = a − c | [DECISION D-46] amendment 2 |
 
 Mutation check (2026-09-28): 8 mutants, 8 killed after PA-10 gained the case of a gap between the bar and CR's (the
-mechanism threshold survived before); amendment 1, 10 mutants of `p10_align_probe.py`, 10 killed.
+mechanism threshold survived before); amendment 1, 10 mutants of `p10_align_probe.py`, 10 killed; amendment 2, 5 mutants, 5 killed.
 
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
