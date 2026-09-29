@@ -1936,3 +1936,14 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **Incidents.** A1's evaluation was skipped by `run_d49.sh` (wrong run directory, fixed in 22a10e3) and run by hand;
   leak-free and valid_raw of CR and CB were also run in separate processes to read the rules early, with identical
   numbers. The instance stays up at the maintainer's request (autostop cron paused).
+
+### 16bh - first-principles layer audit (research note, no code)
+
+* **What.** `docs/research/2026-09-29_first_principles_layer_audit_vi.md`: four independent read-only audits (data and
+  benchmark, representation, method and formulation, evidence ledger of D-19…D-49) plus the earlier math, code and
+  literature audits, cross-checked. No code, spec or decision changes.
+* **Findings.** Code matches spec 02; the head is saturated (clean head ≈ plain prototype matching, head/inference levers
+  ≤ +2.8); no experiment ever changed the encoder's information source (features trained on 6 base classes, PR 5.56 ≈
+  C−1); the encoder sees only per-block min–max XYZ + RGB (`models/encoder.py:644`); about 22.6 points of U on fixed100 are
+  sampling density. Proposes three inference-only screens (S1 grouping vs naming, S2 generic representation — needs a
+  D-50 against guardrail 1, S3 data confounds) with draft rules; nothing registered.
