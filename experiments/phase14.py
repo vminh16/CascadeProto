@@ -1,5 +1,8 @@
 """Phase-14 run queue: full S3DIS training runs for Tables 2, 4 and 5 of the paper, then evaluation.
 
+P1-P4 are text; P5 is Table 2's Image and Audio rows (D-47). Each Table 2 cell is its own training run
+(VIP-Seg's released logs are one run per setting), never a checkpoint of another setting.
+
     python experiments/phase14.py --data_path datasets/S3DIS/blocks_bs1_s1 --priority P1          # run P1
     python experiments/phase14.py --data_path datasets/S3DIS/blocks_bs1_s1 --priority P1 P2 --list  # show plan
 
@@ -21,7 +24,8 @@ sys.path.insert(0, REPO)
 
 import train  # noqa: E402  (run_dir and argument parsing are the single source of run names)
 
-PRIORITIES = ("P1", "P2", "P2s", "P3", "P4")
+PRIORITIES = ("P1", "P2", "P2s", "P3", "P4", "P5")
+MODALITIES = ("image", "audio")  # P5: Table 2's modality rows besides text [DECISION D-47]
 
 # Table 4 rows as switches [DECISION D-17]; defaults of train.py are the full model.
 ROWS: Dict[str, Dict[str, str]] = {
@@ -68,6 +72,11 @@ def all_runs() -> List[Run]:
     for t in (2, 3, 5, 6):
         runs += [_run("P4", f"T{t}", fold, flags={"num_stages": str(t)}, tables=[("T5", f"T{t}")])
                  for fold in (0, 1)]
+    # Table 2's Image and Audio rows: the full model with the class-level front-ends of D-47, one training per setting
+    for modality in MODALITIES:
+        for n, k in ((2, 1), (2, 5), (3, 1), (3, 5)):
+            runs += [_run("P5", f"full_{modality}", fold, n, k, flags={"modality": modality},
+                          tables=[(f"T2:{modality}", f"N{n}K{k}")]) for fold in (0, 1)]
     return runs
 
 
@@ -116,11 +125,14 @@ def main(argv=None) -> int:
     p.add_argument("--data_path", required=True)
     p.add_argument("--save_dir", default="log_phase14")
     p.add_argument("--priority", nargs="+", default=["P1"], choices=PRIORITIES)
+    p.add_argument("--only", nargs="+", default=None, help="restrict to these run names (e.g. full_S1_N2K1)")
     p.add_argument("--list", action="store_true", help="print the pending steps and exit")
     args = p.parse_args(argv)
     # absolute paths: the checks here and the subprocesses (cwd = REPO) must see the same files
     args.data_path, args.save_dir = os.path.abspath(args.data_path), os.path.abspath(args.save_dir)
-    runs = [r for r in all_runs() if r.priority in args.priority]
+    runs = [r for r in all_runs() if r.priority in args.priority or (args.only and r.name in args.only)]
+    if args.only:
+        runs = [r for r in runs if r.name in args.only]
     for run in runs:
         for label, command in pending_steps(run, args.data_path, args.save_dir):
             print(f"[phase14] {label}\n  {' '.join(command)}", flush=True)

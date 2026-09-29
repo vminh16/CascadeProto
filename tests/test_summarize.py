@@ -57,3 +57,14 @@ def test_sum3_seed_spread(tmp_path):
     assert f"mean {statistics.mean(pct):.2f}, std {statistics.stdev(pct):.2f} over 3 seeds" in text
     assert "seed 1: 86.00" in text
     assert "needs at least two" in summarize.seed_markdown(str(tmp_path / "empty"), "fixed100")
+
+
+def test_sum4_image_and_audio_rows_have_no_paper_column_yet(tmp_path):
+    """D-47: Table 2's Image and Audio rows are read from their own runs; the paper's numbers are not in the repo."""
+    write(tmp_path, find("full_image_S0_N2K1"), "best", "fixed100", 0.5000)
+    write(tmp_path, find("full_image_S1_N2K1"), "best", "fixed100", 0.6000)
+    text = summarize.report(str(tmp_path), "fixed100")
+    image = text.split("### Table 2 - CascadeProto (Image)")[1].split("###")[0]
+    assert row_line(image, "N2K1") == ["| N2K1 | 50.00 | - | 60.00 | - | 55.00 | not transcribed | - |"]
+    audio = text.split("### Table 2 - CascadeProto (Audio)")[1].split("###")[0]
+    assert row_line(audio, "N2K1")[0].startswith("| N2K1 | - | - | - | - | - |")  # a separate modality

@@ -24,10 +24,10 @@ def config_of(run):
 def test_q1_queue_sizes_and_unique_run_dirs(tmp_path):
     runs = phase14.all_runs()
     count = {p: sum(r.priority == p for r in runs) for p in phase14.PRIORITIES}
-    assert count == {"P1": 2, "P2": 8, "P2s": 2, "P3": 6, "P4": 8}
+    assert count == {"P1": 2, "P2": 8, "P2s": 2, "P3": 6, "P4": 8, "P5": 16}
     dirs = [phase14.run_dir(r, str(tmp_path)) for r in runs]
-    assert len(set(dirs)) == len(runs) == 26
-    assert len({r.name for r in runs}) == 26
+    assert len(set(dirs)) == len(runs) == 42
+    assert len({r.name for r in runs}) == 42
 
 
 def test_q2_table4_rows_are_the_d17_configurations_on_both_folds():
@@ -156,3 +156,16 @@ def test_cross_attn_support_gets_its_own_run_directory():
     pooled = train.parse_args(base + ["--cross_attn_support", "pooled"])
     assert pooled.cross_attn_support == "pooled"
     assert train.run_dir(pooled) == train.run_dir(train.parse_args(base)) + "_pooled"
+
+
+def test_q6_table2_image_and_audio_rows_are_full_models_with_their_own_modality(tmp_path):
+    """D-47: Table 2's modality rows are separate trainings of the full model, one per setting and fold."""
+    runs = phase14.all_runs()
+    for modality in ("image", "audio"):
+        for n, k in ((2, 1), (2, 5), (3, 1), (3, 5)):
+            cells = [r for r in runs if (f"T2:{modality}", f"N{n}K{k}") in r.tables]
+            assert sorted(r.cvfold for r in cells) == [0, 1] and all(r.priority == "P5" for r in cells)
+            for r in cells:
+                c = config_of(r)
+                assert c == CascadeProtoConfig(modality=modality) and (r.n_way, r.k_shot) == (n, k)
+                assert f"_{modality}_" in phase14.run_dir(r, str(tmp_path))  # never shares a directory with text

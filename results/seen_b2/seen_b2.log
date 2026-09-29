@@ -1,0 +1,19 @@
+=== 2026-09-29T07:01:41+00:00 commit 42aa7da
+=== 2026-09-29T07:01:41+00:00 ctrl_baseline_last log_phase14/s3dis_S0_N2_K1_point_T0/last.pt
+args: {'dataset': 's3dis', 'data_path': 'datasets/S3DIS/blocks_bs1_s1', 'cvfold': 1, 'n_way': 2, 'k_shot': 1, 'checkpoint': 'log_phase14/s3dis_S0_N2_K1_point_T0/last.pt', 'model': 'cascadeproto', 'eval_protocol': 'fixed100', 'seed': 0, 'save_dir': 'log_eval_seen_b2', 'dry_run': False, 'result_json': 'results/seen_b2/ctrl_baseline_last.json', 'extra_metrics': True, 'checkpoint_cvfold': None, 'allow_seen_classes': True}
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+[Encoder] Initialized with:
+  - Input points: 2048
+  - Stages: 3
+  - HiConv number: 3
+  - Base dimension: 60
+  - Final dimension: 480
+protocol: SEEN-CLASS DIAGNOSTIC, not a few-shot result: trained on S0, whose training classes are the test classes of S1 (checkpoint trained on S0, scored on S1)
+model config (from checkpoint): {'use_lma': False, 'num_stages': 0, 'use_gate': True, 'use_adrm': True, 'modality': 'text', 'logit_scale': 'none', 'l2norm_point_proto': False, 'clip_variant': 'ViT-B/16', 'eval_noise': 'zero', 'gmmn_fg_mode': 'joint', 'gmmn_detach_point': False, 'cross_attn': 'channel', 'cross_attn_scale': 'sqrt_d', 'cross_attn_norm': 'none', 'cross_attn_support': 'class_slots', 'gate_target': 'prototype', 'eq19_self': 'none', 'stage_type': 'eppm', 'fusion_weight': 'per_query', 'diffusion_input': 'post_relu', 'distill_beta': 0.0, 'neck': 'none', 'neck_alpha_init': 0.0, 'prototype_rule': 'mean', 'self_support_steps': 0, 'support_aux': 0.0, 'encoder': 'vipseg', 'vicreg_var': 0.0, 'vicreg_cov': 0.0, 'align_weight': 0.0, 'align_tau': 0.1}
+{0: 'ceiling', 1: 'floor', 2: 'wall', 3: 'beam', 4: 'column', 5: 'window', 6: 'door', 7: 'table', 8: 'chair', 9: 'sofa', 10: 'bookcase', 11: 'board', 12: 'clutter'}
+MODE: test | Classes: [6 1 9 7 2 5]
+fixed100: 1500 of 1500 episodes | test classes ['door', 'floor', 'sofa', 'table', 'wall', 'window']
+*****Test Classes: [6, 1, 9, 7, 2, 5]*****
+[TEST] cascadeproto s3dis S1 2-way 1-shot mIoU: 0.773237
+[EXTRA] accumulated_fg=0.773237 | accumulated_with_bg=0.783858 | episode_fg=0.777681 | episode_with_bg=0.798948 | point_accuracy=0.893209

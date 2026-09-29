@@ -26,8 +26,12 @@ PAPER: Dict[str, Dict[str, Tuple[float, float, float]]] = {
     "T2": {"N2K1": (88.53, 84.53, 86.53), "N2K5": (88.57, 84.78, 86.68), "N3K1": (83.07, 79.04, 81.06),
            "N3K5": (79.95, 77.94, 78.95)},
 }
+# Table 2's Image and Audio rows: the paper's numbers are not transcribed in this repository (they need the PDF)
+NO_PAPER: Dict[str, List[str]] = {f"T2:{m}": ["N2K1", "N2K5", "N3K1", "N3K5"] for m in ("image", "audio")}
 TITLES = {"T4": "Table 4 - components (2-way 1-shot)", "T5": "Table 5 - cascade depth T (2-way 1-shot)",
-          "T2": "Table 2 - CascadeProto (Text), all settings"}
+          "T2": "Table 2 - CascadeProto (Text), all settings",
+          "T2:image": "Table 2 - CascadeProto (Image), all settings (D-47)",
+          "T2:audio": "Table 2 - CascadeProto (Audio), all settings (D-47)"}
 
 
 def read_result(save_dir: str, run, which: str, protocol: str) -> Optional[float]:
@@ -61,11 +65,16 @@ def table_markdown(save_dir: str, protocol: str, table: str) -> str:
     lines = [f"### {TITLES[table]}", "",
              "| Row | S0 best | S0 last | S1 best | S1 last | Avg best | Paper S0 / S1 / Avg | Avg diff (best) |",
              "| :--- | ---: | ---: | ---: | ---: | ---: | :--- | ---: |"]
-    for row, (p0, p1, pavg) in PAPER[table].items():
+    rows = PAPER[table] if table in PAPER else {row: None for row in NO_PAPER[table]}
+    for row, paper in rows.items():
         best, last = (cell_values(save_dir, protocol, table, row, w) for w in ("best", "last"))
         avg = None if None in (best[0], best[1]) else (best[0] + best[1]) / 2
-        lines.append(f"| {row} | {fmt(best[0])} | {fmt(last[0])} | {fmt(best[1])} | {fmt(last[1])} | {fmt(avg)} | "
-                     f"{p0:.2f} / {p1:.2f} / {pavg:.2f} | {fmt_delta(avg, pavg)} |")
+        cells = f"{fmt(best[0])} | {fmt(last[0])} | {fmt(best[1])} | {fmt(last[1])} | {fmt(avg)} | "
+        if paper is None:
+            lines.append(f"| {row} | {cells}not transcribed | - |")
+        else:
+            p0, p1, pavg = paper
+            lines.append(f"| {row} | {cells}{p0:.2f} / {p1:.2f} / {pavg:.2f} | {fmt_delta(avg, pavg)} |")
     return "\n".join(lines)
 
 
@@ -83,7 +92,7 @@ def seed_markdown(save_dir: str, protocol: str) -> str:
 def report(save_dir: str, protocol: str) -> str:
     parts = [f"## Phase-14 results ({protocol}, mIoU %)", "",
              "`best` = best validation checkpoint, `last` = last epoch (D-15); Avg = mean of S0 and S1."]
-    for table in ("T4", "T5", "T2"):
+    for table in ("T4", "T5", "T2", "T2:image", "T2:audio"):
         parts += ["", table_markdown(save_dir, protocol, table)]
     parts += ["", seed_markdown(save_dir, protocol)]
     return "\n".join(parts) + "\n"
