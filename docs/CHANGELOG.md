@@ -1936,3 +1936,39 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **Incidents.** A1's evaluation was skipped by `run_d49.sh` (wrong run directory, fixed in 22a10e3) and run by hand;
   leak-free and valid_raw of CR and CB were also run in separate processes to read the rules early, with identical
   numbers. The instance stays up at the maintainer's request (autostop cron paused).
+
+### 16bh - first-principles layer audit (research note, no code)
+
+* **What.** `docs/research/2026-09-29_first_principles_layer_audit_vi.md`: four independent read-only audits (data and
+  benchmark, representation, method and formulation, evidence ledger of D-19…D-49) plus the earlier math, code and
+  literature audits, cross-checked. No code, spec or decision changes.
+* **Findings.** Code matches spec 02; the head is saturated (clean head ≈ plain prototype matching, head/inference levers
+  ≤ +2.8); no experiment ever changed the encoder's information source (features trained on 6 base classes, PR 5.56 ≈
+  C−1); the encoder sees only per-block min–max XYZ + RGB (`models/encoder.py:644`); about 22.6 points of U on fixed100 are
+  sampling density. Proposes three inference-only screens (S1 grouping vs naming, S2 generic representation — needs a
+  D-50 against guardrail 1, S3 data confounds) with draft rules; nothing registered.
+
+### 16bi - field ceiling and paradigm note (research note, no code)
+
+* **What.** `docs/research/2026-09-29_field_ceiling_and_paradigm_vi.md`: three independent surveys (SOTA trajectory and
+  ceilings of fully supervised 3D segmentation; 2023–2026 paradigm shifts; first-principles theory) cross-checked. No
+  code, spec or decision changes.
+* **Findings.** Architecture gains from scratch are about 0.4–0.8 points per year since 2022; later gains come from data,
+  self-supervised pretraining and 2D features (DITR ScanNet200 35.3 → 42.3, README read). A ceiling model (label noise
+  κ = (1−ε)/(1+ε), prior-ratio IoU = r/(1 + f(1−π)/π), IoU-optimal threshold J*/(1+J*)) and five ideas with falsifiers.
+  LAM3C (video-reconstructed pretraining, no real scans, no S3DIS; S3DIS A5 linear probe 69.5, README read) is proposed as
+  the clean control for a frozen-feature few-shot screen that needs a D-50 against guardrail 1; nothing registered.
+
+### 16bj - D-50 recorded (decision only, no code)
+
+* **What.** `docs/decisions/D-50_generic-representation-screen-and-distillation.md`, its 00 §4 row and 00 §7 line.
+  01 §2.1 now admits frozen pretrained point-cloud models only as P12 screen extractors and M6 training-time teachers;
+  the evaluated model loads none, and dependent numbers go in a separate table. AGENTS guardrail 1 still needs the
+  matching edit by the maintainer.
+* **Why.** The evidence ledger (16bh) found no experiment that changed the encoder's information source; the field
+  survey (16bi) found frozen generic features, including LAM3C with no S3DIS in pretraining, carrying class structure
+  that base-class training does not. P12 measures this on the repository's own episodes before any training.
+* **Rules.** P12.1–P12.5 (LAM3C U − CR U ≥ +5 on fixed100 or leak-free → M6; exposure-only gain → M6 with a labelled
+  teacher; all ≤ +1 → the method line closes) and D50.1–D50.3 (M6 − CR ≥ +2 on fixed100 and ≥ 0 leak-free → adopt),
+  fixed before any code.
+
