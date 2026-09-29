@@ -1947,3 +1947,14 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   C−1); the encoder sees only per-block min–max XYZ + RGB (`models/encoder.py:644`); about 22.6 points of U on fixed100 are
   sampling density. Proposes three inference-only screens (S1 grouping vs naming, S2 generic representation — needs a
   D-50 against guardrail 1, S3 data confounds) with draft rules; nothing registered.
+
+### 16bi - field ceiling and paradigm note (research note, no code)
+
+* **What.** `docs/research/2026-09-29_field_ceiling_and_paradigm_vi.md`: three independent surveys (SOTA trajectory and
+  ceilings of fully supervised 3D segmentation; 2023–2026 paradigm shifts; first-principles theory) cross-checked. No
+  code, spec or decision changes.
+* **Findings.** Architecture gains from scratch are about 0.4–0.8 points per year since 2022; later gains come from data,
+  self-supervised pretraining and 2D features (DITR ScanNet200 35.3 → 42.3, README read). A ceiling model (label noise
+  κ = (1−ε)/(1+ε), prior-ratio IoU = r/(1 + f(1−π)/π), IoU-optimal threshold J*/(1+J*)) and five ideas with falsifiers.
+  LAM3C (video-reconstructed pretraining, no real scans, no S3DIS; S3DIS A5 linear probe 69.5, README read) is proposed as
+  the clean control for a frozen-feature few-shot screen that needs a D-50 against guardrail 1; nothing registered.
