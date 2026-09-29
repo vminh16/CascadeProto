@@ -1922,3 +1922,17 @@ under the standard protocol. Every change is behind a flag whose default keeps t
 * **Verification.** MOD-1…9 (05 §3.8z); ABL-3, CP-6, PIPE-6 changed to expect the front-ends. Mutation check: 12
   mutants of the two front-ends, the factory and the fetcher, 12 killed. Built on the instance (CPU):
   `results/phase16_d47/SUMMARY.md` — audio 10/14 exact transcripts, image rows 12/14 nearest their own text row.
+
+### 16bg - D-49 and D-48 arm A measured
+
+* **What.** CB (CR + condition balance q 0.5), A0 and A1 (correlation head, seeds 0 and 1) trained on CR's schedule
+  and scored on 7 draws with per-checkpoint LP (`results/phase16_d49/SUMMARY.md`).
+* **D-49.** D49.5 stop by the registered rule. Leak-free holds: U +2.11 [+1.43, +2.80], the first leak-free gain on
+  the clean base; other-condition recall 0.18 → 0.46. The standard protocol loses 5.5–7.7 points. The α half of D49.1
+  fails (−0.021, bar 0.10), and α is shown not to be a valid measure: own points have the same α although they are
+  labelled correctly. P11.6's "information lost" reading is withdrawn (D-48 outcome addendum, phase16_d48 SUMMARY).
+* **D-48 arm A.** Not kept: A model+LP − CR U+both+LP fixed100 −3.28 / −4.98, leak-free −3.67 / −4.53, seed spread
+  1.70.
+* **Incidents.** A1's evaluation was skipped by `run_d49.sh` (wrong run directory, fixed in 22a10e3) and run by hand;
+  leak-free and valid_raw of CR and CB were also run in separate processes to read the rules early, with identical
+  numbers. The instance stays up at the maintainer's request (autostop cron paused).

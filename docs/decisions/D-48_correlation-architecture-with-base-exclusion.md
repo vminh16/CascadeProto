@@ -453,3 +453,19 @@
     - [2] is not attached to A: P11.1b failed, and its density trap is a property of the base classes' sampling,
       not of the head.
     - Leak-free and own / other recall are reported with every row (A5).
+
+#### Outcome of arm A (2026-09-29): neck not kept; P11.6's reading withdrawn
+
+`results/phase16_d49/SUMMARY.md` (trained and scored with D-49). A = `stage_type=corr`, 2 layers, seeds 0 and 1.
+D48.2' fails for both seeds: A model+LP − CR U+both+LP on fixed100 −3.28 [−4.48, −2.12] (A0) and −4.98 [−6.17, −3.81]
+(A1); random600 −3.9 to −6.1; leak-free −3.67 / −4.53; seed spread 1.70. As a head the correlation neck is slightly
+better than PEM/PDM on leak-free (model+LP 29.47 / 28.61 against 28.62) but far from CR's full inference stack. Arm A
+is closed.
+
+**Correction to the P11.6 outcome above.** It read the oracle mixture's α ≈ 0 for other-condition points as "the
+sparse class leaves no trace; the information is lost in the representation". D-49's evaluation measured α for
+own-condition points as a control: the median is the same (−0.018), although those points are labelled correctly. The
+2 × 2 fit cannot separate the class mean from a same-class context, so α ≈ 0 is not evidence of lost information.
+Condition-balanced training (D-49) raised the mean rule's other-condition recall from 0.18 to 0.46 and leak-free by
+2.1 points: the sparse-point signal can be learned. What P11.6 still shows: unmixing loses (−2.86), and inference
+rules on CR's features do not recover the sparse points.

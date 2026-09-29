@@ -69,6 +69,10 @@ The project began as a re-implementation of the CascadeProto paper (phases 8–1
 | D-32 | background contaminated by the episode's own classes | refuted by intervention: +0.09 with a perfectly clean background | `results/phase16_p4/` |
 | D-33 | zero-init point-level support → query attention neck, warm start | stop: the neck never opened (α 0.0023) | `results/phase16_n1/` |
 | D-34 | the same neck trained from scratch | stop: the neck opened (α 0.060) and cost 0.5–1.1 points | `results/phase16_n2/` |
+| D-48 arm A | correlation head replacing PEM/PDM (2 seeds) | not kept: −3.3 / −5.0 on fixed100 against CR's U+both+LP | `results/phase16_d49/` |
+| D-49 | condition-balanced training (queries thinned in their own class, q 0.5) | D49.5 stop by rule, but the first leak-free gain on the clean base: U +2.11 [+1.43, +2.80], other-condition recall 0.18 → 0.46; standard protocol −5.8. The α measure of its rule is shown invalid | `results/phase16_d49/` |
+
+D-35…D-47 are indexed in 00 §4 with their outcomes.
 
 Research notes behind these: `docs/research/2026-09-22_improvement_directions.md`,
 `2026-09-23_gap_and_upgrade_research.md`, `2026-09-24_r2_distill_analysis.md`,

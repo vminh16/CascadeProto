@@ -1,0 +1,4 @@
+{
+ "model": "lp_feat_k8_b0.8",
+ "both": "lp_feat_k16_b0.99"
+}

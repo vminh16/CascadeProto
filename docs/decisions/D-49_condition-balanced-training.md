@@ -63,3 +63,20 @@
 * **Affects.** `pipeline/episodes.py` (`sparse_query_view`, `ConditionBalance`, `with_condition_balance`),
   `train.py` (`--condition_balance`, run tag `_cb<q>`), `experiments/d49_eval.py` (new), `experiments/run_d49.sh`
   (new), `tests/test_condition_balance.py` (new), 05, new section.
+
+#### Outcome (2026-09-29): D49.5 stop by the registered rule; the α measure is not valid
+
+`results/phase16_d49/SUMMARY.md`. CB (q 0.5, seed 0) against CR, `last.pt`:
+* D49.1 fails: median α of other points −0.018 → −0.021 (bar 0.10). The recall half holds: U other recall on fixed100
+  0.177 → 0.458 (bar +0.05); own recall 0.827 → 0.770.
+* D49.2 holds: leak-free U +2.11 [+1.43, +2.80] (U + both + LP 33.15 → 35.36).
+* D49.3 fails: fixed100 U −5.81 [−6.90, −4.74]; random600 −5.54 / −6.96 / −7.74. The model row loses on both
+  protocols (leak-free −3.18).
+* Verdict: **D49.5 stop**, applied as registered. CR stays the base.
+
+**The α measure.** α for own-condition points has the same median as for other points (CR −0.018, CB −0.021), although
+the mean rule labels 83 % of own points correctly: for an own point the context mean is made of its own class, so the
+class mean and the context are nearly collinear and the fit hands the class's share to γ. α did not move while other
+recall rose 2.5-fold and leak-free rose by 2.1. The measure cannot see the mechanism D49.1 was registered to see. The
+rule is not changed after the fact; any follow-up registers a valid measure before its run. This also withdraws the
+reading of D-48 P11.6 that sparse points "carry no own-class signal" (see the D-48 outcome addendum).

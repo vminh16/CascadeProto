@@ -138,3 +138,10 @@ Gate share (τ 0.8): own 0.43, other 0.93, background 1.00.
   side).
 - A fix must change what the representation keeps for sparse points: a representation trained or distilled so that a
   minority point keeps its own class signal, or an extra per-point modality.
+
+> **Correction (2026-09-29, D-49).** The third and fourth points above over-read α. D-49's evaluation measured α for
+> own-condition points as a control: the median is the same (CR −0.018), although the mean rule labels 83 % of those
+> points correctly — the 2 × 2 fit cannot split the class mean from a same-class context. α ≈ 0 is therefore not
+> evidence that the information is lost, and condition-balanced training raised other-condition recall from 0.18 to
+> 0.46 (`results/phase16_d49/SUMMARY.md`). What stands: unmixing loses, and inference rules on CR's features do not
+> recover the sparse points.
