@@ -1886,3 +1886,20 @@ under the standard protocol. Every change is behind a flag whose default keeps t
     information is lost in the representation.
 * **Housekeeping.** `run_d48.sh` now names its logs without colons (a Windows checkout cannot hold them). The
   instance was stopped after the copy (md5 checked).
+
+### 16be - D-49 recorded and implemented; D-48 arm A implemented (not run)
+
+* **D-49 (condition-balanced training).**
+  - This is D-41's registered second arm, never run until now.
+  - Each training query block is thinned, with probability 0.5, in its own class to background density (P5's
+    `sparse_view` law), with labels following their points. XYZ is recomputed as the loader does, and a private RNG
+    is used.
+  - It targets P11.6's finding (sparse points carry no own-class signal) and P11.1b's (dense ⇒ target).
+* **Arm A (D-48 amendment 6).**
+  - `stage_type=corr`: adaptive support cells in the raw space, the (max, top-2 mean, mean) descriptor, 2 layers of
+    attention across points per (block, row) with equivariant row mixing, and deep supervision through `loss_reg`.
+* **Evaluation.** `experiments/d49_eval.py` reads every head with the same rows (model, U, U + both, model + LP,
+  U + both + LP), with LP re-selected on each checkpoint's valid. It also reads the oracle abundance on valid_raw,
+  and the rules D49.1–D49.5 and D48.2'.
+* **Run script.** `experiments/run_d49.sh` trains CB, A0 and A1 together.
+* **Tests.** CB-1…7 and CH-1…6 (05 §3.8y); mutation 12/12; CPU suite 619 passed.

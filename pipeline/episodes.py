@@ -8,7 +8,7 @@ import math
 import os
 import random
 from dataclasses import dataclass
-from typing import List, Sequence
+from typing import List, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -231,6 +231,73 @@ class QueryOrder(torch.utils.data.Dataset):
         support_x, support_y, query_x, query_y, sampled_classes = self.base[i]
         order = np.random.default_rng([self.seed, QUERY_ORDER_SEED_STREAM, i]).permutation(query_x.shape[0])  # [B_q]
         return support_x, support_y, query_x[order], query_y[order], sampled_classes  # blocks and labels together
+
+
+CONDITION_SEED_STREAM = 4  # second word of the per-episode thinning seed, see ConditionBalance
+CB_JITTER_SIGMA, CB_JITTER_CLIP = 0.01, 0.05  # the training jitter [VIPSEG dataloaders/loader.py:110-112]
+
+
+def sparse_query_view(block: np.ndarray, labels: np.ndarray, own: int,
+                      rng: np.random.Generator) -> Tuple[np.ndarray, np.ndarray]:
+    """A query block [P, 9] (xyz, rgb, XYZ) with its own class `own` thinned to background density [DECISION D-49].
+
+    With own-class share f and r = 1 - sqrt(1 - f) (the sampler's f = r(2 - r)), each own-class point is kept with
+    probability (1 - r)/(2 - r), which leaves the share r among the kept points; at least one survives. The block is
+    refilled to P points with jittered copies of uniformly drawn kept points, whose labels follow them. xyz keeps
+    the loader's (augmented) coordinates; XYZ = (xyz - min) / max per axis as the loader computes it
+    [VIPSEG dataloaders/loader.py:67-74]. A block without its own class, or made only of it, is returned unchanged.
+    """
+    p = block.shape[0]
+    is_own = labels == own  # [P]
+    f = float(is_own.mean())
+    if not 0.0 < f < 1.0:
+        return block, labels
+    r = 1.0 - np.sqrt(1.0 - f)
+    keep = ~is_own | (rng.random(p) < (1.0 - r) / (2.0 - r))  # [P]
+    if not is_own[keep].any():
+        keep[np.nonzero(is_own)[0][0]] = True
+    kept = np.nonzero(keep)[0]
+    extra = rng.choice(kept, p - kept.size, replace=True)
+    jitter = np.clip(CB_JITTER_SIGMA * rng.standard_normal((extra.size, 3)), -CB_JITTER_CLIP, CB_JITTER_CLIP)
+    xyz = np.concatenate([block[kept, :3], block[extra, :3] + jitter])  # [P, 3]
+    rgb = np.concatenate([block[kept, 3:6], block[extra, 3:6]])  # [P, 3]
+    lab = np.concatenate([labels[kept], labels[extra]])  # [P]
+    shifted = xyz - xyz.min(axis=0)
+    xyz_n = shifted / shifted.max(axis=0)
+    order = rng.permutation(p)
+    return np.concatenate([xyz, rgb, xyz_n], axis=1)[order].astype(block.dtype), lab[order].astype(labels.dtype)
+
+
+class ConditionBalance(torch.utils.data.Dataset):
+    """Training episode i with each query block thinned in its own class with probability q [DECISION D-49].
+
+    Applied to the loader's order, where query block b was sampled for local class b + 1 [VIPSEG
+    dataloaders/loader.py:181-222], so it must wrap the episodes before D-37's permutation. The generator is private
+    (`default_rng([seed, 4, i])`); the global RNGs are never drawn from, and the supports are untouched.
+    """
+
+    def __init__(self, base, q: float, seed: int):
+        if not 0.0 <= q <= 1.0:
+            raise ValueError(f"condition_balance must lie in [0, 1], got {q}")
+        self.base, self.q, self.seed = base, q, seed
+        self.classes = base.classes
+
+    def __len__(self) -> int:
+        return len(self.base)
+
+    def __getitem__(self, i: int):
+        support_x, support_y, query_x, query_y, sampled_classes = self.base[i]
+        rng = np.random.default_rng([self.seed, CONDITION_SEED_STREAM, i])
+        query_x, query_y = query_x.copy(), query_y.copy()
+        for b in range(query_x.shape[0]):
+            if rng.random() < self.q:
+                query_x[b], query_y[b] = sparse_query_view(query_x[b], query_y[b], b + 1, rng)
+        return support_x, support_y, query_x, query_y, sampled_classes
+
+
+def with_condition_balance(train_set, q: float, seed: int):
+    """The training episodes unchanged (q = 0) or with condition balance [DECISION D-49]."""
+    return train_set if q == 0 else ConditionBalance(train_set, q, seed)
 
 
 def with_query_order(train_set, query_order: str, seed: int):

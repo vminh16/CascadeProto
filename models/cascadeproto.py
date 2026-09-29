@@ -37,7 +37,7 @@ from pipeline.episodes import Episode
 from pipeline.model_api import EpisodeOutput
 
 MODALITIES = ("text", "image", "audio")  # 03 §2
-STAGE_TYPES = ("eppm", "eppm_s", "vip", "vip_clean")  # [DECISION D-24] [D-25] [D-37], beyond the paper
+STAGE_TYPES = ("eppm", "eppm_s", "vip", "vip_clean", "corr")  # [DECISION D-24] [D-25] [D-37] [D-48], beyond the paper
 VIP_STAGES = {"vip": "native", "vip_clean": "clean"}  # stage type -> cross-term form [DECISION D-36]
 # Switches that only mean something for the printed EPPM stage; a non-default value with another
 # stage type would be silently ignored, so it raises instead (AGENTS guardrail 7).
@@ -114,6 +114,11 @@ class CascadeProtoConfig:
                                               or self.neck != "none"):
             raise ValueError("prototype_rule=unit replaces the head: it needs num_stages=0, use_lma=false, "
                              "l2norm_point_proto=false and no neck [DECISION D-39]")
+        if self.stage_type == "corr" and (self.num_stages < 1 or self.use_lma or self.use_adrm or self.neck != "none"
+                                          or self.prototype_rule != "mean" or self.l2norm_point_proto):
+            raise ValueError("stage_type=corr is the correlation head of [DECISION D-48 amendment 6]: it needs "
+                             "num_stages >= 1 (its layers), use_lma=false, use_adrm=false, no neck, the mean "
+                             "prototype rule and l2norm_point_proto=false")
         if self.self_support_steps < 0 or (self.self_support_steps and self.prototype_rule != "unit"):
             raise ValueError(f"self_support_steps={self.self_support_steps} needs prototype_rule=unit [DECISION D-39]")
         if not (math.isfinite(self.support_aux) and self.support_aux >= 0) or (self.support_aux
@@ -200,8 +205,15 @@ class CascadeProto(nn.Module):
             self.lma = LearnableModalityAdapter(eval_noise=config.eval_noise)
             # Frozen CLIP stays outside the module tree: not in state_dict, untouched by .to()/.double() (03 §2.1)
             self.text = text_embedding if text_embedding is not None else ClipTextEmbedding(config.clip_variant)
-        # T stages with their own parameters [PAPER §3.5] [DECISION D-16]
-        self.stages = nn.ModuleList(build_stage(config, step) for step in range(config.num_stages))
+        # T stages with their own parameters [PAPER §3.5] [DECISION D-16]; the correlation head replaces them [D-48]
+        self.corr = None
+        if config.stage_type == "corr":
+            from models.corr_head import CorrelationHead
+
+            self.corr = CorrelationHead(config.num_stages)
+            self.stages = nn.ModuleList()
+        else:
+            self.stages = nn.ModuleList(build_stage(config, step) for step in range(config.num_stages))
         # ADRM over T >= 2 stages; with T = 1 its weight is 1 and W_g could not learn [DECISION D-17]
         self.routing = DynamicRouting(config.num_stages) if config.use_adrm and config.num_stages >= 2 else None
         # Trained self-support in place of a head [DECISION D-39]
@@ -247,6 +259,8 @@ class CascadeProto(nn.Module):
 
     def forward(self, episode: Episode) -> EpisodeOutput:
         f_q, prototypes, steps, loss_gmmn, f_s = self.cascade(episode, return_support=True)  # F^s [N,K,P,D]
+        if self.corr is not None:  # the correlation head of [DECISION D-48 amendment 6]
+            return self._corr_forward(episode, f_q, f_s)
         if not steps:
             logits = torch.einsum("bpd,cd->bpc", f_q, prototypes)  # [B_q, P, N+1] (Eq.23, no temperature)
         else:
@@ -278,6 +292,16 @@ class CascadeProto(nn.Module):
             reg = align if reg is None else reg + align
         return EpisodeOutput(logits=logits, loss_gmmn=loss_gmmn, loss_distill=loss_distill, distill_weight=beta,
                              loss_aux=aux, aux_weight=self.config.support_aux, loss_reg=reg)
+
+    def _corr_forward(self, episode: Episode, f_q: torch.Tensor, f_s: torch.Tensor) -> EpisodeOutput:
+        """Logits of the last layer; in training, (1/L) sum_l CE(l_l) enters loss_reg [DECISION D-48 amendment 6]."""
+        from models.corr_head import deep_supervision
+
+        layers = self.corr(f_q, f_s, episode.support_y, episode.query_x[..., :3])  # L x [B_q, P, N+1]
+        zero = f_q.new_zeros(())
+        if not self.training:
+            return EpisodeOutput(logits=layers[-1], loss_gmmn=zero)
+        return EpisodeOutput(logits=layers[-1], loss_gmmn=zero, loss_reg=deep_supervision(layers, episode.query_y))
 
     def effective_prototype(self, f_q: torch.Tensor, p0: torch.Tensor, steps) -> torch.Tensor:
         """M_eff [B_q, N+1, D] with `L_final = F^q M_effᵀ` (up to logit_scale), for diagnostics [DECISION D-29].

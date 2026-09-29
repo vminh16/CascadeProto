@@ -685,6 +685,28 @@ Mutation check (2026-09-28): 23 mutants of `base_learner.py`, `ot_assign.py`, `c
 `p11_precheck.py`, 23 killed (the 18th, the probe's input standardisation, added after the GPU smoke). P11-9's `ot_logits` check and P11-22 were written for the bias-sign and CI mutants,
 which the first draft of the tests would not have caught.
 
+### 3.8y `tests/test_condition_balance.py` (G1) — D-49's condition balance and D-48's correlation head [DECISION D-49] [DECISION D-48]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| CB-1 | A thinned block keeps its size and the own class at the sampler's raw share r = 1 − √(1 − f) on average; other classes keep every point | [DECISION D-49] |
+| CB-2 | Labels follow their points; xyz keeps the loader's coordinates; XYZ = (xyz − min) / max | [DECISION D-49] |
+| CB-3 | A block without its own class, or made only of it, is returned unchanged | [DECISION D-49] |
+| CB-4 | The wrapper is a function of (seed, i), leaves the global RNG and the supports untouched, thins block b in class b + 1, and is the identity at q = 0; q outside [0, 1] raises | [DECISION D-49] |
+| CB-5 | `train.py --condition_balance` and the run tag `_cb<q>` | [DECISION D-49] |
+| CB-6 | The new and changed files parse as Python 3.10 | 00 §5.2 |
+| CB-7 | Rules D49.1–D49.5 on every branch, including a leak-free gain with a positive fixed100 change below the bar | [DECISION D-49] |
+| CH-1 | `stage_type=corr` needs layers ≥ 1, no LMA, no ADRM, L2 prototypes off; shapes; no stages, no routing | [DECISION D-48] amendment 6 |
+| CH-2 | The head is equivariant to the order of the ways | [DECISION D-48] amendment 6 |
+| CH-3 | Training: logits are the last layer's; loss_reg is (1/L) Σ_l CE(ℓ_l); episode_loss = CE + loss_reg; gradients reach the head and the extractor | [DECISION D-48] amendment 6 |
+| CH-4 | Deep supervision is the mean of the layers' CE | [DECISION D-48] amendment 1 |
+| CH-5 | Evaluation reads no query label | [DECISION D-29] |
+| CH-6 | One attention layer is equivariant across the rows | [DECISION D-48] amendment 6 |
+
+Mutation check (2026-09-29): 12 mutants of `pipeline/episodes.py`, `train.py`, `models/corr_head.py`,
+`models/cascadeproto.py` and `experiments/d49_eval.py`, 12 killed (CB-7's fixed100-sign case and the first-way mixing
+mutant were added after a first pass left two survivors).
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.

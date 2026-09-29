@@ -19,7 +19,7 @@ Rules for autonomous coding agents (Claude Code, Cursor, Copilot, Devin, Aider, 
 
 Read [docs/spec/00_SOURCES_AND_DECISIONS.md](docs/spec/00_SOURCES_AND_DECISIONS.md) before any change, then the decisions it indexes that touch your task (one file each in [docs/decisions/](docs/decisions/README.md)). In short:
 
-1. **Paper** (L1) beats **pinned VIP-Seg code** (L2) beats the **decision log** D-01…D-48 (L3, `docs/decisions/`).
+1. **Paper** (L1) beats **pinned VIP-Seg code** (L2) beats the **decision log** D-01…D-49 (L3, `docs/decisions/`).
 2. Specs `01`–`05` restate L1–L3 with a source tag on every normative line: `[PAPER …]`, `[VIPSEG path:line]`, `[DECISION D-nn]`.
 3. Code, tests, this file and the README are **not** sources. When code and spec disagree, the spec wins; when a spec line has no tag, treat it as unverified.
 4. If the paper is ambiguous and no decision covers the case, **stop and ask the maintainer**. Record the answer as a new decision file in `docs/decisions/` plus its index row in 00 §4 before writing code.
@@ -91,7 +91,7 @@ CascadeProto/
 ├── AGENTS.md, README.md, CONTEXT.md   CONTEXT.md: goal, state and experiment summary (read first)
 ├── docs/
 │   ├── spec/00_SOURCES_AND_DECISIONS.md   source hierarchy + decision index (read first)
-│   ├── decisions/                         one file per decision D-01…D-48 (L3)
+│   ├── decisions/                         one file per decision D-01…D-49 (L3)
 │   ├── spec/01_ARCHITECTURE_SPEC.md       modules, wiring, switches, parameter budget
 │   ├── spec/02_TENSOR_MATH_SPEC.md        all formulas and shapes
 │   ├── spec/03_MULTIMODAL_SPEC.md         modality front-ends, LMA, GMMN rules

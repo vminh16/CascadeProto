@@ -428,3 +428,28 @@
     - Arm A is admitted by its rule, with the density warning. The maintainer decides whether it is coded and
       trained, or whether the next decision changes the representation (a per-point modality or a training that
       keeps minority points' class signal).
+* **Amendment 6 (2026-09-29, maintainer approval to train arm A, before any arm-A code): arm A as built.**
+  * **Head.**
+    - `stage_type=corr` with `num_stages` = L = 2 neck layers.
+    - No LMA, no ADRM, no neck of D-33, the mean prototype rule, `l2norm_point_proto` off; the configuration checks
+      all of these.
+  * **Descriptor.**
+    - Raw space: P11.4 froze it (probe − U +2.07 on valid, the best of the six spaces).
+    - Adaptive cells with caps 16 / 16 (amendment 2). The descriptor per row is (max, top-2 mean, mean).
+  * **Neck.**
+    - Embedding: a shared linear map 3 → 64, plus a row-type embedding (background or foreground), plus a linear
+      encoding of the query block's xyz channels.
+    - Per layer: pre-norm attention across the 2,048 points of each (block, row), 4 heads, then a feed-forward
+      64 → 128 → 64, then an equivariant mixing across the rows: h_r ← h_r + W₁h_r + W₂ mean_r' h_r'. Only the row
+      type distinguishes the rows, so the head is equivariant to the order of the ways.
+    - A shared readout 64 → 1 per row gives the logits of each layer.
+  * **Loss.** CE(ℓ_L) + (1/L) Σ_l CE(ℓ_l) (amendment 1). The deep-supervision term enters `loss_reg`.
+  * **Training.** CR's schedule, seeds 0 and 1, next to D-49's arm.
+  * **Evaluation.**
+    - `experiments/d49_eval.py`: model, U, U + both, and model + LP and U + both + LP with LP re-selected on the
+      head's valid. The draws are those of D-49.
+    - Only LP was kept on CR (D48.1'), so the head comparison of D48.2' reads A's model + LP against CR's best
+      stack, U + both + LP.
+    - [2] is not attached to A: P11.1b failed, and its density trap is a property of the base classes' sampling,
+      not of the head.
+    - Leak-free and own / other recall are reported with every row (A5).

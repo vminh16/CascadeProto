@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader, Subset
 
 from pipeline.episodes import (AUGMENT_CONFIG, EPISODES_PER_BATCH, NUM_POINT, PC_ATTRIBS, QUERY_ORDERS, SCHEDULE,
                                EpisodeCollate, SeededEpisodes, build_eval_dataset, build_train_dataset, read_class_names,
-                               with_query_order)
+                               with_condition_balance, with_query_order)
 from pipeline.evaluation import evaluate
 from pipeline.model_api import episode_loss
 from utils.logger import IOStream
@@ -65,7 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--cross_attn_norm", default="none", choices=["none", "layernorm"], help="[D-18]")
     p.add_argument("--cross_attn_support", default="class_slots", choices=["class_slots", "pooled"],
                    help="one A per class slot (D-01) or one per query from all support blocks [D-23]")
-    p.add_argument("--stage_type", default="eppm", choices=["eppm", "eppm_s", "vip", "vip_clean"],
+    p.add_argument("--stage_type", default="eppm", choices=["eppm", "eppm_s", "vip", "vip_clean", "corr"],
                    help="the printed EPPM stage, the stripped EPPM-S [D-24], VIP-Seg's own PEM/PDM [D-25] or "
                         "the same modules with a per-query cross-term [D-37]; the last three are beyond the paper")
     p.add_argument("--gate_target", default="prototype", choices=["prototype", "features"], help="[D-02]")
@@ -99,6 +99,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="weight of the prototype-alignment loss [D-46], beyond the paper")
     p.add_argument("--align_tau", type=float, default=0.1,
                    help="temperature of the prototype-alignment loss [D-46]")
+    p.add_argument("--condition_balance", type=float, default=0.0,
+                   help="probability of thinning each query block's own class to background density [D-49]")
     p.add_argument("--init_checkpoint", default=None,
                    help="warm start from one of our own checkpoints (strict except the neck's parameters) [D-33]")
     p.add_argument("--distill_beta", type=float, default=0.0,
@@ -206,6 +208,7 @@ def run_dir(args) -> str:
         tag += f"_vic{args.vicreg_var:g}_{args.vicreg_cov:g}"
     if getattr(args, "align_weight", 0.0):  # [D-46]
         tag += f"_align{args.align_weight:g}" + (f"_t{args.align_tau:g}" if args.align_tau != 0.1 else "")
+    tag += "" if not getattr(args, "condition_balance", 0.0) else f"_cb{args.condition_balance:g}"  # [D-49]
     return os.path.join(args.save_dir, f"{args.dataset}_S{args.cvfold}_N{args.n_way}_K{args.k_shot}_{variant}{tag}")
 
 
@@ -328,6 +331,7 @@ def main(argv=None):
     train_set = SeededEpisodes(build_train_dataset(args.data_path, args.dataset, args.cvfold, args.n_way,
                                                    args.k_shot, num_episode=total_episodes,
                                                    train_classes=args.train_classes), args.seed)
+    train_set = with_condition_balance(train_set, args.condition_balance, args.seed)  # before D-37's permutation [D-49]
     train_set = with_query_order(train_set, args.query_order, args.seed)  # same episodes; random permutes queries [D-37]
     valid_set = build_eval_dataset(args.data_path, args.dataset, args.cvfold, args.n_way, args.k_shot,
                                    mode="valid", seed=args.seed)
