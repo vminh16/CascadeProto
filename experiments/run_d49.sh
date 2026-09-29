@@ -29,6 +29,7 @@ CB_ARGS=("${BASE[@]}" --num_stages 4 --l2norm_point_proto true --stage_type vip_
 A_ARGS=("${BASE[@]}" --num_stages 2 --use_adrm false --stage_type corr)
 CB_RUN=s3dis_S1_N2_K1_point_T4_vip_clean_b1_qrandom_cb0.5
 A_RUN=s3dis_S1_N2_K1_point_T2_noadrm_corr_b1_qrandom
+A_RUN1=s3dis_S1_N2_K1_point_T2_noadrm_seed1_corr_b1_qrandom  # train.py puts the seed tag before the stage tag
 LOG="$OUT/d49_${MODE}.log"
 {
   echo "=== $(date -Is) commit $(git rev-parse --short HEAD) D49 $MODE"
@@ -54,7 +55,7 @@ LOG="$OUT/d49_${MODE}.log"
     for spec in "cb:CB" "a0:A:0" "a1:A:1"; do
       name=${spec%%:*}; kind=$(echo "$spec" | cut -d: -f2); seed=$(echo "$spec" | cut -d: -f3)
       if [ "$kind" = CB ]; then args=("${CB_ARGS[@]}"); dir=log_d49/$CB_RUN
-      else args=("${A_ARGS[@]}" --seed "$seed"); dir=log_d49/$A_RUN$([ "$seed" = 0 ] || echo "_seed$seed"); fi
+      else args=("${A_ARGS[@]}" --seed "$seed"); dir=log_d49/$([ "$seed" = 0 ] && echo "$A_RUN" || echo "$A_RUN1"); fi
       if [ -f "$dir/last.pt" ] && grep -q "done: best valid" "$dir/log_train.txt" 2>/dev/null; then
         echo "=== $name already trained"; continue
       fi
@@ -63,7 +64,7 @@ LOG="$OUT/d49_${MODE}.log"
     done
     for t in "${TRAIN[@]}"; do wait "${t#*:}"; echo "=== TRAIN ${t%%:*} exit=$? $(date -Is)"; done
     CKS=(--checkpoint "cr:ours:1:$CR")
-    for spec in "cb:log_d49/$CB_RUN" "a0:log_d49/$A_RUN" "a1:log_d49/${A_RUN}_seed1"; do
+    for spec in "cb:log_d49/$CB_RUN" "a0:log_d49/$A_RUN" "a1:log_d49/$A_RUN1"; do
       name=${spec%%:*}; dir=${spec#*:}
       [ -f "$dir/last.pt" ] || { echo "=== $name has no last.pt"; continue; }
       cp "$dir/log_train.txt" "$OUT/train_${name}_S1.log"
