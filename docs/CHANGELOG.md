@@ -1958,3 +1958,17 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   κ = (1−ε)/(1+ε), prior-ratio IoU = r/(1 + f(1−π)/π), IoU-optimal threshold J*/(1+J*)) and five ideas with falsifiers.
   LAM3C (video-reconstructed pretraining, no real scans, no S3DIS; S3DIS A5 linear probe 69.5, README read) is proposed as
   the clean control for a frozen-feature few-shot screen that needs a D-50 against guardrail 1; nothing registered.
+
+### 16bj - D-50 recorded (decision only, no code)
+
+* **What.** `docs/decisions/D-50_generic-representation-screen-and-distillation.md`, its 00 §4 row and 00 §7 line.
+  01 §2.1 now admits frozen pretrained point-cloud models only as P12 screen extractors and M6 training-time teachers;
+  the evaluated model loads none, and dependent numbers go in a separate table. AGENTS guardrail 1 still needs the
+  matching edit by the maintainer.
+* **Why.** The evidence ledger (16bh) found no experiment that changed the encoder's information source; the field
+  survey (16bi) found frozen generic features, including LAM3C with no S3DIS in pretraining, carrying class structure
+  that base-class training does not. P12 measures this on the repository's own episodes before any training.
+* **Rules.** P12.1–P12.5 (LAM3C U − CR U ≥ +5 on fixed100 or leak-free → M6; exposure-only gain → M6 with a labelled
+  teacher; all ≤ +1 → the method line closes) and D50.1–D50.3 (M6 − CR ≥ +2 on fixed100 and ≥ 0 leak-free → adopt),
+  fixed before any code.
+
