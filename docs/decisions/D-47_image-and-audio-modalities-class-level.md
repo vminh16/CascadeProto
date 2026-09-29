@@ -57,3 +57,36 @@
   - `requirements.txt` (`openai-whisper`; `espeak-ng` as a system package);
   - `tests/test_modalities.py`;
   - 03 §2.2 (deferred → implemented, with tags to this decision).
+
+#### Amendment 1 (2026-09-29, implementation notes, before the rows were built)
+
+* **Status.** Accepted by the maintainer's request of 2026-09-28 ("multimodal is not only text, implement image and
+  audio"); implemented as below.
+* **Manifest location.** `datasets/` is git-ignored, so the manifest is `assets/modality/images_s3dis.json` (tracked);
+  the images go to `datasets/modality/images/<class>/<i>.<ext>` (not tracked). The fetch script is
+  `preprocess/fetch_modality_images.py` (not `scripts_modality/`).
+* **How the images were chosen.** For each class name, a contact sheet of up to 20 candidates was drawn from a
+  Wikimedia Commons category (`Office chairs`, `Office desks`, `Couches`, `Bookcases`, `Whiteboards`,
+  `Dropped ceilings`, `Floor tiles`, `White walls`, `Beams`, `Pillars`, `Windows`, `Interior doors`, `Offices`,
+  `Empty rooms`) or, where the category gave outdoor or museum pictures (beam, column), from a Commons search. The
+  agent picked 5 per class by eye, preferring indoor office scenes like S3DIS's; `clutter` uses cluttered desks. The
+  choice is subjective and is recorded, not tuned: no score was looked at. Only CC0, public-domain, CC BY and
+  CC BY-SA files were accepted, and each entry keeps its author and licence URL for attribution.
+* **Verification.** Each download is checked against the sha1 that Wikimedia publishes; its sha256 is then recorded
+  in the manifest, and the image front-end checks the sha256 at every load. Wikimedia rate-limits bursts (HTTP 429),
+  so the fetcher waits 5 s between files, honours `Retry-After`, and names the repository in its User-Agent.
+* **Audio settings.** `espeak-ng` 1.51, voice `en-us`, 150 words per minute; Whisper `base` (openai-whisper
+  20250625), English, temperature 0 without fallback, no conditioning on previous text; fp16 on the GPU.
+* **Code.** `models/clip_image.py`, `models/clip_audio.py`, `modality_embedding` in `models/cascadeproto.py` (the
+  `NotImplementedError` for image and audio is removed), `models/clip_text.py` keeps CLIP's preprocessing,
+  `experiments/d47_build.py` builds the three rows with the real models and writes the descriptive tables.
+  Tests MOD-1…8 (05 §3.8z); ABL-3, CP-6 and PIPE-6 now expect the front-ends instead of an error.
+
+#### Outcome (2026-09-29): rows built, descriptive only
+
+`results/phase16_d47/SUMMARY.md`. All 70 images fetched and verified. Audio: 10 of 14 transcripts exact; the other
+four (background → "markplund", ceiling → "reprimandes", wall → "world", clutter → "cloud") give rows at cosine
+0.90–0.97 to the text rows, and the wall and clutter audio rows lie nearest the background's text row. Image: the
+cosine to the same class's text row is 0.25–0.31 (CLIP's image–text gap); 12 of 14 image rows lie nearest their own
+class's text row (beam → ceiling, table → clutter); between classes the image rows are more spread than the text rows
+(mean cosine 0.821 against 0.900). No segmentation run uses them yet (staging: base first, multimodal second).

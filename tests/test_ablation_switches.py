@@ -43,7 +43,14 @@ def test_abl2_num_stages_sets_the_routing_width(t):
     assert len(m.stages) == t and (t == 1 or m.routing.weights(torch.rand(2, 2048, 128).double()).shape == (2, t))
 
 
-@pytest.mark.parametrize("modality", ["image", "audio"])
-def test_abl3_unimplemented_modalities_raise(modality):
-    with pytest.raises(NotImplementedError, match=modality):
-        CascadeProto(CascadeProtoConfig(modality=modality))
+@pytest.mark.parametrize("modality", ["text", "image", "audio"])
+def test_abl3_every_modality_builds_its_front_end(modality):  # [DECISION D-47]
+    from models.clip_audio import ClipAudioEmbedding
+    from models.clip_image import ClipImageEmbedding
+    from models.clip_text import ClipTextEmbedding
+    from models.vipseg_backbone import PointFeatureExtractor
+    from tests.test_feature_extractor import StandInEncoder
+
+    kind = {"text": ClipTextEmbedding, "image": ClipImageEmbedding, "audio": ClipAudioEmbedding}[modality]
+    m = CascadeProto(CascadeProtoConfig(modality=modality), PointFeatureExtractor(encoder=StandInEncoder()))
+    assert type(m.text) is kind

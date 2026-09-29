@@ -128,13 +128,16 @@ def test_pipe6_eval_refuses_missing_checkpoint(tmp_path):
         load_model(args, torch.device("cpu"))
 
 
-def test_pipe6_unimplemented_modality_raises():
-    from train import build_model, model_config, parse_args
+def test_pipe6_modality_flag_selects_the_front_end():
+    from models.cascadeproto import modality_embedding
+    from models.clip_audio import ClipAudioEmbedding
+    from train import model_config, parse_args
 
     args = parse_args(["--dataset", "s3dis", "--data_path", "x", "--cvfold", "0", "--n_way", "2", "--k_shot", "1",
                        "--modality", "audio"])
-    with pytest.raises(NotImplementedError, match="modality 'audio'"):
-        build_model(model_config(args))
+    config = model_config(args)
+    config.check_implemented()  # no longer raises [DECISION D-47]
+    assert isinstance(modality_embedding(config.modality, config.clip_variant), ClipAudioEmbedding)
 
 
 def test_pipe6_switch_defaults_are_the_full_model():

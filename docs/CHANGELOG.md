@@ -1903,3 +1903,22 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   and the rules D49.1–D49.5 and D48.2'.
 * **Run script.** `experiments/run_d49.sh` trains CB, A0 and A1 together.
 * **Tests.** CB-1…7 and CH-1…6 (05 §3.8y); mutation 12/12; CPU suite 619 passed.
+
+### 16bf - D-47 image and audio front-ends implemented and built
+
+* **What.**
+  - `models/clip_image.py`: class names → E_CLIP [N+1, 512] from 5 images per class through the frozen CLIP image
+    encoder, mean of unit rows, renormalised; the sha256 of each image is checked at load.
+  - `models/clip_audio.py`: the D-13 prompt spoken by espeak-ng, transcribed by frozen Whisper base (greedy), the
+    transcript through the CLIP text encoder; each transcript and its exactness are logged.
+  - `modality_embedding` in `models/cascadeproto.py` selects the front-end; image and audio no longer raise.
+    `models/clip_text.py` keeps CLIP's preprocessing for the image path.
+  - `assets/modality/images_s3dis.json` (70 open-licence Wikimedia Commons images with author, licence, sha1,
+    sha256) and `preprocess/fetch_modality_images.py` (download, both hashes checked, `Retry-After` honoured).
+  - `experiments/d47_build.py` builds the text, image and audio rows and the descriptive tables.
+  - `requirements.txt` gains `openai-whisper==20250625`; espeak-ng is a system package.
+* **Why.** Maintainer request (2026-09-28): the paper's Fig. 1 has three modalities; D-13 had only text.
+* **Sources.** [PAPER Fig.1] [PAPER Eq.4]; [DECISION D-13] [DECISION D-47] (amendment 1); 03 §2.2 rewritten.
+* **Verification.** MOD-1…9 (05 §3.8z); ABL-3, CP-6, PIPE-6 changed to expect the front-ends. Mutation check: 12
+  mutants of the two front-ends, the factory and the fetcher, 12 killed. Built on the instance (CPU):
+  `results/phase16_d47/SUMMARY.md` — audio 10/14 exact transcripts, image rows 12/14 nearest their own text row.

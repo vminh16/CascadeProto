@@ -35,11 +35,11 @@ flowchart LR
         Names["Class names from meta file<br/>(sampled_classes)"] --> Prompts["N+1 prompts<br/>index 0 = background"]
         Prompts --> CLIPT["Frozen CLIP text encoder"]
     end
-    subgraph Audio["Audio (deferred)"]
-        Wav["Spoken class name"] --> Whisper["Whisper"] --> CLIPA["Frozen CLIP text encoder"]
+    subgraph Audio["Audio (D-47)"]
+        Wav["Spoken prompt (espeak-ng)"] --> Whisper["Whisper base, transcript"] --> CLIPA["Frozen CLIP text encoder"]
     end
-    subgraph Image["Image (deferred)"]
-        Img["Class image"] --> CLIPV["Frozen CLIP image encoder"]
+    subgraph Image["Image (D-47)"]
+        Img["5 images per class"] --> CLIPV["Frozen CLIP image encoder, mean of unit rows"]
     end
     CLIPT --> E["E_CLIP [N+1, 512], L2-normalised"]
     CLIPA --> E
@@ -47,7 +47,7 @@ flowchart LR
     E --> LMA["Adapter^(m) → G → P_modal [N+1, 128]"]
 ```
 
-Diagram sources: [PAPER Fig.1] [DECISION D-13].
+Diagram sources: [PAPER Fig.1] [DECISION D-13] [DECISION D-47].
 
 ### 2.1 Text (default)
 
@@ -63,11 +63,18 @@ Diagram sources: [PAPER Fig.1] [DECISION D-13].
 | CLIP is not a submodule of the model: its weights are not in `state_dict` or checkpoints, and `model.to()` / `.double()` do not touch it; `clip.load` places it on the training device (float16 weights on a GPU, float32 on the CPU), and its output is cast to float32 before the norm | [DECISION D-13] |
 | No fallback: an unknown or unavailable variant raises instead of switching to another one | [DECISION D-13] |
 
-### 2.2 Audio and image (deferred)
+### 2.2 Audio and image (class level)
 
-* Selecting `modality=audio` or `modality=image` must raise an error until implemented; silently falling back to text is forbidden [DECISION D-13].
-* Open items before implementation: source of per-class audio clips and images, CLIP image variant, whether the audio path uses Whisper's transcript or its embeddings [DECISION D-13].
-* When implemented, the output contract is identical to text: `[N+1, 512]`, L2-normalised, row 0 = background [PAPER §4.1] [DECISION D-13].
+| Rule | Source |
+| :--- | :--- |
+| `modality ∈ {text, image, audio}` selects the front-end; an unknown modality raises; no front-end falls back to another | [DECISION D-13] [DECISION D-47] |
+| Output contract identical to text: `[N+1, 512]`, float32, L2-normalised, row 0 = background | [PAPER §4.1] [DECISION D-13] [DECISION D-47] |
+| Image: M = 5 open-licence Wikimedia Commons images per class name and 5 for the background, listed in `assets/modality/images_s3dis.json` (URL, licence, author, Wikimedia sha1, sha256); `preprocess/fetch_modality_images.py` downloads and verifies them; a missing or altered image raises | [DECISION D-47] |
+| Image row: CLIP `encode_image` with CLIP's own preprocessing, each embedding cast to float32 and L2-normalised, the class row = the renormalised mean of its M rows (invariant to the order of the images); cached per class name | [DECISION D-47] |
+| Audio: the prompt of §2.1 spoken by `espeak-ng` (voice `en-us`, 150 words per minute), transcribed by frozen Whisper `base` (English, greedy, temperature 0), the transcript encoded by the CLIP text encoder and L2-normalised; cached per prompt | [DECISION D-47] |
+| Audio log: each transcript and whether it equals the prompt after lower-casing and punctuation removal | [DECISION D-47] |
+| CLIP and Whisper are frozen and outside the module tree, as in §2.1 | [DECISION D-13] [DECISION D-47] |
+| The image and audio sources are not in the paper; the audio row is expected to be a noisy copy of the text row (data-processing inequality) | [DECISION D-47] |
 
 ---
 

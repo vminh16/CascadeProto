@@ -1,0 +1,195 @@
+{
+ "variant": "ViT-B/16",
+ "manifest": "assets/modality/images_s3dis.json",
+ "tts": {
+  "engine": "espeak-ng",
+  "voice": "en-us",
+  "rate_wpm": 150,
+  "version": "eSpeak NG text-to-speech: 1.51  Data at: /usr/lib/x86_64-linux-gnu/espeak-ng-data"
+ },
+ "whisper": {
+  "model": "base",
+  "language": "en",
+  "decoding": "greedy, temperature 0"
+ },
+ "transcripts": {
+  "background": {
+   "prompt": "This point cloud represents the background.",
+   "heard": "This point cloud represents the markplund.",
+   "exact": false
+  },
+  "ceiling": {
+   "prompt": "This point cloud represents the ceiling.",
+   "heard": "This point cloud reprimandes the ceiling.",
+   "exact": false
+  },
+  "floor": {
+   "prompt": "This point cloud represents the floor.",
+   "heard": "This point cloud represents the floor.",
+   "exact": true
+  },
+  "wall": {
+   "prompt": "This point cloud represents the wall.",
+   "heard": "This point cloud represents the world.",
+   "exact": false
+  },
+  "beam": {
+   "prompt": "This point cloud represents the beam.",
+   "heard": "This point cloud represents the beam.",
+   "exact": true
+  },
+  "column": {
+   "prompt": "This point cloud represents the column.",
+   "heard": "This point cloud represents the column.",
+   "exact": true
+  },
+  "window": {
+   "prompt": "This point cloud represents the window.",
+   "heard": "This point cloud represents the window.",
+   "exact": true
+  },
+  "door": {
+   "prompt": "This point cloud represents the door.",
+   "heard": "This point cloud represents the door.",
+   "exact": true
+  },
+  "table": {
+   "prompt": "This point cloud represents the table.",
+   "heard": "This point cloud represents the table.",
+   "exact": true
+  },
+  "chair": {
+   "prompt": "This point cloud represents the chair.",
+   "heard": "This point cloud represents the chair.",
+   "exact": true
+  },
+  "sofa": {
+   "prompt": "This point cloud represents the sofa.",
+   "heard": "This point cloud represents the sofa.",
+   "exact": true
+  },
+  "bookcase": {
+   "prompt": "This point cloud represents the bookcase.",
+   "heard": "This point cloud represents the bookcase.",
+   "exact": true
+  },
+  "board": {
+   "prompt": "This point cloud represents the board.",
+   "heard": "This point cloud represents the board.",
+   "exact": true
+  },
+  "clutter": {
+   "prompt": "This point cloud represents the clutter.",
+   "heard": "This point cloud represents the cloud.",
+   "exact": false
+  }
+ },
+ "exact": 10,
+ "of": 14,
+ "per_class": {
+  "text_image": {
+   "background": 0.2615000009536743,
+   "ceiling": 0.290800005197525,
+   "floor": 0.266400009393692,
+   "wall": 0.26179999113082886,
+   "beam": 0.26429998874664307,
+   "column": 0.2782000005245209,
+   "window": 0.3050999939441681,
+   "door": 0.28139999508857727,
+   "table": 0.2515000104904175,
+   "chair": 0.3109999895095825,
+   "sofa": 0.2831999957561493,
+   "bookcase": 0.2897999882698059,
+   "board": 0.267300009727478,
+   "clutter": 0.2718000113964081
+  },
+  "text_audio": {
+   "background": 0.9034000039100647,
+   "ceiling": 0.9671000242233276,
+   "floor": 1.0,
+   "wall": 0.9136000275611877,
+   "beam": 1.0,
+   "column": 1.0,
+   "window": 1.0,
+   "door": 1.0,
+   "table": 1.0,
+   "chair": 1.0,
+   "sofa": 1.0,
+   "bookcase": 1.0,
+   "board": 1.0,
+   "clutter": 0.9222999811172485
+  },
+  "image_audio": {
+   "background": 0.23090000450611115,
+   "ceiling": 0.2994999885559082,
+   "floor": 0.266400009393692,
+   "wall": 0.21780000627040863,
+   "beam": 0.26429998874664307,
+   "column": 0.2782000005245209,
+   "window": 0.3050999939441681,
+   "door": 0.28139999508857727,
+   "table": 0.2515000104904175,
+   "chair": 0.3109999895095825,
+   "sofa": 0.2831999957561493,
+   "bookcase": 0.2897999882698059,
+   "board": 0.267300009727478,
+   "clutter": 0.22499999403953552
+  }
+ },
+ "within": {
+  "text": {
+   "mean_off_diagonal": 0.8999,
+   "max_off_diagonal": 0.9524
+  },
+  "image": {
+   "mean_off_diagonal": 0.821,
+   "max_off_diagonal": 0.9204
+  },
+  "audio": {
+   "mean_off_diagonal": 0.8858,
+   "max_off_diagonal": 0.9445
+  }
+ },
+ "nearest_text": {
+  "image": {
+   "correct": 12,
+   "of": 14,
+   "nearest": {
+    "background": "background",
+    "ceiling": "ceiling",
+    "floor": "floor",
+    "wall": "wall",
+    "beam": "ceiling",
+    "column": "column",
+    "window": "window",
+    "door": "door",
+    "table": "clutter",
+    "chair": "chair",
+    "sofa": "sofa",
+    "bookcase": "bookcase",
+    "board": "board",
+    "clutter": "clutter"
+   }
+  },
+  "audio": {
+   "correct": 12,
+   "of": 14,
+   "nearest": {
+    "background": "background",
+    "ceiling": "ceiling",
+    "floor": "floor",
+    "wall": "background",
+    "beam": "beam",
+    "column": "column",
+    "window": "window",
+    "door": "door",
+    "table": "table",
+    "chair": "chair",
+    "sofa": "sofa",
+    "bookcase": "bookcase",
+    "board": "board",
+    "clutter": "background"
+   }
+  }
+ }
+}

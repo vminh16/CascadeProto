@@ -1,0 +1,91 @@
+  0%|                                               | 0.00/139M [00:00<?, ?iB/s]  1%|▏                                      | 800k/139M [00:00<00:17, 8.17MiB/s]  6%|██▍                                   | 8.98M/139M [00:00<00:02, 48.6MiB/s] 11%|████▎                                 | 15.9M/139M [00:00<00:02, 58.7MiB/s] 18%|██████▋                               | 24.6M/139M [00:00<00:01, 71.0MiB/s] 25%|█████████▌                            | 34.8M/139M [00:00<00:01, 83.9MiB/s] 33%|████████████▋                         | 46.1M/139M [00:00<00:01, 95.2MiB/s] 41%|████████████████                       | 57.1M/139M [00:00<00:00, 102MiB/s] 49%|███████████████████▏                   | 68.3M/139M [00:00<00:00, 107MiB/s] 57%|██████████████████████▍                | 79.5M/139M [00:00<00:00, 110MiB/s] 65%|█████████████████████████▌             | 90.7M/139M [00:01<00:00, 112MiB/s] 74%|█████████████████████████████▍          | 102M/139M [00:01<00:00, 114MiB/s] 82%|████████████████████████████████▌       | 113M/139M [00:01<00:00, 114MiB/s] 90%|███████████████████████████████████▊    | 124M/139M [00:01<00:00, 115MiB/s] 98%|███████████████████████████████████████ | 135M/139M [00:01<00:00, 116MiB/s]100%|███████████████████████████████████████| 139M/139M [00:01<00:00, 99.2MiB/s]
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+/workspace/CascadeProto/.venv/lib/python3.10/site-packages/whisper/transcribe.py:130: UserWarning: Performing inference on CPU when CUDA is available
+  warnings.warn("Performing inference on CPU when CUDA is available")
+{
+ "exact": 10,
+ "of": 14,
+ "within": {
+  "text": {
+   "mean_off_diagonal": 0.8999,
+   "max_off_diagonal": 0.9524
+  },
+  "image": {
+   "mean_off_diagonal": 0.821,
+   "max_off_diagonal": 0.9204
+  },
+  "audio": {
+   "mean_off_diagonal": 0.8858,
+   "max_off_diagonal": 0.9445
+  }
+ },
+ "nearest_text": {
+  "image": {
+   "correct": 12,
+   "of": 14,
+   "nearest": {
+    "background": "background",
+    "ceiling": "ceiling",
+    "floor": "floor",
+    "wall": "wall",
+    "beam": "ceiling",
+    "column": "column",
+    "window": "window",
+    "door": "door",
+    "table": "clutter",
+    "chair": "chair",
+    "sofa": "sofa",
+    "bookcase": "bookcase",
+    "board": "board",
+    "clutter": "clutter"
+   }
+  },
+  "audio": {
+   "correct": 12,
+   "of": 14,
+   "nearest": {
+    "background": "background",
+    "ceiling": "ceiling",
+    "floor": "floor",
+    "wall": "background",
+    "beam": "beam",
+    "column": "column",
+    "window": "window",
+    "door": "door",
+    "table": "table",
+    "chair": "chair",
+    "sofa": "sofa",
+    "bookcase": "bookcase",
+    "board": "board",
+    "clutter": "background"
+   }
+  }
+ }
+}
+text-image {'background': 0.2615000009536743, 'ceiling': 0.290800005197525, 'floor': 0.266400009393692, 'wall': 0.26179999113082886, 'beam': 0.26429998874664307, 'column': 0.2782000005245209, 'window': 0.3050999939441681, 'door': 0.28139999508857727, 'table': 0.2515000104904175, 'chair': 0.3109999895095825, 'sofa': 0.2831999957561493, 'bookcase': 0.2897999882698059, 'board': 0.267300009727478, 'clutter': 0.2718000113964081}
+text-audio {'background': 0.9034000039100647, 'ceiling': 0.9671000242233276, 'floor': 1.0, 'wall': 0.9136000275611877, 'beam': 1.0, 'column': 1.0, 'window': 1.0, 'door': 1.0, 'table': 1.0, 'chair': 1.0, 'sofa': 1.0, 'bookcase': 1.0, 'board': 1.0, 'clutter': 0.9222999811172485}

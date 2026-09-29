@@ -118,6 +118,7 @@ not a measurement.
 | :--- | :--- | :--- |
 | E1 on S0 (the held-out fold's reference) | needed for any claim; no gain expected by itself | ~2.3 GPU-h |
 | a second modality that carries **per-point** information (S3DIS's 2-D images through a frozen 2-D vision-language model, as MM-FSS does on its data) | the only listed direction that brings information the support, query and class names do not already hold; not measured here; needs a decision on the "no pre-training" comparison | days of engineering, then GPU-h |
+| class-level image and audio rows (D-47, built 2026-09-29) | inputs ready: audio is text with 4 of 14 rows misheard; image rows are a different view (12/14 nearest their own text row); no segmentation run yet, by the staging (base first) | minutes per build; a route-A run per modality ~2.3 GPU-h |
 | a second seed of N2 or of any future arm | only to confirm a gain of 1–2 points | ~2.3 GPU-h per run |
 | the "always background in training" diagnostic | would explain the planar-class errors; only as a leakage-style diagnostic (like D-21), never a method | ~2 GPU-h |
 

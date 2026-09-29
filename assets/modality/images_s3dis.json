@@ -1,0 +1,805 @@
+{
+ "decision": "D-47",
+ "source": "Wikimedia Commons, open licences only (CC0, public domain, CC BY, CC BY-SA)",
+ "selection": "5 photographs per S3DIS class name and 5 for the background, chosen by eye from contact sheets of Commons category members or search results, preferring indoor office scenes; not from S3DIS",
+ "classes": {
+  "background": [
+   {
+    "file": "background/0.jpg",
+    "title": "File:2012-12 Grand Canyon National Park, Science ^ RM Warehouse 0371 - Flickr - Grand Canyon NPS.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/2e/2012-12_Grand_Canyon_National_Park%2C_Science_%5E_RM_Warehouse_0371_-_Flickr_-_Grand_Canyon_NPS.jpg",
+    "sha1": "5c5a08df0772d8be5f688e650cd4545a0c142714",
+    "sha256": "f24edc609b629ad3315252edc05607b541a84fc5c320964db54b890c7adb7b22",
+    "size": 3096546,
+    "licence": "Public domain",
+    "licence_url": "",
+    "author": "Grand Canyon National Park"
+   },
+   {
+    "file": "background/1.jpg",
+    "title": "File:2019 - Ritz Barbecue - 04 - Allentown PA.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/2019_-_Ritz_Barbecue_-_04_-_Allentown_PA.jpg",
+    "sha1": "d9b99edc34407f654e689cc77207c1fc94c3be0b",
+    "sha256": "6dab0c14cd2e79ae9cfb8943e4f76ea1222d0c0fbdd70455c94e737537b2a2d1",
+    "size": 1065375,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Atwngirl"
+   },
+   {
+    "file": "background/2.jpg",
+    "title": "File:311 Гуртожиток Луганського національного університету ім Т Шевченка before 2.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/47/311_%D0%93%D1%83%D1%80%D1%82%D0%BE%D0%B6%D0%B8%D1%82%D0%BE%D0%BA_%D0%9B%D1%83%D0%B3%D0%B0%D0%BD%D1%81%D1%8C%D0%BA%D0%BE%D0%B3%D0%BE_%D0%BD%D0%B0%D1%86%D1%96%D0%BE%D0%BD%D0%B0%D0%BB%D1%8C%D0%BD%D0%BE%D0%B3%D0%BE_%D1%83%D0%BD%D1%96%D0%B2%D0%B5%D1%80%D1%81%D0%B8%D1%82%D0%B5%D1%82%D1%83_%D1%96%D0%BC_%D0%A2_%D0%A8%D0%B5%D0%B2%D1%87%D0%B5%D0%BD%D0%BA%D0%B0_before_2.jpg",
+    "sha1": "e9138ffc368b3d26f1715f82142162c8749a6da9",
+    "sha256": "aebd44338f7b98fd646b9986538f643d41a3f5b71e765703db59234aab112873",
+    "size": 129186,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Depzzmtd loga"
+   },
+   {
+    "file": "background/3.jpg",
+    "title": "File:Alcator C-Mod empty power room.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Alcator_C-Mod_empty_power_room.jpg",
+    "sha1": "05d17229bf4a02bdd8500a1af662134f6c1908f2",
+    "sha256": "72537a579f06be4e0ed11fad62b84d89baf8aa299026a62600b298fa57be81f9",
+    "size": 297507,
+    "licence": "CC BY 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Photographer: R.C. Fortier, MIT Plasma Science and Fusion Center"
+   },
+   {
+    "file": "background/4.jpg",
+    "title": "File:Alone (439212538).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/Alone_%28439212538%29.jpg",
+    "sha1": "cba15b42ccabc893d8ceb5b388596ced37aa15be",
+    "sha256": "99204b444c888880f03e71c380eef9fa3470d275ec2e18b93c618a620fc36267",
+    "size": 653270,
+    "licence": "CC BY-SA 2.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "author": "musicalwds"
+   }
+  ],
+  "ceiling": [
+   {
+    "file": "ceiling/0.jpg",
+    "title": "File:1959chapelceiling.JPG",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/a1/1959chapelceiling.JPG",
+    "sha1": "409116e76b6f20f4ea35241f2dff189be4fe4f05",
+    "sha256": "137ba3ede33ab52eae24fdc388ac924d65d151cea98e814b171a68e73a52b379",
+    "size": 874849,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "No machine-readable author provided. Dsmack assumed (based on copyright claims)."
+   },
+   {
+    "file": "ceiling/1.jpg",
+    "title": "File:2016 366 48 Golden (25070127606).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/40/2016_366_48_Golden_%2825070127606%29.jpg",
+    "sha1": "10463fb929b6253ebc3000dab6087457e9dc0f4b",
+    "sha256": "2e672e66775ff5710eeff4ce0ea2bc5777c8431a64f75eaf655a54aa43286eaf",
+    "size": 10149060,
+    "licence": "CC BY 2.0",
+    "licence_url": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Edna Winti"
+   },
+   {
+    "file": "ceiling/2.jpg",
+    "title": "File:3000K LED T-Bar Ceiling Light.JPG",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/3000K_LED_T-Bar_Ceiling_Light.JPG",
+    "sha1": "26864f391cd3a4f24266489c5c3d9943edf92e22",
+    "sha256": "596a39602482342e2b55f53c709f322890d34efeca5b6fe4fdf3134565493ada",
+    "size": 175644,
+    "licence": "CC BY 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Rintojiang"
+   },
+   {
+    "file": "ceiling/3.jpg",
+    "title": "File:Average building roof.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Average_building_roof.jpg",
+    "sha1": "25db92935d3dbe7bd51b60a32fb5886bb7e776ce",
+    "sha256": "60e610cc038aa82fa22850f3727d97ca777c0495b036ca102be939725cf31a6f",
+    "size": 1961877,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Dancingpolishcow"
+   },
+   {
+    "file": "ceiling/4.jpg",
+    "title": "File:Broken symmetry (2519305034).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Broken_symmetry_%282519305034%29.jpg",
+    "sha1": "f3b73c8c092af19f45d88bc58e2d63ffcf98fe8d",
+    "sha256": "b2ea622ccf35bbe2d833f0d70e7d497f670c9a671636b885cd4f23eafc4d0719",
+    "size": 530398,
+    "licence": "CC BY 2.0",
+    "licence_url": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Jorge Franganillo"
+   }
+  ],
+  "floor": [
+   {
+    "file": "floor/0.jpg",
+    "title": "File:159 sede Gremio de mecanicos (12524359773).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/f/f6/159_sede_Gremio_de_mecanicos_%2812524359773%29.jpg",
+    "sha1": "e11febf68a5abf1e5cff700f6997ad5b2cff9918",
+    "sha256": "69eabf0fa52cf453df812da576761677bd8169c9e8b17db6301bd55bf5f696ce",
+    "size": 8207331,
+    "licence": "CC BY-SA 2.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "author": "MunicipioPinas from Piñas, Ecuador"
+   },
+   {
+    "file": "floor/1.jpg",
+    "title": "File:2.2 Jura Gelb geschliffen.JPG",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/2.2_Jura_Gelb_geschliffen.JPG",
+    "sha1": "627b5235d47fab00085d95dc845b5d6a0bc5eafa",
+    "sha256": "5c9513504668b09e1119e9cc9537716931b0bc1e12e534f258968dd2f6dc6b02",
+    "size": 156723,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "J.Stiegler"
+   },
+   {
+    "file": "floor/2.jpg",
+    "title": "File:2019 Station Maastricht, interieur (12).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/f/ff/2019_Station_Maastricht%2C_interieur_%2812%29.jpg",
+    "sha1": "d80c9f95c75704c51cbf6ab87431364023264e47",
+    "sha256": "02003bf365e0afdcfa1c8e9deeffba5e9a42abda6eb6f646adbf4dc11e0093e2",
+    "size": 1924749,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Kleon3"
+   },
+   {
+    "file": "floor/3.jpg",
+    "title": "File:6\"x6\" porcelain floor tiles.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/bc/6%22x6%22_porcelain_floor_tiles.jpg",
+    "sha1": "d354d5ce74e822c60d3d0d366a2279ac3d7a9006",
+    "sha256": "48a2ac1ac38dc12346a29c5523d8486310a07060cc7400cce0fe5cd40c9c0915",
+    "size": 471751,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "PJM (talk) (Uploads)"
+   },
+   {
+    "file": "floor/4.jpg",
+    "title": "File:7.3 Flur. Bruchrauh.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/0/0c/7.3_Flur._Bruchrauh.jpg",
+    "sha1": "ca1691f687eba8e6c51b90b9184d61e7112800bd",
+    "sha256": "b830040bc7d0a217d14b7ed994d6919c6d338b714da25e4ff1344783ac68f431",
+    "size": 352790,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "J.Stiegler"
+   }
+  ],
+  "wall": [
+   {
+    "file": "wall/0.jpg",
+    "title": "File:2012-07-19 - Landtagsprojekt München - Palais Leuchtenberg - 8345.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/2012-07-19_-_Landtagsprojekt_M%C3%BCnchen_-_Palais_Leuchtenberg_-_8345.jpg",
+    "sha1": "989a12c2de0f1b2a7d2a26f2a9751ec1c8ef1984",
+    "sha256": "ec9b77ee984b22aea65ada019fa8508f969352724db37d6856012d737c4d36f1",
+    "size": 1181729,
+    "licence": "CC BY-SA 3.0 de",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/3.0/de/deed.en",
+    "author": "Sven Teschke, Büdingen"
+   },
+   {
+    "file": "wall/1.jpg",
+    "title": "File:20240819.Dresden.Robotron-Betriebsgaststätte 018.1.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/20240819.Dresden.Robotron-Betriebsgastst%C3%A4tte_018.1.jpg",
+    "sha1": "f5ed69966fb6d8cfe79c515ebfdb788b4a2d218c",
+    "sha256": "0f6c57fd3fdcb390ad877bb566b37b9557d108dd20929b6debdafd7dcce697a6",
+    "size": 10668730,
+    "licence": "CC BY 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by/4.0",
+    "author": "Bybbisch94"
+   },
+   {
+    "file": "wall/2.jpg",
+    "title": "File:Asakusaken (53586772646).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4d/Asakusaken_%2853586772646%29.jpg",
+    "sha1": "eef730d6e14870fec47e6f1fea31947817dfd6d6",
+    "sha256": "39f7a49c0c3622b4e10f55e2a0cf88687cab7c241df8ee82feced5b7fafc029b",
+    "size": 1677107,
+    "licence": "CC BY 2.0",
+    "licence_url": "https://creativecommons.org/licenses/by/2.0",
+    "author": "lazy fri13th"
+   },
+   {
+    "file": "wall/3.jpg",
+    "title": "File:Augsburg Mattes 2013-05-01 (27).JPG",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Augsburg_Mattes_2013-05-01_%2827%29.JPG",
+    "sha1": "0719a81c23d32b505da671a7cad0db8cd71b16e6",
+    "sha256": "fb84bb995675b81e628173f0a1e458f7e373466de193240eb9c147f97477f393",
+    "size": 3436629,
+    "licence": "CC BY 2.0 de",
+    "licence_url": "https://creativecommons.org/licenses/by/2.0/de/deed.en",
+    "author": "User:Mattes"
+   },
+   {
+    "file": "wall/4.jpg",
+    "title": "File:Bad Rothenfelde, Schüchtermannklinik, Flur 4.JPG",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/71/Bad_Rothenfelde%2C_Sch%C3%BCchtermannklinik%2C_Flur_4.JPG",
+    "sha1": "d68d4e01b20ab9e4572d63eee10e0bf6172d689f",
+    "sha256": "3cf0bd73e53148e82bf19e59b579c6dcf4b64f99846470a061efdef8b3b12b47",
+    "size": 3698107,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Siegfried von Brilon"
+   }
+  ],
+  "beam": [
+   {
+    "file": "beam/0.jpg",
+    "title": "File:150425 Ishitani Residence Chizu Tottori pref Japan29s.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/150425_Ishitani_Residence_Chizu_Tottori_pref_Japan29s.jpg",
+    "sha1": "c9163adcd9efa0663b6622c35b729d7621187887",
+    "sha256": "8dd601c98aa330e35025b606815f8a9b0fdd4c6acf601f07fe6021328df0c4b8",
+    "size": 9444244,
+    "licence": "CC BY 2.5",
+    "licence_url": "https://creativecommons.org/licenses/by/2.5",
+    "author": "663highland"
+   },
+   {
+    "file": "beam/1.jpg",
+    "title": "File:150425 Ishitani Residence Chizu Tottori pref Japan30s.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/150425_Ishitani_Residence_Chizu_Tottori_pref_Japan30s.jpg",
+    "sha1": "d8b6fdeb9dc1f46fb1f60e566b424805dc43be88",
+    "sha256": "f6f93d07790dfbcba4c64ceee6639103df6489709496e565a623681482368fba",
+    "size": 10674433,
+    "licence": "CC BY 2.5",
+    "licence_url": "https://creativecommons.org/licenses/by/2.5",
+    "author": "663highland"
+   },
+   {
+    "file": "beam/2.jpg",
+    "title": "File:Amelio's 6376.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/39/Amelio%27s_6376.jpg",
+    "sha1": "2feaab7578c2ef9edd37c15b06d80ec8cbf8649c",
+    "sha256": "cbe722840fc5b86293c376690209c42ee41235a81edff270710326b959d23ffc",
+    "size": 3446560,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Chris Light"
+   },
+   {
+    "file": "beam/3.jpg",
+    "title": "File:Ceiling, Royal Hawaiian Hotel, Kalakaua Avenue, Waikiki, Honolulu, HI.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Ceiling%2C_Royal_Hawaiian_Hotel%2C_Kalakaua_Avenue%2C_Waikiki%2C_Honolulu%2C_HI.jpg",
+    "sha1": "51b48262073a4457b42ed2448d1eefda4e4d142f",
+    "sha256": "2122d7379db13cbd905d99c0d11a86e40a71849372d182472c68f9d6d3a6272e",
+    "size": 3210493,
+    "licence": "CC BY-SA 2.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "author": "w_lemay"
+   },
+   {
+    "file": "beam/4.jpg",
+    "title": "File:DSC 7573 A long dim corridor in an unfinished or abandoned building with cracked plaster walls and puddles reflecting the ceiling.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/0/07/DSC_7573_A_long_dim_corridor_in_an_unfinished_or_abandoned_building_with_cracked_plaster_walls_and_puddles_reflecting_the_ceiling.jpg",
+    "sha1": "6123fead3cc6849f0a23186fdbcea17deb574d2a",
+    "sha256": "c732afdc063f0d6ec908409644b492c0914623b95ec15d2b5ea9803ed9326558",
+    "size": 11604431,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "PattayaPatrol"
+   }
+  ],
+  "column": [
+   {
+    "file": "column/0.jpg",
+    "title": "File:Interior of Edison works with new concrete columns. (9468135d-cd85-44c9-8f14-40223deb045a).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/8/80/Interior_of_Edison_works_with_new_concrete_columns._%289468135d-cd85-44c9-8f14-40223deb045a%29.jpg",
+    "sha1": "4afb85508282cff7f65ffd6f068ba0305e9f7b52",
+    "sha256": "07db4f23165c392d0ecc7ea1cd91a7e6f9573ca645984dd1bce48e5f8b911f81",
+    "size": 2491246,
+    "licence": "Public domain",
+    "licence_url": "",
+    "author": "Unknown authorUnknown author"
+   },
+   {
+    "file": "column/1.jpg",
+    "title": "File:Second-floor interior of Casa Tribunal de Patnongon - 1.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/Second-floor_interior_of_Casa_Tribunal_de_Patnongon_-_1.jpg",
+    "sha1": "13de6b5b6fe15c033f9360a2d559bb47bb7e8083",
+    "sha256": "d5796bee6b171a037dc57edcbb539cd6f13bcb8ab11c0dbfa9e7c6ee5e079cb1",
+    "size": 265040,
+    "licence": "Public domain",
+    "licence_url": "",
+    "author": "Office of Senator Loren Legarda"
+   },
+   {
+    "file": "column/2.jpg",
+    "title": "File:Interior of Edison works with new concrete columns. (b76760f5-f867-473c-ab90-4ef2720e998b).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Interior_of_Edison_works_with_new_concrete_columns._%28b76760f5-f867-473c-ab90-4ef2720e998b%29.jpg",
+    "sha1": "f636659dec4893980c76671de7b17b843eff6f15",
+    "sha256": "467d4cf4f76daece1b4ad933572bf4f490d6b6000c7438c5f520aab2bdc88e05",
+    "size": 2165095,
+    "licence": "Public domain",
+    "licence_url": "",
+    "author": "Unknown authorUnknown author"
+   },
+   {
+    "file": "column/3.jpg",
+    "title": "File:32 Avenue of the Americas Oct 2025 58.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/8/87/32_Avenue_of_the_Americas_Oct_2025_58.jpg",
+    "sha1": "bb655641f0a44563567f98ed7da454b7e39cdcdf",
+    "sha256": "2b84fa58a2113e82d081fce3272fe89cc7548da907d404e031bbcf290c2899c1",
+    "size": 2513882,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Epicgenius"
+   },
+   {
+    "file": "column/4.jpg",
+    "title": "File:Ali Lokhandwala 2015 (Unsplash).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Ali_Lokhandwala_2015_%28Unsplash%29.jpg",
+    "sha1": "a89f60c2bd4413d789f76cf27ff0d704ec27bcf1",
+    "sha256": "10ed942f0cd55e7bb50f68b07cfd2564d25950e41d07ca773934935285ac5660",
+    "size": 2833433,
+    "licence": "CC0",
+    "licence_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Ali Lokhandwala huestones"
+   }
+  ],
+  "window": [
+   {
+    "file": "window/0.jpg",
+    "title": "File:20121018011DR Dresden-Südvorstadt Hübnerstraße 16A.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/3f/20121018011DR_Dresden-S%C3%BCdvorstadt_H%C3%BCbnerstra%C3%9Fe_16A.jpg",
+    "sha1": "c59a652a88d181cddad991b486384cb9a427e473",
+    "sha256": "8b3c0f11714231350eaaccdd92f268288d6939aeba71d6e5ada0492bc7c4a29a",
+    "size": 1670892,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Jörg Blobelt"
+   },
+   {
+    "file": "window/1.jpg",
+    "title": "File:2013-365-205 Window Reflection Collage (9364454403).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/0/00/2013-365-205_Window_Reflection_Collage_%289364454403%29.jpg",
+    "sha1": "eb8e028d4df214a6b420aaea66b603f62bcb622e",
+    "sha256": "0bd43e11455d1115516970818b81eb0bbdcd053b97c5a73aaf74ae12873c83b5",
+    "size": 5638202,
+    "licence": "CC0",
+    "licence_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "cogdogblog"
+   },
+   {
+    "file": "window/2.jpg",
+    "title": "File:3 Cats in the Window.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/3_Cats_in_the_Window.jpg",
+    "sha1": "e62cf965a75f614585fba10c974e93d6d5326c0d",
+    "sha256": "975a5b92f99ce4bbb6ccf757f4e52d47723534d08ee8ced24d435a9282892546",
+    "size": 8163171,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Eesco9141"
+   },
+   {
+    "file": "window/3.jpg",
+    "title": "File:4 windows.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/1/11/4_windows.jpg",
+    "sha1": "6c3bd921f4a3b337a09ace338fb8ccf3d4302bb9",
+    "sha256": "ce3cc3b7810146acc0e5351916fb62c47fa236681648d1992961a5979ce14eff",
+    "size": 4073183,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Eldmond"
+   },
+   {
+    "file": "window/4.jpeg",
+    "title": "File:500px photo (22803999).jpeg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/500px_photo_%2822803999%29.jpeg",
+    "sha1": "51290d853c53bfb7c3afa96b11243e4188cebe0e",
+    "sha256": "8bece50530df8c7c5a7b4c9894d7032bb255a7bed6766b1d73356bd44b04c108",
+    "size": 783648,
+    "licence": "CC BY 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Jim Hawkins"
+   }
+  ],
+  "door": [
+   {
+    "file": "door/0.jpg",
+    "title": "File:19.Naivasha Toilet inside (4427167994).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/db/19.Naivasha_Toilet_inside_%284427167994%29.jpg",
+    "sha1": "8c59c0352ff65c75fb5bfe81fa754b695fb9c30b",
+    "sha256": "dd377cf76345f166f9e3e95495492b1f9fbdc6b5c998e5b78c27320e744f301a",
+    "size": 84428,
+    "licence": "CC BY 2.0",
+    "licence_url": "https://creativecommons.org/licenses/by/2.0",
+    "author": "SuSanA Secretariat"
+   },
+   {
+    "file": "door/1.jpg",
+    "title": "File:2015-06-11 Internet Archive 12.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/f/f6/2015-06-11_Internet_Archive_12.jpg",
+    "sha1": "e8e626e3660f615901f467f23fcb9636d6b4f349",
+    "sha256": "3a4e66f2baf49bafecd655cc5f9cd9fc4f94454a012a5a82674a8e40c2a0bbe4",
+    "size": 7054395,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Nemo bis"
+   },
+   {
+    "file": "door/2.jpg",
+    "title": "File:A end door and drains at a bathroom at a local peter pan's play area.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/9/99/A_end_door_and_drains_at_a_bathroom_at_a_local_peter_pan%27s_play_area.jpg",
+    "sha1": "b6b63d8bfe5b16012ac52531c538c3181731d9b7",
+    "sha256": "b35b1c7f6af5df5171684d1919a3ee8ab362c57b019c8ca426de2c5e41d6d6de",
+    "size": 2087528,
+    "licence": "CC BY 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by/3.0",
+    "author": "AguyfromacityinNL"
+   },
+   {
+    "file": "door/3.jpg",
+    "title": "File:Apto no Edificio Bretagne (22671405680).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/be/Apto_no_Edificio_Bretagne_%2822671405680%29.jpg",
+    "sha1": "cccb27c011bb1dac48da5955725248a0f18c0659",
+    "sha256": "66462aa62339eb47a3b3da6f4ca26f8d7ab67e22455e6de0034020df9c24a7dc",
+    "size": 900561,
+    "licence": "CC BY-SA 2.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "author": "Wagner Tamanaha from Sao Paulo, Brazil"
+   },
+   {
+    "file": "door/4.jpg",
+    "title": "File:Bautuer.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Bautuer.jpg",
+    "sha1": "e875fab5c5b94b02767159fad02370535de72884",
+    "sha256": "a5e24c06c33f10113de536fb9985b4687299f2672301c6b7f2a5c493754e443d",
+    "size": 3489585,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Arnoldius"
+   }
+  ],
+  "table": [
+   {
+    "file": "table/0.jpg",
+    "title": "File:Arbeitsplatz Christian Michelides (Wien).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Arbeitsplatz_Christian_Michelides_%28Wien%29.jpg",
+    "sha1": "d738eca99a224f65792e2cec1069a1990686ebdf",
+    "sha256": "55bb1b4099a47128266567301c1b31944dbf2d5888d30e7708b9a8b891864a3d",
+    "size": 1865134,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Christian Michelides"
+   },
+   {
+    "file": "table/1.jpg",
+    "title": "File:Big Desk Home Office Carrollton New Orleans.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/77/Big_Desk_Home_Office_Carrollton_New_Orleans.jpg",
+    "sha1": "c45028e2aca91310fcc8c3df4d217e5dce129ad3",
+    "sha256": "0f75787edf3a39a70b3cef572180a2bafb07f20e7bd24ae087f622f18ec45d65",
+    "size": 175736,
+    "licence": "CC BY 2.0",
+    "licence_url": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Infrogmation of New Orleans"
+   },
+   {
+    "file": "table/2.jpg",
+    "title": "File:Büro erich mielke2.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/B%C3%BCro_erich_mielke2.jpg",
+    "sha1": "680b132c9ae4e317b8da96326e4dcc57e5d8f2a3",
+    "sha256": "ee7257fcb0d6f557bf2870968604e7c260368a5b82b362831026cdc3c54e7c7a",
+    "size": 781799,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Volker Plass (Wien)"
+   },
+   {
+    "file": "table/3.jpg",
+    "title": "File:Büro erich mielke5.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/e/eb/B%C3%BCro_erich_mielke5.jpg",
+    "sha1": "ff9a719c25c84789ef0d23d6cde1306b171577eb",
+    "sha256": "02f8a5ad19e19f77b6177d331baa83ed9bf2a8ff1be4ca0daf7511dc761cd9f5",
+    "size": 705093,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Volker Plass (Wien)"
+   },
+   {
+    "file": "table/4.jpg",
+    "title": "File:Desktop with laptop and calculator (Unsplash).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/23/Desktop_with_laptop_and_calculator_%28Unsplash%29.jpg",
+    "sha1": "172b96ed902047227cbe7e741f57a38cb03a2374",
+    "sha256": "af589f564954f165c05c138b03585c7bb92b824239adfe815416c78e0055f5b0",
+    "size": 1973302,
+    "licence": "CC0",
+    "licence_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "AnonymousUnknown author"
+   }
+  ],
+  "chair": [
+   {
+    "file": "chair/0.jpg",
+    "title": "File:Aeron Chair at Design Show 2003.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/b6/Aeron_Chair_at_Design_Show_2003.jpg",
+    "sha1": "352a2c57af975bfd4c344ab410152ea18d1bd229",
+    "sha256": "3def64441a5063564e05dc1560cba23cb05f2e5b39ad3572be8cf50fc12fbfe3",
+    "size": 144688,
+    "licence": "CC BY 2.0",
+    "licence_url": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Rich"
+   },
+   {
+    "file": "chair/1.jpg",
+    "title": "File:At Tenerife 2023 1613.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/At_Tenerife_2023_1613.jpg",
+    "sha1": "dbc4f83989849e117c0ed4764de632782eb16040",
+    "sha256": "5872226bb30125b5e4af699d1f6f97a93666d9244f42d66b96897157b3ab9cf6",
+    "size": 8110433,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Photograph by Mike Peel (www.mikepeel.net)."
+   },
+   {
+    "file": "chair/2.jpg",
+    "title": "File:Buerostuhl (fcm).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Buerostuhl_%28fcm%29.jpg",
+    "sha1": "a1ba2356e89795bbf5fcacac0e42f933ef164bf3",
+    "sha256": "f853990f0db9980258affed4d2ebcaf91c67ff286b3291e15fef228be2538246",
+    "size": 1700201,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Photograph:  Frank C. Müller, Baden-Baden"
+   },
+   {
+    "file": "chair/3.jpg",
+    "title": "File:Bungee chair.JPG",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/1/1f/Bungee_chair.JPG",
+    "sha1": "67c18479ca2b12c55935938965ddc3ebf640c309",
+    "sha256": "507199edf4a7ccd2fa4b3f0c2ac282f8875eb9984840172fbbbc05e496b532c4",
+    "size": 288072,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "The original uploader was Hummingbird04 at English Wikipedia."
+   },
+   {
+    "file": "chair/4.jpg",
+    "title": "File:Eric d.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Eric_d.jpg",
+    "sha1": "0f8b4c5de741dca6d05159d889eb2b69e169b708",
+    "sha256": "0ed52fbe76531ebcee00741772d9b878ec941054a5665b28e71555ed4dc59c4d",
+    "size": 2050836,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Acshop1"
+   }
+  ],
+  "sofa": [
+   {
+    "file": "sofa/0.jpg",
+    "title": "File:2023 - Developer Lounge ENZ 1299 (53329943534).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/a9/2023_-_Developer_Lounge_ENZ_1299_%2853329943534%29.jpg",
+    "sha1": "7f5e1b4585f86bbfe28ce684a3288ce469d96fc5",
+    "sha256": "75d18acb469d2915b5e6da82c426f83c5b3d3f718362eea58391df5856c721f1",
+    "size": 4771180,
+    "licence": "CC BY 2.0",
+    "licence_url": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Web Summit"
+   },
+   {
+    "file": "sofa/1.jpeg",
+    "title": "File:500px photo (26110557).jpeg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/ad/500px_photo_%2826110557%29.jpeg",
+    "sha1": "81695a3e710f38a13e9a47272851e9ef695f5e68",
+    "sha256": "fe4447b08e030b2561b1b91fe985ef0fef65d112bf8b80428274fd66d4a50b7e",
+    "size": 162402,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Will Szal"
+   },
+   {
+    "file": "sofa/2.jpg",
+    "title": "File:516B-INGDiBaNewOffice-127.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/df/516B-INGDiBaNewOffice-127.jpg",
+    "sha1": "0e19f92e8e4d8d2cf8921bf01a2779479af3180e",
+    "sha256": "4f2ccbcc7c29650b008d2edb1a1d4d27a047292e952b3ed7936cf0ffa5595ef3",
+    "size": 1807446,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "INGAustria"
+   },
+   {
+    "file": "sofa/3.jpg",
+    "title": "File:Belizesofa.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Belizesofa.jpg",
+    "sha1": "6cceef29f91e971d14b76a3c07b8a41f2fda7d99",
+    "sha256": "b615123923d440fff72b2b1a180b6b5beec9be5eaa9ec09209c0fcb710520bab",
+    "size": 3302987,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Belizesofa"
+   },
+   {
+    "file": "sofa/4.jpg",
+    "title": "File:Black-couch-furniture-living-room (24300316346).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Black-couch-furniture-living-room_%2824300316346%29.jpg",
+    "sha1": "d59eb06688db677a512f17729998269bae0fbaa2",
+    "sha256": "afbbf915b5d6a0e0d5992450e4e92e0620d8d58f1f1a837774b1f0c3273e20d6",
+    "size": 5788674,
+    "licence": "CC0",
+    "licence_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "www.Pixel.la Free Stock Photos"
+   }
+  ],
+  "bookcase": [
+   {
+    "file": "bookcase/0.jpg",
+    "title": "File:Beautiful showcase made up of wood.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/2e/Beautiful_showcase_made_up_of_wood.jpg",
+    "sha1": "e7d93334fd6fdef0f03ad7583304dccd4c83e014",
+    "sha256": "89cfea1feb4aa71fd412cf91c890c1b0afd0fe07aeed017a100571e203fc5e33",
+    "size": 2328497,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Medhi jyoti"
+   },
+   {
+    "file": "bookcase/1.jpg",
+    "title": "File:Billy Bookcase (cropped).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/6/63/Billy_Bookcase_%28cropped%29.jpg",
+    "sha1": "99f3bfd1a9232bb92b6c525f9e585c895060e1fb",
+    "sha256": "28847aac91322bce8680f3b6a7dd54a41aca54b370653f17a17921f68f125bcd",
+    "size": 142454,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Nathan Kramer"
+   },
+   {
+    "file": "bookcase/2.jpg",
+    "title": "File:Billy Bookcase.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Billy_Bookcase.jpg",
+    "sha1": "4e3e023082cb7561b958a700a2741f18361356e5",
+    "sha256": "4eef20060472b1a31ba51a7c982c55bf03933a929ef59c5352fb4b2f973925ee",
+    "size": 191189,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Nathan Kramer"
+   },
+   {
+    "file": "bookcase/3.jpg",
+    "title": "File:Boekenkastleeszaalwest.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/76/Boekenkastleeszaalwest.jpg",
+    "sha1": "9d208ec76322f4818435be3382869f6a85f4a9fe",
+    "sha256": "40af56d1b5603d9f7ece56d913ffb254cc16ef8ca462871dd482b68c1c4d965d",
+    "size": 1618613,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Vacca13"
+   },
+   {
+    "file": "bookcase/4.jpg",
+    "title": "File:Book case, Trinity College, Dublin.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/1/12/Book_case%2C_Trinity_College%2C_Dublin.jpg",
+    "sha1": "c7ddbc797a87938fcc51d7083322fc7e4acf56d3",
+    "sha256": "eeede47821af5a3be62297474ef94af8c8a4c18bd22d8435daa375bfd1847bf4",
+    "size": 3660185,
+    "licence": "CC0",
+    "licence_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Malte Baumann maltebaumann"
+   }
+  ],
+  "board": [
+   {
+    "file": "board/0.jpg",
+    "title": "File:2 separated whiteboards.JPG",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/3a/2_separated_whiteboards.JPG",
+    "sha1": "011076ea56298439e4cb570032f97ce27cdb3465",
+    "sha256": "675b18259b8c09f59bf32ff81381b75198570f05df4c7c939eb7a78b2d2347de",
+    "size": 1798752,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "BrokenSphere"
+   },
+   {
+    "file": "board/1.jpg",
+    "title": "File:A white board.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/5/51/A_white_board.jpg",
+    "sha1": "26eaf07111ad09ff837b812ffad32fa735328f6b",
+    "sha256": "05f275194f990435e84a54dc51e1898ef99cbc22a94591e2955cffac59fea4c1",
+    "size": 3511380,
+    "licence": "CC0",
+    "licence_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Umar2z"
+   },
+   {
+    "file": "board/2.jpg",
+    "title": "File:After! (4910467658).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/1/1b/After%21_%284910467658%29.jpg",
+    "sha1": "6e3006b7e2f9e4c8fb100cec0706d46931779074",
+    "sha256": "c4e2921676c3646166c490cd48df6db170a846bdf86f70eb35204b835f255561",
+    "size": 1891609,
+    "licence": "CC BY 2.0",
+    "licence_url": "https://creativecommons.org/licenses/by/2.0",
+    "author": "University of Scranton Weinberg Memorial Library from Scranton, Pennsylvania"
+   },
+   {
+    "file": "board/3.jpg",
+    "title": "File:Bang-di-dong-hinhchatluongcao.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/e/eb/Bang-di-dong-hinhchatluongcao.jpg",
+    "sha1": "3d16acf33ac833bdb64ef4264d00208670b05451",
+    "sha256": "935621fa1e259cb1458a2e3aaaa1eb0be6cfd6b91e22f1a5181ffb36717c40ca",
+    "size": 2160010,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Bavico"
+   },
+   {
+    "file": "board/4.jpg",
+    "title": "File:Blank whiteboard.JPG",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Blank_whiteboard.JPG",
+    "sha1": "7552b03ebd2aff01ef86f055ffe497734562f4e3",
+    "sha256": "af6451ea0d569cb3ab56d188194f8f5c16a5c6ff45f12b00ee19dec45bf1e16d",
+    "size": 720286,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "BrokenSphere"
+   }
+  ],
+  "clutter": [
+   {
+    "file": "clutter/0.jpg",
+    "title": "File:Arbeitssitzung WIKI 23 10 2012.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Arbeitssitzung_WIKI_23_10_2012.jpg",
+    "sha1": "f7fc3294776a482e3d550c04a7353d92233bd5ac",
+    "sha256": "addc5c80ed628ddd5a89afb34be8d911756790a0b152f17b9ad6fb33323e8cf2",
+    "size": 1943604,
+    "licence": "CC BY-SA 3.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Michael Matzigkeit"
+   },
+   {
+    "file": "clutter/1.jpg",
+    "title": "File:Bàn học của em Hiền tại Hóc Môn năm 2016 (1).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/da/B%C3%A0n_h%E1%BB%8Dc_c%E1%BB%A7a_em_Hi%E1%BB%81n_t%E1%BA%A1i_H%C3%B3c_M%C3%B4n_n%C4%83m_2016_%281%29.jpg",
+    "sha1": "8af50f255614e9df2c81809e2fe363aae99d8919",
+    "sha256": "ced5a58c24a73d8c854fb6f8ac2f8fe3c8ef780ecf38fdea9e166eefafda9149",
+    "size": 2391518,
+    "licence": "Public domain",
+    "licence_url": "",
+    "author": "Phương Huy (thảo luận)"
+   },
+   {
+    "file": "clutter/2.jpg",
+    "title": "File:Engineering in Africa.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/73/Engineering_in_Africa.jpg",
+    "sha1": "98d628b8cf05cbe2270ad385824f0298ed7ae120",
+    "sha256": "ecf147e6cafe2406595cb190fb72aac5dadb8f3fd8796dec4569615c23ecec04",
+    "size": 5059448,
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Solomonope"
+   },
+   {
+    "file": "clutter/3.jpg",
+    "title": "File:1999-Kienzle-Dia (611).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/0/09/1999-Kienzle-Dia_%28611%29.jpg",
+    "sha1": "aa2f62651a67171225eed8a9a7969f62d784d55a",
+    "sha256": "972359dd2ed2c14c59087d761976e4d284dbb864102c37639ffc4596285205ef",
+    "size": 238564,
+    "licence": "CC BY 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by/4.0",
+    "author": "Helmut Kienzle"
+   },
+   {
+    "file": "clutter/4.jpg",
+    "title": "File:2013-08-31 17.14.48 컴퓨터 책상.jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/a2/2013-08-31_17.14.48_%EC%BB%B4%ED%93%A8%ED%84%B0_%EC%B1%85%EC%83%81.jpg",
+    "sha1": "253e3d6cf431f1d33b51741c570ab1913a640ce5",
+    "sha256": "9a214278032a0f33cf8e24abbf7964ebf9ed827e4824acecb28dab683fc9e57e",
+    "size": 1705102,
+    "licence": "CC0",
+    "licence_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "최광모 (Choe Kwangmo)"
+   }
+  ]
+ }
+}

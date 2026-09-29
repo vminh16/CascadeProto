@@ -102,8 +102,6 @@ def test_cp5_d10_ablation_flags():
 
 @pytest.mark.parametrize("config,phase", [(CascadeProtoConfig(num_stages=2, use_adrm=False, cross_attn="two_hop"), "two_hop"),
                                           (CascadeProtoConfig(num_stages=1, diffusion_input="pre_relu"), "pre_relu"),
-                                          (CascadeProtoConfig(num_stages=0, modality="audio"), "modality 'audio'"),
-                                          (CascadeProtoConfig(num_stages=0, modality="image"), "modality 'image'"),
                                           (CascadeProtoConfig(num_stages=0, eval_noise="mean_of_M"), "mean_of_M")])
 def test_cp6_unimplemented_configurations_raise(config, phase):
     with pytest.raises(NotImplementedError, match=phase):

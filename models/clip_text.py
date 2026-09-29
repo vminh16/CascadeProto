@@ -15,6 +15,7 @@ CLIP_DIM = 512  # [PAPER §4.1]
 BACKGROUND_PROMPT = "This point cloud represents the background."  # [DECISION D-13]
 
 _LOADED: Dict[str, torch.nn.Module] = {}  # variant -> frozen CLIP model, one per process
+PREPROCESS: Dict[str, Callable] = {}  # variant -> CLIP's own image preprocessing [DECISION D-47]
 LOAD_COUNT = {"n": 0}  # number of clip.load calls in this process (test EP-5)
 
 
@@ -35,11 +36,12 @@ def load_clip(variant: str, device: torch.device) -> torch.nn.Module:
 
         if variant not in clip.available_models():
             raise ValueError(f"unknown CLIP variant {variant!r}; available: {clip.available_models()}")
-        model, _ = clip.load(variant, device=device, jit=False)
+        model, preprocess = clip.load(variant, device=device, jit=False)
         model.eval()
         for p in model.parameters():
             p.requires_grad_(False)
         _LOADED[variant] = model
+        PREPROCESS[variant] = preprocess
         LOAD_COUNT["n"] += 1
     return _LOADED[variant]
 

@@ -198,7 +198,7 @@ Fixture: `B_q = 2`, N = 2, K = 2, D = 128; `F^s`, `F^q` non-negative (after ReLU
 | :--- | :--- | :--- |
 | ABL-1 | Each row of the D-17 table runs forward/backward and produces the prescribed prediction tensor (`F^q P_pointᵀ`, `F^q (P^0)ᵀ`, `L^1`, `L^4`, `L_final`), compared with the written-out references to 1e-11 | 01 §3, [DECISION D-17] |
 | ABL-2 | `num_stages` ∈ {1..6} gives `w_gate` of width `num_stages` (no ADRM at T = 1). Mutation check of the wiring (2026-09-19): 6/6 wrong variants killed (ADRM never built, `use_adrm` ignored, a stage dropped from the routing, weights from support features, first stage without ADRM, stage logits from P^0) | 01 §3, [PAPER Tab.5] |
-| ABL-3 | `modality=image` and `modality=audio` raise `NotImplementedError` | 03 §2.2 |
+| ABL-3 | `modality=text`, `image` and `audio` each build their own front-end (changed by D-47; before, image and audio raised) | 03 §2.2, [DECISION D-47] |
 
 ### 3.6b `tests/test_cascadeproto.py` (G1)
 
@@ -707,6 +707,21 @@ Mutation check (2026-09-29): 12 mutants of `pipeline/episodes.py`, `train.py`, `
 `models/cascadeproto.py` and `experiments/d49_eval.py`, 12 killed (CB-7's fixed100-sign case and the first-way mixing
 mutant were added after a first pass left two survivors).
 
+### 3.8z `tests/test_modalities.py` (G1) — the class-level image and audio front-ends [DECISION D-47]
+
+| ID | Check | Source |
+| :--- | :--- | :--- |
+| MOD-1 | The manifest lists 5 images for each S3DIS class and the background, 70 distinct files, open licences only, an author, Wikimedia's sha1 and a recorded sha256 | [DECISION D-47] |
+| MOD-2 | Image rows: [N+1, 512], float32, unit norm, row 0 = background, each row the renormalised mean of its images' unit rows | [DECISION D-47] |
+| MOD-3 | The image row ignores the order of the images; each class is encoded once | [DECISION D-47] |
+| MOD-4 | An unknown class, an altered image (sha256) or a missing file raises | [DECISION D-47] |
+| MOD-5 | The audio row equals the text row when the transcript differs from the prompt only in case and punctuation; unit rows | [DECISION D-47] |
+| MOD-6 | The audio front-end logs each transcript and whether it is exact | [DECISION D-47] |
+| MOD-7 | A missing `espeak-ng` raises | [DECISION D-47] |
+| MOD-8 | The factory builds all three front-ends and raises on an unknown modality | [DECISION D-13] [DECISION D-47] |
+
+ABL-3, CP-6 and PIPE-6 changed with D-47: image and audio now build their front-ends instead of raising.
+
 ### 3.9 `tests/test_episode.py` (G3, marker `clip`)
 
 Fixture: one synthetic episode with exactly the loader contract (04 §4.3), real CLIP embeddings for S3DIS class names, the full model in float32. The VIP-Seg encoder is the per-point stand-in (it needs CUDA), so G3 also runs on a CPU-only machine.
@@ -743,7 +758,7 @@ Before DATA-0…4, `python preprocess/verify_s3dis.py` compares the prepared blo
 | PIPE-3 | The loss is unweighted CE on `L_final` plus λ·`L_GMMN`; wrong logit shapes raise | 02 §7 |
 | PIPE-4 | One optimiser step uses the mean loss of the 4 episodes | 02 §7, [DECISION D-12] |
 | PIPE-5 | Default schedule: S3DIS 50×480, ScanNet 30×800 episodes (24,000), 4 per step, AdamW 1e-3 / 0.1, StepLR 10 / 0.5 | 04 §5 |
-| PIPE-6 | `eval.py` refuses a missing checkpoint; unimplemented modalities raise; switch defaults are the full model | 04 §6, 03 §2.2, 01 §3 |
+| PIPE-6 | `eval.py` refuses a missing checkpoint; `--modality audio` passes the configuration check and selects the audio front-end (changed by D-47); switch defaults are the full model | 04 §6, 03 §2.2, 01 §3, [DECISION D-47] |
 | PIPE-7 | `eval.py` rebuilds the configuration stored in the checkpoint (not its own CLI) and reproduces the logits exactly | 01 §3 |
 | PIPE-8 | With the same seed the valid and test sets see different random draws; the test set keeps the plain seed; the caller's random state is restored | 04 §6.1, D-15 |
 

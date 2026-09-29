@@ -37,6 +37,21 @@ from pipeline.episodes import Episode
 from pipeline.model_api import EpisodeOutput
 
 MODALITIES = ("text", "image", "audio")  # 03 §2
+
+
+def modality_embedding(modality: str, variant: str = DEFAULT_CLIP_VARIANT):
+    """The class-level front-end of `modality`: class names -> E_CLIP [N+1, 512] [DECISION D-13] [D-47]."""
+    if modality == "text":
+        return ClipTextEmbedding(variant)
+    if modality == "image":
+        from models.clip_image import ClipImageEmbedding
+
+        return ClipImageEmbedding(variant)
+    if modality == "audio":
+        from models.clip_audio import ClipAudioEmbedding
+
+        return ClipAudioEmbedding(variant)
+    raise ValueError(f"unknown modality {modality!r}; one of {MODALITIES}")
 STAGE_TYPES = ("eppm", "eppm_s", "vip", "vip_clean", "corr")  # [DECISION D-24] [D-25] [D-37] [D-48], beyond the paper
 VIP_STAGES = {"vip": "native", "vip_clean": "clean"}  # stage type -> cross-term form [DECISION D-36]
 # Switches that only mean something for the printed EPPM stage; a non-default value with another
@@ -142,8 +157,6 @@ class CascadeProtoConfig:
                 raise ValueError(f"{name} must be one of {allowed}, got {value!r}")
 
     def check_implemented(self) -> None:
-        if self.use_lma and self.modality != "text":
-            raise NotImplementedError(f"modality {self.modality!r} is not implemented yet (03 §2.2)")
         if self.stage_type != "eppm":  # switches of the printed stage that another stage cannot honour
             defaults = CascadeProtoConfig()
             ignored = [f for f in EPPM_ONLY if getattr(self, f) != getattr(defaults, f)]
@@ -204,7 +217,8 @@ class CascadeProto(nn.Module):
         if config.use_lma:
             self.lma = LearnableModalityAdapter(eval_noise=config.eval_noise)
             # Frozen CLIP stays outside the module tree: not in state_dict, untouched by .to()/.double() (03 §2.1)
-            self.text = text_embedding if text_embedding is not None else ClipTextEmbedding(config.clip_variant)
+            self.text = text_embedding if text_embedding is not None else modality_embedding(config.modality,
+                                                                                             config.clip_variant)
         # T stages with their own parameters [PAPER §3.5] [DECISION D-16]; the correlation head replaces them [D-48]
         self.corr = None
         if config.stage_type == "corr":
