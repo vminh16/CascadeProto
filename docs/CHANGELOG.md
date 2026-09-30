@@ -1972,3 +1972,10 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   teacher; all ≤ +1 → the method line closes) and D50.1–D50.3 (M6 − CR ≥ +2 on fixed100 and ≥ 0 leak-free → adopt),
   fixed before any code.
 
+
+### 16bk - benchmark paper draft (research note, no code)
+
+* **What.** `docs/research/2026-09-30_benchmark_paper_draft.md`: a short paper-form draft of the protocol audit
+  (seen-class scoring, the query-position shortcut, the density cue, what remains on the clean base, an audit
+  evaluation), with every number traced to a result file in its Appendix A. Internal draft, not for submission;
+  open checks listed in its §9.
