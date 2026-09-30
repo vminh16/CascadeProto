@@ -1986,3 +1986,5 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   one EPPM stage) drawn from the route-A code only (no phase-16 module), rendered to
   `docs/research/figures/2026-09-30_route_a_{overview,eppm}.png`, and a block-by-block table against Fig. 2 with
   file:line sources and the decisions behind each reading.
+* **16bl addendum.** A Fig.-2-style figure of the same route-A model, with red notes where the code makes the paper's
+  figure explicit or departs from it: `docs/research/figures/2026-09-30_route_a_fig2_style.{svg,png}`.

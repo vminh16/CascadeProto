@@ -17,6 +17,10 @@ Cấu hình mặc định của model đầy đủ (hàng "+ ADRM" của Table 4
 
 ## 1. Sơ đồ kiến trúc tái lập
 
+**Hình kiểu Fig. 2 của paper, vẽ theo bản tái lập:** [PNG](figures/2026-09-30_route_a_fig2_style.png) · [SVG, sửa được](figures/2026-09-30_route_a_fig2_style.svg)
+
+![route A theo kiểu Fig. 2](figures/2026-09-30_route_a_fig2_style.png)
+
 Ảnh render sẵn: [toàn bộ model](figures/2026-09-30_route_a_overview.png), [một stage EPPM](figures/2026-09-30_route_a_eppm.png). Mã Mermaid bên dưới hiển thị trực tiếp trên GitHub.
 
 ```mermaid
