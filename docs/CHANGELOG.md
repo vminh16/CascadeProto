@@ -1979,3 +1979,10 @@ under the standard protocol. Every change is behind a flag whose default keeps t
   (seen-class scoring, the query-position shortcut, the density cue, what remains on the clean base, an audit
   evaluation), with every number traced to a result file in its Appendix A. Internal draft, not for submission;
   open checks listed in its §9.
+
+### 16bl - route-A architecture diagram against the paper's Fig. 2 (research note, no code)
+
+* **What.** `docs/research/2026-09-30_reproduction_architecture_vs_paper.md` with two Mermaid diagrams (whole model;
+  one EPPM stage) drawn from the route-A code only (no phase-16 module), rendered to
+  `docs/research/figures/2026-09-30_route_a_{overview,eppm}.png`, and a block-by-block table against Fig. 2 with
+  file:line sources and the decisions behind each reading.
